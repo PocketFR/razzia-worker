@@ -1,0 +1,6 @@
+# Copier en .dev.vars pour le développement local (jamais versionné).
+# En production : wrangler secret put RAZZIA_MASTER_KEY
+#
+# Cette clé ne chiffre ni ne signe rien directement : deux clés en sont
+# dérivées, une pour les sessions animateur, une pour les clés API.
+RAZZIA_MASTER_KEY=cle-de-developpement-local-sans-valeur

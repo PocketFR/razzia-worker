@@ -30,5 +30,9 @@
     }
   ],
 
+  // Domaine dédié : l'ancienne pile reste en service sur son propre nom
+  // pendant toute la durée du portage, pour pouvoir comparer les deux.
+  "routes": [{ "pattern": "quiz.exemple.fr", "custom_domain": true }],
+
   "observability": { "enabled": true }
 }

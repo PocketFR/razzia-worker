@@ -12,3 +12,5 @@ packages/worker/seed.sql
 # État local de wrangler (D1 local, journaux)
 .wrangler/
 # Généré par scripts/seed-from-config.mjs, contient le mot de passe manager
+# Secrets de développement local
+.dev.vars

@@ -32,12 +32,17 @@
  * réveille plus aucun Durable Object.
  */
 
+import { routerApi } from "./api"
+
 export { GameRoom } from "./game-room"
 
 export interface Env {
   ASSETS: Fetcher
   DB: D1Database
   GAME_ROOM: DurableObjectNamespace
+  /* Secret. Ne sert jamais telle quelle : deux clés en sont dérivées, une
+     pour signer les sessions, une pour chiffrer les clés API. */
+  RAZZIA_MASTER_KEY: string
 }
 
 const json = (data: unknown, status = 200) =>
@@ -55,7 +60,7 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/")) {
-      return json({ error: "not implemented" }, 501)
+      return routerApi(request, env, url)
     }
 
     if (url.pathname.startsWith("/ia/")) {
@@ -70,7 +75,11 @@ export default {
 } satisfies ExportedHandler<Env>
 
 /** Aiguille la WebSocket vers l'objet de la partie visée. */
-function routerVersLaPartie(request: Request, env: Env, url: URL): Response {
+function routerVersLaPartie(
+  request: Request,
+  env: Env,
+  url: URL,
+): Response | Promise<Response> {
   if (request.headers.get("upgrade") !== "websocket") {
     return new Response("Expected websocket", { status: 426 })
   }

@@ -6,18 +6,21 @@
   },
   "game": {
     "expired": "Game expired",
+    "failedToCreate": "Failed to create the game",
     "kickedByManager": "You have been kicked by the manager",
     "managerAlreadyConnected": "Manager already connected",
+    "managerCannotJoin": "You cannot join your own game",
     "managerDisconnected": "Manager disconnected",
     "noPlayersConnected": "No players connected",
-    "managerCannotJoin": "You cannot join your own game",
     "notFound": "Game not found",
     "playerAlreadyConnected": "Player already connected"
   },
   "manager": {
     "failedToReadConfig": "Failed to read game config",
     "invalidPassword": "Invalid password",
-    "passwordNotConfigured": "Manager password is not configured"
+    "masterKeyMissing": "Server is missing its master key",
+    "passwordNotConfigured": "Manager password is not configured",
+    "unauthorized": "Not authorised"
   },
   "notFound": {
     "back": "Go back home",
@@ -36,6 +39,9 @@
     "subjectEmpty": "Subject cannot be empty",
     "tooFewAnswers": "A question must have at least 2 answers",
     "tooManyAnswers": "A question cannot have more than 4 answers"
+  },
+  "results": {
+    "notFound": "Result not found"
   },
   "route": {
     "back": "Go back home",

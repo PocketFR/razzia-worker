@@ -26,13 +26,17 @@
  */
 
 import type {
-  GameConfig,
   GameResult,
   GameResultMeta,
   QuizzWithId,
 } from "@razzia/common/types/game"
 import { quizzValidator } from "@razzia/common/validators/quizz"
 import { nanoid } from "nanoid"
+
+// Local, comme en amont : le type n'est pas exporté depuis @razzia/common.
+interface GameConfig {
+  managerPassword: string
+}
 
 export interface ConfigService {
   getGameConfig(): Promise<GameConfig>
@@ -59,7 +63,7 @@ export const createConfigService = (db: D1Database): ConfigService => ({
       throw new Error("Game config not found")
     }
 
-    return { managerPassword: row.value } as GameConfig
+    return { managerPassword: row.value }
   },
 
   // Le listage ne touche plus au JSON : le sujet est une colonne. C'est ce qui

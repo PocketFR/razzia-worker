@@ -6,18 +6,21 @@
   },
   "game": {
     "expired": "La partie a expiré",
+    "failedToCreate": "La création de la partie a échoué",
     "kickedByManager": "Vous avez été expulsé par le manager",
     "managerAlreadyConnected": "Un manager est déjà connecté",
+    "managerCannotJoin": "Vous ne pouvez pas rejoindre votre propre partie",
     "managerDisconnected": "Le manager s'est déconnecté",
     "noPlayersConnected": "Aucun joueur connecté",
-    "managerCannotJoin": "Vous ne pouvez pas rejoindre votre propre partie",
     "notFound": "Partie introuvable",
     "playerAlreadyConnected": "Ce joueur est déjà connecté"
   },
   "manager": {
     "failedToReadConfig": "Impossible de lire la configuration",
     "invalidPassword": "Mot de passe invalide",
-    "passwordNotConfigured": "Mot de passe manager non configuré"
+    "masterKeyMissing": "Le serveur n'a pas de clé maîtresse",
+    "passwordNotConfigured": "Mot de passe manager non configuré",
+    "unauthorized": "Non autorisé"
   },
   "notFound": {
     "back": "Retour à l'accueil",
@@ -36,6 +39,9 @@
     "subjectEmpty": "Le sujet ne peut pas être vide",
     "tooFewAnswers": "Une question doit avoir au moins 2 réponses",
     "tooManyAnswers": "Une question ne peut pas avoir plus de 4 réponses"
+  },
+  "results": {
+    "notFound": "Résultat introuvable"
   },
   "route": {
     "back": "Retour à l'accueil",
