@@ -10,6 +10,7 @@ import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useEffect, useState } from "react"
+import { useDecompte } from "@razzia/web/features/game/hooks/use-decompte"
 import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
 
@@ -18,12 +19,21 @@ interface Props {
 }
 
 const Answers = ({
-  data: { question, answers, media, time, totalPlayer, questionType, options },
+  data: {
+    question,
+    answers,
+    media,
+    time,
+    endsAt,
+    totalPlayer,
+    questionType,
+    options,
+  },
 }: Props) => {
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
 
-  const [cooldown, setCooldown] = useState(time)
+  const cooldown = useDecompte(endsAt, time)
   const [totalAnswer, setTotalAnswer] = useState(0)
   const { t } = useTranslation()
 
@@ -68,10 +78,6 @@ const Answers = ({
     }
     // oxlint-disable-next-line
   }, [playMusic])
-
-  useEvent(EVENTS.GAME.COOLDOWN, (sec) => {
-    setCooldown(sec)
-  })
 
   useEvent(EVENTS.GAME.PLAYER_ANSWER, (count) => {
     setTotalAnswer(count)

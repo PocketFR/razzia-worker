@@ -1,6 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import { useEvent } from "@razzia/web/features/game/contexts/socket-context"
+import { useDecompte } from "@razzia/web/features/game/hooks/use-decompte"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
 import { useState } from "react"
@@ -12,21 +13,20 @@ interface Props {
 
 const Start = ({ data: { time, subject } }: Props) => {
   const [showTitle, setShowTitle] = useState(true)
-  const [cooldown, setCooldown] = useState(time)
+  const [finAt, setFinAt] = useState<number | null>(null)
 
   const [sfxBoump] = useSound(SFX.BOUMP_SOUND, {
     volume: 0.2,
   })
 
-  useEvent(EVENTS.GAME.START_COOLDOWN, () => {
+  useEvent(EVENTS.GAME.START_COOLDOWN, ({ endsAt }) => {
     sfxBoump()
     setShowTitle(false)
+    setFinAt(endsAt)
   })
 
-  useEvent(EVENTS.GAME.COOLDOWN, (sec) => {
-    sfxBoump()
-    setCooldown(sec)
-  })
+  // Le serveur n'égrène plus les secondes : il a donné l'échéance, on la rend.
+  const cooldown = useDecompte(finAt, time, sfxBoump)
 
   return (
     <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center">

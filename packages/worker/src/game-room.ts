@@ -25,9 +25,21 @@
  */
 
 import { EVENTS } from "@razzia/common/constants"
-import type { Player, QuizzWithId } from "@razzia/common/types/game"
+import type { GameResult, Player, QuizzWithId } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
 import { usernameValidator } from "@razzia/common/validators/auth"
+import {
+  avancer,
+  demarrer,
+  estDerniereQuestion,
+  mancheNeuve,
+  montrerResultats,
+  questionSuivante,
+  repondre,
+  type ContextePartie,
+  type Emetteur,
+  type Manche,
+} from "./game/round"
 import type { Env } from "./index"
 
 export interface Attachement {
@@ -35,13 +47,20 @@ export interface Attachement {
   role: "manager" | "player"
 }
 
+type Statut = { name: string; data: unknown }
+
 interface EtatPartie {
   gameId: string
   quizz: QuizzWithId
   managerClientId: string
   players: Player[]
-  /** Dernier statut diffusé, rejoué à la reconnexion. */
-  dernierStatut: { name: string; data: unknown } | null
+  manche: Manche
+  /* Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
+     et devait les transposer à chaque retour ; indexés par clientId, ils
+     survivent d'eux-mêmes. */
+  dernierStatut: Statut | null
+  statutAnimateur: Statut | null
+  statutsJoueurs: Record<string, Statut>
 }
 
 const CLE = "partie"
@@ -99,7 +118,10 @@ export class GameRoom implements DurableObject {
       quizz: { id: quiz.id, ...JSON.parse(quiz.json) },
       managerClientId: ligne.managerClientId,
       players: [],
+      manche: mancheNeuve(),
       dernierStatut: null,
+      statutAnimateur: null,
+      statutsJoueurs: {},
     }
 
     this.ecrire(etat)
@@ -142,14 +164,23 @@ export class GameRoom implements DurableObject {
       role: roleReel,
     } satisfies Attachement)
 
+    // L'écran à restituer est le statut PERSONNEL s'il y en a un — un joueur
+    // qui a déjà répondu doit retrouver son attente, pas la question. À
+    // défaut, le dernier statut diffusé ; à défaut encore, la salle d'attente.
+    const avancement = {
+      current: etat.manche.question + 1,
+      total: etat.quizz.questions.length,
+    }
+
     if (roleReel === "manager") {
       this.envoyer(server, EVENTS.MANAGER.SUCCESS_RECONNECT, {
         gameId: etat.gameId,
-        currentQuestion: { current: 1, total: etat.quizz.questions.length },
-        status: etat.dernierStatut ?? {
-          name: STATUS.SHOW_ROOM,
-          data: { text: "game:waitingForPlayers" },
-        },
+        currentQuestion: avancement,
+        status: etat.statutAnimateur ??
+          etat.dernierStatut ?? {
+            name: STATUS.SHOW_ROOM,
+            data: { text: "game:waitingForPlayers" },
+          },
         players: etat.players,
       })
     } else {
@@ -160,11 +191,12 @@ export class GameRoom implements DurableObject {
         this.ecrire(etat)
         this.envoyer(server, EVENTS.PLAYER.SUCCESS_RECONNECT, {
           gameId: etat.gameId,
-          currentQuestion: { current: 1, total: etat.quizz.questions.length },
-          status: etat.dernierStatut ?? {
-            name: STATUS.WAIT,
-            data: { text: "game:waitingForPlayers" },
-          },
+          currentQuestion: avancement,
+          status: etat.statutsJoueurs[clientId] ??
+            etat.dernierStatut ?? {
+              name: STATUS.WAIT,
+              data: { text: "game:waitingForPlayers" },
+            },
           player: { username: connu.username, points: connu.points },
         })
       }
@@ -173,6 +205,50 @@ export class GameRoom implements DurableObject {
     this.envoyer(server, EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
 
     return new Response(null, { status: 101, webSocket: client })
+  }
+
+  // ── Émetteur pour la machine à états ────────────────────────────────────
+
+  /**
+   * Les statuts sont mémorisés en même temps qu'ils sont émis : c'est ce qui
+   * permet à un joueur revenu en cours de partie de retrouver son écran.
+   * L'objet `etat` est muté puis réécrit par l'appelant.
+   */
+  private emetteur(etat: EtatPartie): Emetteur {
+    return {
+      diffuser: (e, d) => this.diffuser(e, d),
+      versAnimateur: (e, d) => this.versAnimateur(etat, e, d),
+      versJoueur: (clientId, e, d) => this.versJoueur(clientId, e, d),
+
+      statutPourTous: (name, data) => {
+        etat.dernierStatut = { name, data }
+        etat.statutAnimateur = null
+        etat.statutsJoueurs = {}
+        this.diffuser(EVENTS.GAME.STATUS, { name, data })
+      },
+
+      statutAnimateur: (name, data) => {
+        etat.statutAnimateur = { name, data }
+        this.versAnimateur(etat, EVENTS.GAME.STATUS, { name, data })
+      },
+
+      statutJoueur: (clientId, name, data) => {
+        etat.statutsJoueurs[clientId] = { name, data }
+        this.versJoueur(clientId, EVENTS.GAME.STATUS, { name, data })
+      },
+
+      programmer: (quand) => {
+        void this.ctx.storage.setAlarm(quand)
+      },
+
+      annulerAlarme: () => {
+        void this.ctx.storage.deleteAlarm()
+      },
+    }
+  }
+
+  private contexte(etat: EtatPartie): ContextePartie {
+    return { quizz: etat.quizz, players: etat.players, manche: etat.manche }
   }
 
   // ── Réception ───────────────────────────────────────────────────────────
@@ -210,8 +286,32 @@ export class GameRoom implements DurableObject {
 
         return
 
+      case EVENTS.MANAGER.START_GAME:
+        this.demarrerPartie(ws, qui, etat)
+
+        return
+
+      case EVENTS.PLAYER.SELECTED_ANSWER:
+        this.enregistrerReponse(qui, etat, trame.d)
+
+        return
+
+      case EVENTS.MANAGER.ABORT_QUIZ:
+        this.trancher(qui, etat)
+
+        return
+
+      case EVENTS.MANAGER.SHOW_LEADERBOARD:
+        await this.montrerClassement(qui, etat)
+
+        return
+
+      case EVENTS.MANAGER.NEXT_QUESTION:
+        this.questionSuivante(qui, etat)
+
+        return
+
       default:
-        // Le reste de la machine de jeu arrive à l'étape 4.
         return
     }
   }
@@ -237,8 +337,21 @@ export class GameRoom implements DurableObject {
     await this.webSocketClose(ws)
   }
 
+  /**
+   * Réveil programmé : la seule minuterie autorisée ici.
+   *
+   * Un setTimeout empêcherait l'hibernation, et rien ne permettrait de le
+   * recréer au réveil. Toute la cadence du jeu passe donc par ce point.
+   */
   async alarm() {
-    // Transitions de manche : étape 4.
+    const etat = this.lire()
+
+    if (!etat) {
+      return
+    }
+
+    avancer(this.contexte(etat), this.emetteur(etat))
+    this.ecrire(etat)
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────
@@ -334,6 +447,147 @@ export class GameRoom implements DurableObject {
     this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
   }
 
+  // ── Contrôles de la manche ──────────────────────────────────────────────
+
+  private demarrerPartie(ws: WebSocket, qui: Attachement, etat: EtatPartie) {
+    if (qui.role !== "manager") {
+      return
+    }
+
+    if (etat.players.length === 0) {
+      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.noPlayersConnected")
+
+      return
+    }
+
+    if (demarrer(this.contexte(etat), this.emetteur(etat))) {
+      this.ecrire(etat)
+    }
+  }
+
+  private enregistrerReponse(
+    qui: Attachement,
+    etat: EtatPartie,
+    charge: unknown,
+  ) {
+    const answerKeys = (charge as { data?: { answerKeys?: number[] } })?.data
+      ?.answerKeys
+
+    if (!Array.isArray(answerKeys)) {
+      return
+    }
+
+    const em = this.emetteur(etat)
+    const tousOntRepondu = repondre(
+      this.contexte(etat),
+      em,
+      qui.clientId,
+      answerKeys,
+    )
+
+    // Plus personne à attendre : on coupe court plutôt que de laisser
+    // l'alarme courir. L'amont faisait de même via cooldown.abort().
+    if (tousOntRepondu) {
+      montrerResultats(this.contexte(etat), em)
+    }
+
+    this.ecrire(etat)
+  }
+
+  /** « Passer » : l'animateur clôt la question avant la fin du temps. */
+  private trancher(qui: Attachement, etat: EtatPartie) {
+    if (qui.role !== "manager" || !etat.manche.demarree) {
+      return
+    }
+
+    montrerResultats(this.contexte(etat), this.emetteur(etat))
+    this.ecrire(etat)
+  }
+
+  private questionSuivante(qui: Attachement, etat: EtatPartie) {
+    if (qui.role !== "manager") {
+      return
+    }
+
+    if (questionSuivante(this.contexte(etat), this.emetteur(etat))) {
+      this.ecrire(etat)
+    }
+  }
+
+  private async montrerClassement(qui: Attachement, etat: EtatPartie) {
+    if (qui.role !== "manager") {
+      return
+    }
+
+    const em = this.emetteur(etat)
+
+    if (!estDerniereQuestion(this.contexte(etat))) {
+      const ancien = etat.manche.ancienClassement ?? etat.manche.classement
+
+      em.statutAnimateur(STATUS.SHOW_LEADERBOARD, {
+        oldLeaderboard: ancien.slice(0, 5),
+        leaderboard: etat.manche.classement.slice(0, 5),
+      })
+      etat.manche.ancienClassement = null
+      this.ecrire(etat)
+
+      return
+    }
+
+    // Dernière question : la manche s'achève.
+    etat.manche.demarree = false
+
+    const top = etat.manche.classement.slice(0, 3)
+    const resultat: GameResult = {
+      id: `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+      subject: etat.quizz.subject,
+      date: new Date().toISOString(),
+      players: etat.manche.classement.map((joueur, index) => ({
+        username: joueur.username,
+        points: joueur.points,
+        rank: index + 1,
+      })),
+      questions: etat.manche.historique,
+    }
+
+    em.statutAnimateur(STATUS.FINISHED, { subject: etat.quizz.subject, top })
+
+    etat.manche.classement.forEach((joueur, index) => {
+      em.statutJoueur(joueur.clientId, STATUS.FINISHED, {
+        subject: etat.quizz.subject,
+        top,
+        rank: index + 1,
+      })
+    })
+
+    this.ecrire(etat)
+
+    // L'archivage ne doit pas retarder l'écran de fin, ni le faire échouer :
+    // les joueurs ont leur classement, le perdre pour une écriture ratée
+    // serait pire que l'absence d'archive.
+    this.ctx.waitUntil(this.archiver(resultat))
+  }
+
+  private async archiver(resultat: GameResult) {
+    try {
+      await this.env.DB.prepare(
+        `INSERT INTO results (id, subject, date, player_count, json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(
+          resultat.id,
+          resultat.subject,
+          resultat.date,
+          resultat.players.length,
+          JSON.stringify(resultat),
+          Date.now(),
+        )
+        .run()
+    } catch (e) {
+      console.error("Failed to save result:", e)
+    }
+  }
+
   // ── Émission ────────────────────────────────────────────────────────────
 
   private envoyer(ws: WebSocket, evenement: string, charge?: unknown) {
@@ -360,6 +614,16 @@ export class GameRoom implements DurableObject {
       const a = ws.deserializeAttachment() as Attachement | null
 
       if (a?.role === "manager") {
+        this.envoyer(ws, evenement, charge)
+      }
+    }
+  }
+
+  private versJoueur(clientId: string, evenement: string, charge?: unknown) {
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment() as Attachement | null
+
+      if (a?.clientId === clientId) {
         this.envoyer(ws, evenement, charge)
       }
     }

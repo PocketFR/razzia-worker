@@ -27,12 +27,18 @@ export interface CommonStatusDataMap {
     question: string
     media?: QuestionMedia
     cooldown: number
+    /* Date de fin de phase, en ms epoch. Le serveur n'égrène plus le
+       décompte : il annonce l'échéance, le client la rend. */
+    endsAt: number
   }
   SELECT_ANSWER: {
     question: string
     answers: string[]
     media?: QuestionMedia
     time: number
+    /* Null quand la question est sans limite de temps : il n'y a alors
+       aucune échéance à afficher, et aucune alarme côté serveur. */
+    endsAt: number | null
     totalPlayer: number
     questionType: QuestionType
     options?: QuestionOptions
