@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "razzia",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-20",
+
+  // La SPA renvoie index.html pour tout chemin inconnu, donc sans cette liste
+  // /ws et /ia n'atteindraient JAMAIS le Worker : les assets répondraient avant.
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/ws", "/api/*", "/ia/*"]
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "GAME_ROOM", "class_name": "GameRoom" }]
+  },
+
+  // new_sqlite_classes et non new_classes : le stockage SQLite est la seule
+  // variante de Durable Object disponible au plan Free, et la seule qui
+  // expose le KV synchrone dont dépend la persistance d'état.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "razzia",
+      "database_id": "REMPLACER_APRES_wrangler_d1_create"
+    }
+  ],
+
+  "observability": { "enabled": true }
+}

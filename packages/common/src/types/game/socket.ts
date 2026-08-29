@@ -7,7 +7,7 @@ import type {
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
 import type { ManagerConfig } from "@razzia/common/types/manager"
-import { Server as ServerIO, Socket as SocketIO } from "socket.io"
+import type { Server as ServerIO, Socket as SocketIO } from "socket.io"
 
 export type Server = ServerIO<ClientToServerEvents, ServerToClientEvents>
 

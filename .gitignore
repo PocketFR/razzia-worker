@@ -1,6 +1,14 @@
-/node_modules
+node_modules/
 /config
 .env
 .secrets
 release.json
 web2
+# Généré par scripts/seed-from-config.mjs, contient le mot de passe manager
+packages/worker/seed.sql
+
+# Magasin pnpm créé dans le dépôt par l'installation en conteneur
+.pnpm-store/
+# État local de wrangler (D1 local, journaux)
+.wrangler/
+# Généré par scripts/seed-from-config.mjs, contient le mot de passe manager
