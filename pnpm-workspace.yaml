@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  workerd: true
   oxlint: true
   oxlint-tsgolint: true
 

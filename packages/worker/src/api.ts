@@ -194,11 +194,12 @@ export async function routerApi(
   // WebSocket. Cette route ne fait que réserver le couple identifiant/PIN et
   // remettre le quiz choisi, que l'animateur transmettra à l'objet.
   if (section === "game" && methode === "POST") {
-    const { quizzId } = (await request.json().catch(() => ({}))) as {
+    const { quizzId, clientId } = (await request.json().catch(() => ({}))) as {
       quizzId?: string
+      clientId?: string
     }
 
-    if (!quizzId) {
+    if (!quizzId || !clientId) {
       return erreur("errors:quizz.notFound", 400)
     }
 
@@ -218,9 +219,10 @@ export async function routerApi(
 
       try {
         await env.DB.prepare(
-          `INSERT INTO games (invite_code, game_id, created_at) VALUES (?, ?, ?)`,
+          `INSERT INTO games (invite_code, game_id, quizz_id, manager_client_id, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
         )
-          .bind(inviteCode, gameId, Date.now())
+          .bind(inviteCode, gameId, quizzId, clientId, Date.now())
           .run()
 
         return json({ gameId, inviteCode })

@@ -9,10 +9,32 @@ import React, {
   useEffect,
   useState,
 } from "react"
-import { io, Socket } from "socket.io-client"
+import { socketClient as brut } from "@razzia/web/features/game/lib/socket-client"
 import { v7 as uuid } from "uuid"
 
-type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
+/*
+ * socket.io-client est remplacé par RazziaSocket, qui en imite la surface
+ * utile (on/off/emit/connect/disconnect/connected). Le typage reste celui de
+ * l'amont : les composants ne voient aucune différence, et c'est voulu — le
+ * découpage HTTP/WebSocket est confiné au shim.
+ */
+type TypedSocket = {
+  on: <E extends keyof ServerToClientEvents>(
+    _e: E,
+    _fn: ServerToClientEvents[E],
+  ) => void
+  off: <E extends keyof ServerToClientEvents>(
+    _e: E,
+    _fn: ServerToClientEvents[E],
+  ) => void
+  emit: <E extends keyof ClientToServerEvents>(
+    _e: E,
+    ..._args: Parameters<ClientToServerEvents[E]>
+  ) => void
+  connect: () => void
+  disconnect: () => void
+  connected: boolean
+}
 
 interface SocketContextValue {
   socket: TypedSocket
@@ -42,14 +64,9 @@ const getClientId = (): string => {
 
 const clientId = getClientId()
 
-export const socketClient: TypedSocket = io("/", {
-  path: "/ws",
-  autoConnect: false,
-  reconnection: true,
-  reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
-  auth: { clientId },
-})
+brut.configurer(clientId)
+
+export const socketClient = brut as unknown as TypedSocket
 
 const SocketContext = createContext<SocketContextValue>({
   socket: socketClient,
@@ -70,11 +87,14 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    socketClient.on("connect", () => setIsConnected(true))
-    socketClient.on("disconnect", () => setIsConnected(false))
-    socketClient.on("connect_error", (err) => {
+    // oxlint-disable-next-line no-explicit-any
+    socketClient.on("connect" as any, (() => setIsConnected(true)) as any)
+    // oxlint-disable-next-line no-explicit-any
+    socketClient.on("disconnect" as any, (() => setIsConnected(false)) as any)
+    socketClient.on("connect_error", ((err: Error) => {
       console.error("Connection error:", err.message)
-    })
+      // oxlint-disable-next-line no-explicit-any
+    }) as any)
 
     return () => {
       socketClient.disconnect()

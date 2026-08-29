@@ -37,8 +37,14 @@ CREATE TABLE IF NOT EXISTS settings (
 -- L'index PIN -> partie. Un Durable Object ne s'adresse que par son nom, donc
 -- la recherche par code d'invitation (l'ancien getGameByInviteCode du Registry)
 -- a besoin de cette table. Purgée par Cron Trigger.
+-- quizz_id et manager_client_id sont ici et non dans le Durable Object :
+-- celui-ci n'existe pas encore au moment de la création. Il s'initialise à la
+-- première connexion en lisant cette ligne, plutôt que de croire un client
+-- qui pourrait se déclarer animateur d'une partie qui n'est pas la sienne.
 CREATE TABLE IF NOT EXISTS games (
-  invite_code TEXT    PRIMARY KEY,
-  game_id     TEXT    NOT NULL UNIQUE,
-  created_at  INTEGER NOT NULL
+  invite_code       TEXT    PRIMARY KEY,
+  game_id           TEXT    NOT NULL UNIQUE,
+  quizz_id          TEXT    NOT NULL,
+  manager_client_id TEXT    NOT NULL,
+  created_at        INTEGER NOT NULL
 );

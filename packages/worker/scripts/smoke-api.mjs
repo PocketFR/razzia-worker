@@ -132,7 +132,7 @@ verifier(
 
 console.log("— partie et PIN")
 const partie = await appel("/game", {
-  ...json({ quizzId: premier.id }),
+  ...json({ quizzId: premier.id, clientId: "client-de-test" }),
   headers: { ...auth.headers, "content-type": "application/json" },
 })
 verifier("partie créée", partie.statut === 200)
@@ -147,10 +147,18 @@ verifier("PIN inconnu : 404", inconnu.statut === 404)
 verifier("clé i18n connue", cleExiste(inconnu.corps.error), inconnu.corps.error)
 
 const sansQuiz = await appel("/game", {
-  ...json({ quizzId: "bidon" }),
+  ...json({ quizzId: "bidon", clientId: "client-de-test" }),
   headers: { ...auth.headers, "content-type": "application/json" },
 })
 verifier("partie sur quiz inconnu : 404", sansQuiz.statut === 404)
+
+// L'animateur est identifié à la création : sans lui, le Durable Object ne
+// saurait pas à qui donner la main, et n'importe qui pourrait la réclamer.
+const sansClient = await appel("/game", {
+  ...json({ quizzId: premier.id }),
+  headers: { ...auth.headers, "content-type": "application/json" },
+})
+verifier("partie sans clientId refusée", sansClient.statut === 400)
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)
