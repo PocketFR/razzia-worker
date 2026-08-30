@@ -13,7 +13,8 @@
     "managerDisconnected": "Le manager s'est déconnecté",
     "noPlayersConnected": "Aucun joueur connecté",
     "notFound": "Partie introuvable",
-    "playerAlreadyConnected": "Ce joueur est déjà connecté"
+    "playerAlreadyConnected": "Ce joueur est déjà connecté",
+    "roundInProgress": "Une manche est déjà en cours"
   },
   "manager": {
     "failedToReadConfig": "Impossible de lire la configuration",

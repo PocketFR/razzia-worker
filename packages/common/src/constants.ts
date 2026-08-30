@@ -39,6 +39,7 @@ export const EVENTS = {
     START_GAME: "manager:startGame",
     ABORT_QUIZ: "manager:abortQuiz",
     NEXT_QUESTION: "manager:nextQuestion",
+    NEW_QUIZZ: "manager:newQuizz",
     SHOW_LEADERBOARD: "manager:showLeaderboard",
     GET_CONFIG: "manager:getConfig",
     LOGOUT: "manager:logout",

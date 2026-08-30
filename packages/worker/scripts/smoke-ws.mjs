@@ -189,5 +189,26 @@ verifier("le joueur exclu est averti", exclu === "errors:game.kickedByManager")
 const confirme = await animateur.attendre("manager:playerKicked")
 verifier("l'animateur en est informé", confirme === "joueur-1")
 
+// ── l'animateur recharge sa page dans la salle d'attente ──────────────────
+// L'amont ne renvoyait pas le PIN à la reconnexion : le statut mémorisé était
+// vide avant le démarrage, et l'animateur retombait sur un écran d'attente
+// générique, perdant code et QR au moment où les joueurs en avaient besoin.
+animateur.fermer()
+await pause(300)
+
+const animateurRevenu = await connecter(
+  partie.gameId,
+  CLIENT_ANIMATEUR,
+  "manager",
+)
+const retour = await animateurRevenu.attendre("manager:successReconnect")
+
+verifier("l'animateur retrouve la salle d'attente", retour?.status?.name === "SHOW_ROOM")
+verifier(
+  "avec son PIN, donc son QR",
+  retour?.status?.data?.inviteCode === partie.inviteCode,
+  `reçu ${retour?.status?.data?.inviteCode}`,
+)
+
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

@@ -1,4 +1,5 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import NextQuizz from "@razzia/web/features/game/components/NextQuizz"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import useScreenSize from "@razzia/web/hooks/useScreenSize"
 import clsx from "clsx"
@@ -207,6 +208,8 @@ const Podium = ({ data: { subject, top } }: Props) => {
           )}
         </div>
       </section>
+
+      <NextQuizz />
     </>
   )
 }

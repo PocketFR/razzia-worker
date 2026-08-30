@@ -104,6 +104,12 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.START_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.ABORT_QUIZ]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.NEXT_QUESTION]: (_message: MessageGameId) => void
+  /* Enchaîne un autre quiz dans la MÊME salle : le PIN, le QR et les joueurs
+     connectés sont conservés. resetScores décide si le classement repart de
+     zéro ou se cumule sur la soirée. */
+  [EVENTS.MANAGER.NEW_QUIZZ]: (
+    _message: MessageWithoutStatus<{ quizzId: string; resetScores: boolean }>,
+  ) => void
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void

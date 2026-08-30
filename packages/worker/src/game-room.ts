@@ -51,6 +51,10 @@ type Statut = { name: string; data: unknown }
 
 interface EtatPartie {
   gameId: string
+  /* Conservé ici pour pouvoir REDONNER le PIN à l'animateur : l'amont ne le
+     renvoyait pas à la reconnexion, si bien qu'un rafraîchissement de page
+     dans la salle d'attente lui faisait perdre le code et le QR. */
+  inviteCode: string
   quizz: QuizzWithId
   managerClientId: string
   players: Player[]
@@ -93,11 +97,16 @@ export class GameRoom implements DurableObject {
    */
   private async initialiser(gameId: string): Promise<EtatPartie | null> {
     const ligne = await this.env.DB.prepare(
-      `SELECT quizz_id AS quizzId, manager_client_id AS managerClientId
+      `SELECT quizz_id AS quizzId, manager_client_id AS managerClientId,
+              invite_code AS inviteCode
        FROM games WHERE game_id = ?`,
     )
       .bind(gameId)
-      .first<{ quizzId: string; managerClientId: string }>()
+      .first<{
+        quizzId: string
+        managerClientId: string
+        inviteCode: string
+      }>()
 
     if (!ligne) {
       return null
@@ -115,6 +124,7 @@ export class GameRoom implements DurableObject {
 
     const etat: EtatPartie = {
       gameId,
+      inviteCode: ligne.inviteCode,
       quizz: { id: quiz.id, ...JSON.parse(quiz.json) },
       managerClientId: ligne.managerClientId,
       players: [],
@@ -177,10 +187,8 @@ export class GameRoom implements DurableObject {
         gameId: etat.gameId,
         currentQuestion: avancement,
         status: etat.statutAnimateur ??
-          etat.dernierStatut ?? {
-            name: STATUS.SHOW_ROOM,
-            data: { text: "game:waitingForPlayers" },
-          },
+          etat.dernierStatut ??
+          this.salleDAttente(etat),
         players: etat.players,
       })
     } else {
@@ -308,6 +316,11 @@ export class GameRoom implements DurableObject {
 
       case EVENTS.MANAGER.NEXT_QUESTION:
         this.questionSuivante(qui, etat)
+
+        return
+
+      case EVENTS.MANAGER.NEW_QUIZZ:
+        await this.enchainer(ws, qui, etat, trame.d)
 
         return
 
@@ -445,6 +458,108 @@ export class GameRoom implements DurableObject {
     this.ecrire(etat)
     this.versAnimateur(etat, EVENTS.MANAGER.REMOVE_PLAYER, qui.clientId)
     this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+  }
+
+  // ── Salle d'attente et enchaînement ─────────────────────────────────────
+
+  private salleDAttente(etat: EtatPartie): Statut {
+    return {
+      name: STATUS.SHOW_ROOM,
+      data: { text: "game:waitingForPlayers", inviteCode: etat.inviteCode },
+    }
+  }
+
+  /**
+   * Enchaîne un autre quiz sans défaire la salle.
+   *
+   * C'est le modèle « un objet par partie » qui rend la chose naturelle : la
+   * salle n'était liée à un quiz que parce que l'amont construisait son Game
+   * autour de lui. Ici, seul le contenu de la manche change — PIN, QR et
+   * joueurs connectés restent en place, donc personne ne rescanne.
+   */
+  private async enchainer(
+    ws: WebSocket,
+    qui: Attachement,
+    etat: EtatPartie,
+    charge: unknown,
+  ) {
+    if (qui.role !== "manager") {
+      return
+    }
+
+    // Une manche en cours ne se remplace pas : il faudrait décider du sort
+    // des points déjà marqués, et l'animateur a « Abandonner » pour cela.
+    if (etat.manche.demarree) {
+      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.roundInProgress")
+
+      return
+    }
+
+    const { quizzId, resetScores } =
+      ((charge as { data?: unknown })?.data as {
+        quizzId?: string
+        resetScores?: boolean
+      }) ?? {}
+
+    if (!quizzId) {
+      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
+
+      return
+    }
+
+    const quiz = await this.env.DB.prepare(
+      `SELECT id, json FROM quizz WHERE id = ?`,
+    )
+      .bind(quizzId)
+      .first<{ id: string; json: string }>()
+
+    if (!quiz) {
+      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
+
+      return
+    }
+
+    etat.quizz = { id: quiz.id, ...JSON.parse(quiz.json) }
+    etat.manche = mancheNeuve()
+
+    // Les scores sont le seul choix laissé à l'animateur : conservés, le
+    // classement se cumule sur la soirée ; remis à zéro, chaque manche est
+    // une partie neuve. Le reste de l'état de manche repart toujours à zéro.
+    if (resetScores) {
+      etat.players = etat.players.map((joueur) => ({
+        ...joueur,
+        points: 0,
+        streak: 0,
+      }))
+    }
+
+    etat.dernierStatut = null
+    etat.statutAnimateur = null
+    etat.statutsJoueurs = {}
+
+    // La ligne D1 suit, pour qu'elle ne désigne plus un quiz périmé.
+    await this.env.DB.prepare(`UPDATE games SET quizz_id = ? WHERE game_id = ?`)
+      .bind(quizzId, etat.gameId)
+      .run()
+
+    this.ecrire(etat)
+
+    // L'animateur retrouve le PIN, les joueurs leur écran d'attente.
+    const salle = this.salleDAttente(etat)
+    etat.statutAnimateur = salle
+    this.versAnimateur(etat, EVENTS.GAME.STATUS, salle)
+
+    for (const joueur of etat.players) {
+      const attente = {
+        name: STATUS.WAIT,
+        data: { text: "game:waitingForPlayers" },
+      }
+      etat.statutsJoueurs[joueur.clientId] = attente
+      this.versJoueur(joueur.clientId, EVENTS.GAME.STATUS, attente)
+    }
+
+    this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+    this.ecrire(etat)
   }
 
   // ── Contrôles de la manche ──────────────────────────────────────────────

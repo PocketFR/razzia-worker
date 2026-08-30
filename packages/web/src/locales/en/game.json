@@ -1,4 +1,5 @@
 {
+  "confirm": "Confirm",
   "correct": "Nice!",
   "gamePinLabel": "Game PIN:",
   "hud": {
@@ -7,9 +8,16 @@
   },
   "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",
+  "nextQuizz": {
+    "title": "Play another quiz",
+    "subtitle": "Same room, same PIN — nobody rescans",
+    "choose": "Choose a quiz",
+    "keepScores": "Keep scores",
+    "keepScoresHint": "Ranking carries over across the evening",
+    "resetScores": "Reset scores",
+    "start": "Start"
+  },
   "pinLabel": "PIN Code",
-  "reconnect": "Reconnect",
-  "reconnectTitle": "You were in a game",
   "playersJoined": "Players Joined: ",
   "questionPrefix": "Question #",
   "rank": {
@@ -19,12 +27,13 @@
     "other": "{{rank}}th place"
   },
   "rankSuffix": " place",
+  "reconnect": "Reconnect",
+  "reconnectTitle": "You were in a game",
   "resultBehind": ", behind ",
   "resultTop": "You finished ",
   "startGame": "Start Game",
   "usernamePlaceholder": "Username here",
   "waitingForAnswers": "Waiting for the players to answer",
   "waitingForPlayers": "Waiting for players",
-  "wrong": "Too bad",
-  "confirm": "Confirm"
+  "wrong": "Too bad"
 }
