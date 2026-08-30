@@ -55,13 +55,27 @@ export class RazziaSocket {
     this.ecouteurs.get(evenement)?.delete(fn)
   }
 
+  /*
+   * « Connecté » veut dire UTILISABLE, pas « une WebSocket est ouverte ».
+   *
+   * La distinction est née du découpage : les écrans d'administration ne
+   * passent que par HTTP, et aucune partie n'y est encore connue — il n'y a
+   * donc aucun objet à qui parler, et rien à attendre. Les faire dépendre
+   * d'une WebSocket les laissait sur un chargement perpétuel, puisqu'elle ne
+   * s'ouvre jamais là.
+   */
   connect() {
     this.ferme = false
 
-    // Sans partie connue, il n'y a encore aucun objet à qui parler. La
-    // connexion viendra d'elle-même à la création ou à la résolution du PIN.
     if (this.gameId) {
       this.ouvrir()
+
+      return
+    }
+
+    if (!this.connected) {
+      this.connected = true
+      this.local("connect")
     }
   }
 
@@ -70,6 +84,10 @@ export class RazziaSocket {
     this.ws?.close()
     this.ws = null
     this.connected = false
+    // Quitter une partie, c'est n'avoir plus de cible : sans cela, revenir
+    // sur un écran d'administration tenterait de rouvrir une WebSocket vers
+    // une partie terminée.
+    this.gameId = null
   }
 
   emit(evenement: string, charge?: unknown) {
@@ -407,12 +425,16 @@ export class RazziaSocket {
     })
 
     ws.addEventListener("close", () => {
+      // Fermeture voulue : on reste utilisable, la cible ayant simplement
+      // disparu. Fermeture subie en partie : on signale la coupure et on
+      // retente, c'est ce que l'interface doit montrer.
+      if (this.ferme || !this.gameId) {
+        return
+      }
+
       this.connected = false
       this.local("disconnect")
-
-      if (!this.ferme) {
-        this.reessayer()
-      }
+      this.reessayer()
     })
 
     ws.addEventListener("error", () => {
