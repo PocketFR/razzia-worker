@@ -6,6 +6,10 @@
 # Idempotent : chaque étape constate l'existant avant d'agir, et rien n'est
 # écrasé sans le dire. Peut donc être rejoué après un échec en cours de route.
 #
+# À EXÉCUTER SOUS NODE 22. Sous node 26, wrangler part en erreur de
+# segmentation dès le premier appel à l'API — son client HTTP n'y survit pas.
+# Les commandes purement locales, elles, passent.
+#
 # Le dossier config/ est facultatif : il ne sert qu'à la reprise initiale des
 # quiz et des résultats de l'ancienne installation, et n'est repris qu'une
 # fois — un second passage refuserait d'écraser des données déjà en base.

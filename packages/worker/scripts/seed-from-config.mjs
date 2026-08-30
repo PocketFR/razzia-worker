@@ -61,7 +61,14 @@ const listeJson = (dossier) => {
     .map((f) => path.join(dossier, f))
 }
 
-const lignes = ["BEGIN TRANSACTION;"]
+/*
+ * Pas de BEGIN TRANSACTION : D1 les refuse et renvoie « please use the
+ * state.storage.transaction() APIs instead ». Local et distant divergent ici
+ * — miniflare l'acceptait, ce qui a laissé passer l'erreur jusqu'au premier
+ * déploiement réel. Les INSERT sont de toute façon idempotents (OR REPLACE),
+ * donc une reprise partielle se rejoue sans dégât.
+ */
+const lignes = []
 const now = Date.now()
 
 // --- game.json -------------------------------------------------------------
@@ -113,8 +120,6 @@ for (const chemin of listeJson(path.join(racine, "results"))) {
   )
   res += 1
 }
-
-lignes.push("COMMIT;")
 
 console.log(lignes.join("\n"))
 console.error(`\n${quiz} quiz, ${res} résultat(s), mot de passe ${jeu?.managerPassword ? "repris" : "absent"}`)
