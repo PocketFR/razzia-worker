@@ -117,7 +117,13 @@ const animateur = await connecter(partie.gameId, CLIENT_ANIMATEUR, "manager")
 const accueil = await animateur.attendre("manager:successReconnect")
 
 verifier("l'animateur reçoit l'état de la partie", accueil !== undefined)
-verifier("le quiz est chargé", accueil?.currentQuestion?.total > 0)
+// Pas d'avancement dans le salon d'attente : il n'y a pas de question en
+// cours, et en annoncer une ferait apparaître un « 1 / 20 » trompeur.
+verifier(
+  "aucun avancement annoncé avant le lancement",
+  accueil?.currentQuestion === null,
+  `reçu ${JSON.stringify(accueil?.currentQuestion)}`,
+)
 verifier("aucun joueur au départ", accueil?.players?.length === 0)
 
 // Le repère ne peut être posé qu'une fois le total initial arrivé : sinon il
