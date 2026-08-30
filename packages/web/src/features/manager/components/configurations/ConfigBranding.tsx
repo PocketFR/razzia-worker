@@ -208,6 +208,35 @@ const ConfigBranding = () => {
         </section>
 
         <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">{t("branding.sounds")}</h2>
+
+          {/* Ce réglage n'est pas de l'apparence, mais il voyage avec elle :
+              le thème est le seul canal de configuration servi aux joueurs,
+              qui ne s'authentifient jamais. */}
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              className="accent-primary mt-1 size-4 shrink-0"
+              checked={theme.sounds?.answersMusic === true}
+              onChange={(e) =>
+                setTheme((t) => ({
+                  ...t,
+                  sounds: { ...t.sounds, answersMusic: e.target.checked },
+                }))
+              }
+            />
+            <span>
+              <span className="font-semibold">
+                {t("branding.answersMusic")}
+              </span>
+              <span className="block text-sm opacity-70">
+                {t("branding.answersMusicHint")}
+              </span>
+            </span>
+          </label>
+        </section>
+
+        <section className="flex flex-col gap-3">
           <div>
             <h2 className="text-xl font-bold">{t("branding.images")}</h2>
             <p className="text-sm opacity-70">

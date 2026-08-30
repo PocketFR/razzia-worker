@@ -146,6 +146,29 @@ try {
     JSON.stringify(servi),
   )
 
+  // Le réglage des sons voyage dans le thème parce que c'est le seul canal
+  // de configuration servi aux joueurs. Un champ perdu à l'aller-retour
+  // rallumerait la musique sans que personne n'y touche.
+  await api("/branding", {
+    method: "PUT",
+    body: JSON.stringify({
+      theme: { appName: "Essai", sounds: { answersMusic: false } },
+    }),
+  })
+  const avecSons = await fetch(`${base}/branding/theme.json`).then((r) => r.json())
+  verifier(
+    "le réglage des sons survit à l'aller-retour",
+    avecSons.sounds?.answersMusic === false,
+    JSON.stringify(avecSons.sounds),
+  )
+
+  await api("/branding", {
+    method: "PUT",
+    body: JSON.stringify({
+      theme: { appName: "Essai", colors: { primary: "#123456" } },
+    }),
+  })
+
   const sansCorps = await api("/branding", { method: "PUT", body: "{}" })
   verifier("thème absent refusé", sansCorps.statut === 400)
   verifier("clé i18n connue", cleExiste(sansCorps.corps.error), sansCorps.corps.error)

@@ -1,6 +1,8 @@
 {
   "branding": {
     "answerColors": "Colori delle risposte",
+    "answersMusic": "Musica durante le risposte",
+    "answersMusicHint": "Traccia in loop riprodotta sui dispositivi dei giocatori mentre rispondono. Mai su una domanda musicale o video, che ha già il suo audio.",
     "appName": "Nome dell'applicazione",
     "clear": "Torna all'immagine originale",
     "color": {
@@ -23,6 +25,7 @@
     "reset": "Reimposta",
     "save": "Salva l'aspetto",
     "saved": "Aspetto salvato",
+    "sounds": "Suoni",
     "subtitle": "Nome, carattere e colori dell'applicazione, su tutti gli schermi.",
     "tooLarge": "Immagine troppo pesante: al massimo {{max}}.",
     "upload": "Carica un'immagine",

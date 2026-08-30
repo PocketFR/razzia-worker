@@ -1,6 +1,8 @@
 {
   "branding": {
     "answerColors": "Answer colours",
+    "answersMusic": "Music while answering",
+    "answersMusicHint": "Looping track played on the players' devices while they answer. Never on a music or video question, which has its own sound.",
     "appName": "App name",
     "clear": "Back to the original image",
     "color": {
@@ -23,6 +25,7 @@
     "reset": "Reset",
     "save": "Save appearance",
     "saved": "Appearance saved",
+    "sounds": "Sounds",
     "subtitle": "Name, font and colours of the app, on every screen.",
     "tooLarge": "Image too large: {{max}} at most.",
     "upload": "Upload an image",

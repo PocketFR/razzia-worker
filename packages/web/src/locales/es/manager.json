@@ -1,6 +1,8 @@
 {
   "branding": {
     "answerColors": "Colores de las respuestas",
+    "answersMusic": "Música mientras se responde",
+    "answersMusicHint": "Bucle que suena en los dispositivos de los jugadores mientras responden. Nunca en preguntas con música o vídeo, que ya tienen su sonido.",
     "appName": "Nombre de la aplicación",
     "clear": "Volver a la imagen original",
     "color": {
@@ -23,6 +25,7 @@
     "reset": "Restablecer",
     "save": "Guardar apariencia",
     "saved": "Apariencia guardada",
+    "sounds": "Sonidos",
     "subtitle": "Nombre, tipografía y colores de la aplicación, en todas las pantallas.",
     "tooLarge": "Imagen demasiado pesada: {{max}} como máximo.",
     "upload": "Subir una imagen",

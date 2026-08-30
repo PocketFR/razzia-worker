@@ -63,6 +63,10 @@ export interface BrandingTheme {
   logo?: string
   favicon?: string
   background?: string
+  /* Les sons facultatifs. Ils tiennent ici, et non dans les réglages
+     animateur, parce que le thème est le seul canal de configuration servi
+     aux joueurs — qui ne s'authentifient jamais. */
+  sounds?: { answersMusic?: boolean }
 }
 
 export interface BrandingImage {

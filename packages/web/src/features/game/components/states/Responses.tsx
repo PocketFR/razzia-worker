@@ -22,38 +22,29 @@ const Responses = ({
   const piste = lireUri(media?.url)
 
   const [percentages, setPercentages] = useState<Record<string, string>>({})
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false)
 
   const [sfxResults] = useSound(SFX.RESULTS_SOUND, {
     volume: 0.2,
   })
 
-  const [playMusic, { stop: stopMusic }] = useSound(SFX.ANSWERS.MUSIC, {
-    volume: 0.2,
-    onplay: () => {
-      setIsMusicPlaying(true)
-    },
-    onend: () => {
-      setIsMusicPlaying(false)
-    },
-  })
-
+  /*
+   * La musique d'attente est partie d'ici, et pas seulement rendue
+   * facultative.
+   *
+   * Trois effets la pilotaient : le premier l'arrêtait, le deuxième la
+   * lançait, le troisième l'arrêtait encore. Les effets s'exécutant dans
+   * l'ordre au montage, le dernier avait le dernier mot : elle démarrait pour
+   * être coupée dans la foulée. Le résultat audible était un couac, jamais un
+   * fond sonore — pour 1,2 Mo téléchargés sur chaque appareil.
+   *
+   * Reste ce que cet écran veut réellement faire entendre : le jingle de
+   * résultat.
+   */
   useEffect(() => {
-    stopMusic()
     sfxResults()
 
     setPercentages(calculatePercentages(responses))
-  }, [responses, playMusic, stopMusic, sfxResults])
-
-  useEffect(() => {
-    if (!isMusicPlaying) {
-      playMusic()
-    }
-  }, [isMusicPlaying, playMusic])
-
-  useEffect(() => {
-    stopMusic()
-  }, [playMusic, stopMusic])
+  }, [responses, sfxResults])
 
   return (
     <div className="flex h-full flex-1 flex-col justify-between">

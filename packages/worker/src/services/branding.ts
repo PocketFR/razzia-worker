@@ -138,6 +138,7 @@ export interface Theme {
   logo?: string
   favicon?: string
   background?: string
+  sounds?: { answersMusic?: boolean }
 }
 
 export interface EtatImage {

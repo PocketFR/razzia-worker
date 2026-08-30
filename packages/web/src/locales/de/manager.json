@@ -1,6 +1,8 @@
 {
   "branding": {
     "answerColors": "Farben der Antworten",
+    "answersMusic": "Musik während der Antworten",
+    "answersMusicHint": "Schleife, die auf den Geräten der Spieler läuft, während sie antworten. Nie bei Musik- oder Videofragen, die schon eigenen Ton haben.",
     "appName": "Name der App",
     "clear": "Zurück zum Originalbild",
     "color": {
@@ -23,6 +25,7 @@
     "reset": "Zurücksetzen",
     "save": "Erscheinungsbild speichern",
     "saved": "Erscheinungsbild gespeichert",
+    "sounds": "Töne",
     "subtitle": "Name, Schrift und Farben der App, auf allen Bildschirmen.",
     "tooLarge": "Bild zu groß: höchstens {{max}}.",
     "upload": "Bild hochladen",

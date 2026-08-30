@@ -1,6 +1,8 @@
 {
   "branding": {
     "answerColors": "Couleurs des réponses",
+    "answersMusic": "Musique pendant les réponses",
+    "answersMusicHint": "Boucle sonore jouée sur l'appareil des joueurs pendant qu'ils répondent. Jamais sur une question musicale ou vidéo, qui a déjà son son.",
     "appName": "Nom de l'application",
     "clear": "Revenir à l'image d'origine",
     "color": {
@@ -23,6 +25,7 @@
     "reset": "Réinitialiser",
     "save": "Enregistrer l'apparence",
     "saved": "Apparence enregistrée",
+    "sounds": "Sons",
     "subtitle": "Nom, police et couleurs de l'application, pour tous les écrans.",
     "tooLarge": "Image trop lourde : {{max}} au maximum.",
     "upload": "Téléverser une image",

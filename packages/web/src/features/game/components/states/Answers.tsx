@@ -1,7 +1,9 @@
 import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import { musiqueDesReponsesActive } from "@razzia/web/branding"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import MusiqueDesReponses from "@razzia/web/features/game/components/MusiqueDesReponses"
 import {
   useEvent,
   useSocket,
@@ -9,7 +11,7 @@ import {
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useDecompte } from "@razzia/web/features/game/hooks/use-decompte"
 import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
@@ -41,12 +43,6 @@ const Answers = ({
     volume: 0.1,
   })
 
-  const [playMusic, { stop: stopMusic }] = useSound(SFX.ANSWERS.MUSIC, {
-    volume: 0.2,
-    interrupt: true,
-    loop: true,
-  })
-
   const handleSubmit = (answerKeys: number[]) => {
     if (!player || !gameId) {
       return
@@ -61,23 +57,15 @@ const Answers = ({
     sfxPop()
   }
 
-  useEffect(() => {
-    const disabledMusicMedia: QuestionMediaType[] = [
-      MEDIA_TYPES.AUDIO,
-      MEDIA_TYPES.VIDEO,
-    ]
-
-    if (disabledMusicMedia.includes(media?.type)) {
-      return
-    }
-
-    playMusic()
-
-    return () => {
-      stopMusic()
-    }
-    // oxlint-disable-next-line
-  }, [playMusic])
+  /* Elle ne se superpose jamais au média de la question : un blind test
+     Spotify est de type « audio », et se passe très bien d'un fond sonore
+     par-dessus. C'était déjà la règle en amont, elle ne change pas. */
+  const mediaSonore: QuestionMediaType[] = [
+    MEDIA_TYPES.AUDIO,
+    MEDIA_TYPES.VIDEO,
+  ]
+  const avecMusique =
+    musiqueDesReponsesActive() && !mediaSonore.includes(media?.type)
 
   useEvent(EVENTS.GAME.PLAYER_ANSWER, (count) => {
     setTotalAnswer(count)
@@ -88,6 +76,8 @@ const Answers = ({
 
   return (
     <div className="flex h-full flex-1 flex-col justify-between">
+      {avecMusique && <MusiqueDesReponses />}
+
       <div className="mx-auto inline-flex h-full w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5">
         <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
           {question}
