@@ -29,23 +29,19 @@ import {
   enLecture,
   jouer,
 } from "@razzia/web/features/spotify/lib/lecteur"
+import {
+  URI_SPOTIFY,
+  usePisteSpotify,
+  type Piste,
+} from "@razzia/web/features/spotify/hooks/use-piste"
 import { Pause, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 /* L'identifiant est optionnel : « spotify: » seul est une URI valide en
    cours de saisie, que le bloc doit reconnaître pour offrir la recherche. */
-export const URI_SPOTIFY = /^spotify:(?:([A-Za-z0-9]{22})(?::(\d+))?)?$/
-
-interface Piste {
-  id: string
-  titre: string
-  artiste: string
-  album: string
-  annee: number | null
-  duree: number
-  cover: string | null
-}
+/* Réexportée : l'éditeur s'en sert pour décider d'afficher ce cadre. */
+export { URI_SPOTIFY }
 
 const mmss = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
@@ -66,46 +62,13 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
   const id = correspondance?.[1] ?? ""
   const depart = parseInt(correspondance?.[2] ?? "0", 10) || 0
 
-  const [piste, setPiste] = useState<Piste | null>(null)
-  const [introuvable, setIntrouvable] = useState(false)
+  const { piste, introuvable } = usePisteSpotify(id)
   const [recherche, setRecherche] = useState("")
   const [resultats, setResultats] = useState<Piste[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [ecoute, setEcoute] = useState(false)
   const clientId = useManagerStore((e) => e.config?.spotifyClientId) ?? null
-
-  useEffect(() => {
-    if (!id) {
-      setPiste(null)
-      setIntrouvable(false)
-
-      return
-    }
-
-    let vivant = true
-    setPiste(null)
-    setIntrouvable(false)
-
-    void fetch(`/ia/track/${id}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!vivant) {
-          return
-        }
-
-        if (d?.ok && d.track) {
-          setPiste(d.track)
-        } else {
-          setIntrouvable(true)
-        }
-      })
-      .catch(() => vivant && setIntrouvable(true))
-
-    return () => {
-      vivant = false
-    }
-  }, [id])
 
   const ecrire = (nouvelId: string, nouveauDepart: number) =>
     onChange({

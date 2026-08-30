@@ -6,6 +6,8 @@ import {
   SFX,
 } from "@razzia/web/features/game/utils/constants"
 import { calculatePercentages } from "@razzia/web/features/game/utils/score"
+import CartePiste from "@razzia/web/features/spotify/components/CartePiste"
+import { lireUri } from "@razzia/web/features/spotify/hooks/use-piste"
 import clsx from "clsx"
 import { useEffect, useState } from "react"
 import useSound from "use-sound"
@@ -15,8 +17,10 @@ interface Props {
 }
 
 const Responses = ({
-  data: { question, answers, responses, solutions },
+  data: { question, answers, responses, solutions, media },
 }: Props) => {
+  const piste = lireUri(media?.url)
+
   const [percentages, setPercentages] = useState<Record<string, string>>({})
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
 
@@ -57,6 +61,8 @@ const Responses = ({
         <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
           {question}
         </h2>
+
+        {piste?.id && <CartePiste id={piste.id} />}
 
         <div
           className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}
