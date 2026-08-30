@@ -14,6 +14,12 @@
  */
 
 import { createConfigService } from "./services/config"
+import {
+  CLES_CONNUES,
+  ecrireCle,
+  etatDesCles,
+  type NomDeCle,
+} from "./services/secrets"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -186,6 +192,44 @@ export async function routerApi(
       } catch {
         return erreur("errors:results.notFound", 404)
       }
+    }
+  }
+
+  // --- clés API -----------------------------------------------------------
+  // La lecture ne rend jamais une valeur secrète, seulement son état. Une
+  // écriture avec une chaîne vide efface la ligne et rend la main à la
+  // liaison Worker : c'est le moyen d'annuler une saisie sans redéployer.
+  if (section === "settings" && reste[0] === "keys") {
+    if (methode === "GET") {
+      return json({ keys: await etatDesCles(env) })
+    }
+
+    if (methode === "PUT") {
+      const corps = (await request.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >
+
+      const inconnues = Object.keys(corps).filter(
+        (k) => !CLES_CONNUES.includes(k as NomDeCle),
+      )
+
+      if (inconnues.length) {
+        return erreur("errors:manager.unknownKey", 400)
+      }
+
+      for (const [nom, valeur] of Object.entries(corps)) {
+        // Une clé absente du corps n'est pas touchée : le formulaire n'envoie
+        // que ce qui a été saisi, un champ laissé vide signifiant « ne pas
+        // changer » plutôt que « effacer ».
+        if (typeof valeur !== "string") {
+          continue
+        }
+
+        await ecrireCle(env, nom as NomDeCle, valeur.trim())
+      }
+
+      return json({ keys: await etatDesCles(env) })
     }
   }
 

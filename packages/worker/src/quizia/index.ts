@@ -7,6 +7,7 @@
  */
 
 import type { Env } from "../index"
+import { lireCles } from "../services/secrets"
 import {
   endpointGenerer,
   endpointSearch,
@@ -16,19 +17,12 @@ import {
   type Cles,
 } from "./core"
 
-const clesDepuis = (env: Env): Cles => ({
-  mistralKey: env.MISTRAL_API_KEY ?? "",
-  mistralModel: env.MISTRAL_MODEL ?? "mistral-large-latest",
-  spotifyId: env.SPOTIFY_CLIENT_ID ?? "",
-  spotifySecret: env.SPOTIFY_CLIENT_SECRET ?? "",
-})
-
 export async function routerQuizia(
   request: Request,
   env: Env,
   url: URL,
 ): Promise<Response> {
-  const cles = clesDepuis(env)
+  const cles: Cles = await lireCles(env)
   const chemin = url.pathname.replace(/^\/ia\/?/, "")
 
   const piste = /^track\/([A-Za-z0-9]{22})$/.exec(chemin)

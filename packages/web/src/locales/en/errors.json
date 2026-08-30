@@ -21,7 +21,8 @@
     "invalidPassword": "Invalid password",
     "masterKeyMissing": "Server is missing its master key",
     "passwordNotConfigured": "Manager password is not configured",
-    "unauthorized": "Not authorised"
+    "unauthorized": "Not authorised",
+    "unknownKey": "Unknown key"
   },
   "notFound": {
     "back": "Go back home",

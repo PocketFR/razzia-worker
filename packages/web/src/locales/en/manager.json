@@ -1,5 +1,16 @@
 {
   "configurationsTitle": "Configurations",
+  "keys": {
+    "title": "API keys",
+    "subtitle": "Change them here — no redeploy needed",
+    "fromDatabase": "Set here on {{date}}",
+    "fromBinding": "Coming from the deployment configuration",
+    "unset": "Not set",
+    "leaveEmpty": "Leave empty to keep the current value",
+    "save": "Save",
+    "clear": "Clear",
+    "saved": "Saved"
+  },
   "logout": "Logout",
   "passwordPlaceholder": "Password",
   "quizz": {
@@ -40,6 +51,7 @@
   "tabs": {
     "play": "Play",
     "quizz": "Quizz",
-    "results": "Results"
+    "results": "Results",
+    "keys": "API keys"
   }
 }

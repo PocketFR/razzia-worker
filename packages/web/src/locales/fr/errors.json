@@ -21,7 +21,8 @@
     "invalidPassword": "Mot de passe invalide",
     "masterKeyMissing": "Le serveur n'a pas de clé maîtresse",
     "passwordNotConfigured": "Mot de passe manager non configuré",
-    "unauthorized": "Non autorisé"
+    "unauthorized": "Non autorisé",
+    "unknownKey": "Clé inconnue"
   },
   "notFound": {
     "back": "Retour à l'accueil",

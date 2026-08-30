@@ -1,5 +1,16 @@
 {
   "configurationsTitle": "Configurations",
+  "keys": {
+    "title": "Clés API",
+    "subtitle": "Modifiables ici, sans redéploiement",
+    "fromDatabase": "Saisie ici le {{date}}",
+    "fromBinding": "Venant de la configuration de déploiement",
+    "unset": "Non définie",
+    "leaveEmpty": "Laisser vide pour conserver la valeur actuelle",
+    "save": "Enregistrer",
+    "clear": "Effacer",
+    "saved": "Enregistré"
+  },
   "logout": "Déconnexion",
   "passwordPlaceholder": "Mot de passe",
   "quizz": {
@@ -40,6 +51,7 @@
   "tabs": {
     "play": "Jouer",
     "quizz": "Quizz",
-    "results": "Résultats"
+    "results": "Résultats",
+    "keys": "Clés API"
   }
 }

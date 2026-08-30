@@ -81,6 +81,8 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.MANAGER.PLAYER_KICKED]: (_playerId: string) => void
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
+  [EVENTS.SETTINGS.DATA]: (_data: { keys: CleApi[] }) => void
+  [EVENTS.SETTINGS.ERROR]: (_message: string) => void
 
   // Quizz events
   [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: { id: string }) => void
@@ -89,6 +91,16 @@ export interface ServerToClientEvents {
 
   // Results events
   [EVENTS.RESULTS.DATA]: (_result: GameResult) => void
+}
+
+export interface CleApi {
+  nom: string
+  secrete: boolean
+  definie: boolean
+  origine: "base" | "liaison" | "absente"
+  modifiee: number | null
+  /* Absente pour un secret : une valeur scellée ne ressort jamais. */
+  valeur?: string
 }
 
 export interface ClientToServerEvents {
@@ -113,6 +125,8 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
+  [EVENTS.SETTINGS.GET]: () => void
+  [EVENTS.SETTINGS.SAVE]: (_valeurs: Record<string, string>) => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void

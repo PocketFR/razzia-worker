@@ -55,6 +55,15 @@ export const EVENTS = {
     DELETE: "quizz:delete",
     ERROR: "quizz:error",
   },
+  /* Clés API. Comme le reste, l'événement passe par le shim client, qui
+     l'aiguille vers /api — les composants n'ont pas à connaître le jeton
+     de session ni la forme du transport. */
+  SETTINGS: {
+    GET: "settings:get",
+    DATA: "settings:data",
+    SAVE: "settings:save",
+    ERROR: "settings:error",
+  },
   RESULTS: {
     GET: "results:get",
     DATA: "results:data",
