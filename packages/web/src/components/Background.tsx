@@ -1,6 +1,23 @@
+/*
+ * Le pied de page ne porte plus le lien vers le dépôt amont.
+ *
+ * Il annonçait « Razzia - v3.1.0 » vers github.com/Ralex91/Razzia, ce qui
+ * n'était plus exact : le portage sur Workers a refait le transport, le
+ * stockage et l'ordonnancement des manches, et la version affichée était
+ * celle de l'amont, pas celle d'ici. Un lien qui promet un code différent de
+ * celui qui tourne vaut moins que pas de lien du tout.
+ *
+ * L'ATTRIBUTION N'EST PAS PERDUE : la licence MIT demande de conserver la
+ * mention de copyright, et c'est le fichier LICENSE qui la porte — elle y est
+ * intacte, au nom de Ralex. Le pied de page relevait de la courtoisie, pas de
+ * l'obligation.
+ *
+ * La version reste consultable au survol : invisible à l'écran de la soirée,
+ * et retrouvable quand il faut savoir ce qui est déployé.
+ */
+
 import defaultLogo from "@razzia/web/assets/logo.svg"
 import { getBranding, imageFallback } from "@razzia/web/branding"
-import GithubIcon from "@razzia/web/components/GithubIcon"
 import type { PropsWithChildren } from "react"
 
 const Background = ({ children }: PropsWithChildren) => {
@@ -23,16 +40,13 @@ const Background = ({ children }: PropsWithChildren) => {
       />
       {children}
 
-      <a
-        href="https://github.com/Ralex91/Razzia"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 text-sm font-semibold text-white/50 transition-colors hover:text-white/80"
+      <p
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm font-semibold text-white/50"
+        // oxlint-disable-next-line no-undef
+        title={`v${__APP_VERSION__}`}
       >
-        <GithubIcon size={14} />
-        {/* oxlint-disable-next-line no-undef */}
-        Razzia - v{__APP_VERSION__}
-      </a>
+        {appName}
+      </p>
     </section>
   )
 }
