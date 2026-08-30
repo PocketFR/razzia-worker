@@ -8,6 +8,10 @@
  *
  * Elle ne s'affiche que quand les métadonnées sont là : un cadre vide ou un
  * « chargement » perpétuel vaudrait moins que rien à cet endroit.
+ *
+ * DIMENSIONNÉE POUR UN TÉLÉVISEUR, pas pour un écran de bureau à cinquante
+ * centimètres : cet écran se regarde de l'autre bout de la pièce, et la
+ * première version, calée sur les tailles de l'éditeur, était illisible.
  */
 
 import { usePisteSpotify } from "@razzia/web/features/spotify/hooks/use-piste"
@@ -28,20 +32,22 @@ const CartePiste = ({ id }: Props) => {
     .join(" · ")
 
   return (
-    <div className="flex items-center gap-4 rounded-xl bg-black/45 p-3 text-white backdrop-blur-sm">
+    <div className="flex max-w-3xl items-center gap-5 rounded-2xl bg-black/50 p-4 text-white shadow-xl backdrop-blur-sm md:gap-7 md:p-6">
       {piste.cover && (
         <img
           src={piste.cover}
           alt=""
-          className="size-20 shrink-0 rounded-lg object-cover shadow-lg"
+          className="size-28 shrink-0 rounded-xl object-cover shadow-lg md:size-40"
         />
       )}
 
       <div className="min-w-0 text-left">
-        <p className="truncate text-xl font-bold drop-shadow md:text-2xl">
+        <p className="truncate text-3xl font-bold drop-shadow md:text-5xl">
           {piste.titre}
         </p>
-        <p className="truncate text-sm opacity-80 md:text-base">{details}</p>
+        <p className="mt-1 truncate text-lg opacity-85 md:mt-2 md:text-2xl">
+          {details}
+        </p>
       </div>
     </div>
   )
