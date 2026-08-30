@@ -347,6 +347,73 @@ verifier(
 const amorceJoueur = await dede.attendre((t) => t.e === "game:audioCue", 2000)
 verifier("le joueur ne la reçoit pas", amorceJoueur === undefined)
 
+// ── reconnexion en pleine question : le client doit être remis à niveau ──
+// Une coupure de WebSocket n'a rien d'exceptionnel — un écran qui se
+// verrouille suffit. Le client reconnecté recevait son statut mais aucun des
+// événements survenus pendant la coupure, dont ceux qui pilotent le lecteur :
+// le drapeau « en lecture » restait armé et le morceau ne changeait plus de
+// toute la manche.
+console.log("— reconnexion en pleine question")
+
+const { id: quizzRepli } = await fetch(`${base}/api/quizz`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({
+    subject: "Reprise",
+    questions: [
+      {
+        ...question("Quel titre ?"),
+        time: -1,
+        media: { type: "audio", url: "spotify:5Aom4pV5XRvO33DrZ5bMLD:45" },
+      },
+    ],
+  }),
+}).then((r) => r.json())
+
+const partie4 = await fetch(`${base}/api/game`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({ quizzId: quizzRepli, clientId: "anim4" }),
+}).then((r) => r.json())
+
+const anim4 = await connecter(partie4.gameId, "anim4", "manager")
+const eve = await connecter(partie4.gameId, "eve", "player")
+eve.envoyer("player:login", { data: { username: "Ève" } })
+await new Promise((r) => setTimeout(r, 300))
+
+anim4.envoyer("manager:startGame", { gameId: partie4.gameId })
+await anim4.statut("SELECT_ANSWER")
+
+// L'animateur décroche puis revient, la question toujours en cours.
+anim4.fermer()
+await new Promise((r) => setTimeout(r, 300))
+const anim4bis = await connecter(partie4.gameId, "anim4", "manager")
+
+verifier(
+  "l'animateur reconnecté retrouve l'avancement",
+  (await anim4bis.attendre((t) => t.e === "game:updateQuestion")) !== undefined,
+)
+
+const amorceRejouee = await anim4bis.attendre((t) => t.e === "game:audioCue")
+verifier("et son amorce audio", amorceRejouee !== undefined)
+verifier(
+  "avec le bon morceau",
+  amorceRejouee?.d?.id === "5Aom4pV5XRvO33DrZ5bMLD",
+  String(amorceRejouee?.d?.id),
+)
+
+// Le joueur, lui, n'a pas à recevoir l'amorce : elle livrerait la réponse.
+const eveBis = await connecter(partie4.gameId, "eve", "player")
+verifier(
+  "le joueur reconnecté retrouve l'avancement",
+  (await eveBis.attendre((t) => t.e === "game:updateQuestion")) !== undefined,
+)
+verifier(
+  "mais toujours pas l'amorce",
+  (await eveBis.attendre((t) => t.e === "game:audioCue", 1500)) === undefined,
+)
+
+
 // ── question sans limite de temps ─────────────────────────────────────────
 // C'est le cas le plus favorable à l'hibernation : aucune alarme n'est armée,
 // l'objet peut dormir jusqu'à ce que quelqu'un parle. On vérifie donc à la

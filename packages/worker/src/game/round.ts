@@ -138,7 +138,7 @@ const dans = (secondes: number) => Date.now() + secondes * 1000
  * Le format « spotify:ID[:offset] » est celui qu'écrit quizia. L'offset sert
  * quand l'introduction rend le morceau trop reconnaissable.
  */
-const pisteSpotify = (question: Question) => {
+export const pisteSpotify = (question: Question) => {
   const trouve = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/.exec(
     question.media?.url ?? "",
   )

@@ -12,7 +12,16 @@
  *    recréer le rappel après réveil. Le rythme des manches passera
  *    exclusivement par storage.setAlarm() (étape 4).
  *
- * 2. Aucun état durable dans un champ d'instance. Après hibernation le
+ * 2. JAMAIS D'ATTENTE EXTÉRIEURE ENTRE LIRE ET ÉCRIRE. Un await sur le
+ *    stockage de l'objet retient les autres événements ; un await sur un
+ *    service extérieur — D1 en fait partie — ouvre la porte et laisse
+ *    d'autres messages s'intercaler. Lire l'état, attendre D1, puis
+ *    réécrire, c'est écraser tout ce que ces messages ont enregistré entre
+ *    temps : une réponse de joueur disparue, une manche qui n'avance plus.
+ *    Toute suite lire-modifier-écrire doit donc être SYNCHRONE, et les
+ *    lectures D1 la précéder.
+ *
+ * 3. Aucun état durable dans un champ d'instance. Après hibernation le
  *    constructeur rejoue et la mémoire repart à zéro. Tout ce qui doit
  *    survivre vit dans ctx.storage.kv (synchrone sur les objets SQLite) ;
  *    ce qui est attaché à une socket vit dans son serializeAttachment().
@@ -31,6 +40,8 @@ import { usernameValidator } from "@razzia/common/validators/auth"
 import {
   avancer,
   demarrer,
+  PHASE,
+  pisteSpotify,
   estDerniereQuestion,
   mancheNeuve,
   montrerResultats,
@@ -163,6 +174,14 @@ export class GameRoom implements DurableObject {
       return null
     }
 
+    // Section synchrone. Un autre message a pu créer l'état pendant les deux
+    // lectures ci-dessus : on le relit avant de décider d'en poser un neuf.
+    const deja = this.lire()
+
+    if (deja) {
+      return deja
+    }
+
     const etat: EtatPartie = {
       gameId,
       inviteCode: ligne.inviteCode,
@@ -276,6 +295,43 @@ export class GameRoom implements DurableObject {
 
     this.envoyer(server, EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
 
+    /*
+     * REJOUER CE QUI NE SE REJOUE PAS TOUT SEUL.
+     *
+     * Un client reconnecté recevait son dernier STATUT, mais aucun des
+     * événements survenus pendant la coupure. Or plusieurs mécanismes ne
+     * vivent que d'événements, jamais du statut :
+     *
+     *   - game:updateQuestion remet à zéro le drapeau « en lecture » du
+     *     lecteur Spotify. Sans lui, ce drapeau reste armé et le repli de
+     *     lecture est ignoré pour toute la suite de la manche — le morceau
+     *     ne change plus, alors que tout le reste continue ;
+     *   - game:audioCue ne part qu'à l'annonce de la question. L'animateur
+     *     qui décroche au mauvais moment reste sans musique jusqu'à la
+     *     question suivante.
+     *
+     * Une coupure de WebSocket n'a rien d'exceptionnel : un écran qui se
+     * verrouille suffit. La reconnexion doit donc remettre le client à
+     * niveau, pas seulement lui rendre son écran.
+     */
+    if (avancement) {
+      this.envoyer(server, EVENTS.GAME.UPDATE_QUESTION, avancement)
+    }
+
+    if (roleReel === "manager" && etat.manche.demarree) {
+      const enJeu =
+        etat.manche.phase === PHASE.ENONCE ||
+        etat.manche.phase === PHASE.REPONSES
+
+      if (enJeu) {
+        const piste = pisteSpotify(etat.quizz.questions[etat.manche.question])
+
+        if (piste) {
+          this.envoyer(server, EVENTS.GAME.AUDIO_CUE, piste)
+        }
+      }
+    }
+
     return new Response(null, { status: 101, webSocket: client })
   }
 
@@ -326,11 +382,14 @@ export class GameRoom implements DurableObject {
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
     const qui = ws.deserializeAttachment() as Attachement | null
-    const etat = this.lire()
 
-    if (!qui || !etat) {
+    if (!qui) {
       return
     }
+
+    // L'état n'est PAS lu ici : les gestionnaires qui interrogent D1 doivent
+    // le relire après leurs attentes, sinon ils réécriraient une copie
+    // périmée par-dessus ce que d'autres messages ont enregistré.
 
     let trame: { e: string; d?: unknown }
 
@@ -342,48 +401,48 @@ export class GameRoom implements DurableObject {
 
     switch (trame.e) {
       case EVENTS.PLAYER.LOGIN:
-        this.rejoindre(ws, qui, etat, trame.d)
+        this.rejoindre(ws, qui, trame.d)
 
         return
 
       case EVENTS.MANAGER.KICK_PLAYER:
-        this.exclure(qui, etat, trame.d)
+        this.exclure(qui, trame.d)
 
         return
 
       case EVENTS.PLAYER.LEAVE:
       case EVENTS.MANAGER.LEAVE:
-        await this.quitter(qui, etat)
+        await this.quitter(qui)
 
         return
 
       case EVENTS.MANAGER.START_GAME:
-        this.demarrerPartie(ws, qui, etat)
+        this.demarrerPartie(ws, qui)
 
         return
 
       case EVENTS.PLAYER.SELECTED_ANSWER:
-        this.enregistrerReponse(qui, etat, trame.d)
+        this.enregistrerReponse(qui, trame.d)
 
         return
 
       case EVENTS.MANAGER.ABORT_QUIZ:
-        this.trancher(qui, etat)
+        this.trancher(qui)
 
         return
 
       case EVENTS.MANAGER.SHOW_LEADERBOARD:
-        await this.montrerClassement(qui, etat)
+        await this.montrerClassement(qui)
 
         return
 
       case EVENTS.MANAGER.NEXT_QUESTION:
-        this.questionSuivante(qui, etat)
+        this.questionSuivante(qui)
 
         return
 
       case EVENTS.MANAGER.NEW_QUIZZ:
-        await this.enchainer(ws, qui, etat, trame.d)
+        await this.enchainer(ws, qui, trame.d)
 
         return
 
@@ -445,13 +504,15 @@ export class GameRoom implements DurableObject {
 
   /** Efface la salle : son stockage et son PIN. */
   private async supprimer(etat: EtatPartie) {
-    try {
-      await this.env.DB.prepare(`DELETE FROM games WHERE game_id = ?`)
+    // La ligne D1 part sans être attendue : attendre ici ouvrirait la porte
+    // à d'autres messages, qui écriraient dans un objet qu'on efface.
+    this.ctx.waitUntil(
+      this.env.DB.prepare(`DELETE FROM games WHERE game_id = ?`)
         .bind(etat.gameId)
         .run()
-    } catch (e) {
-      console.error("suppression du PIN impossible :", e)
-    }
+        .then(() => undefined)
+        .catch((e) => console.error("suppression du PIN impossible :", e)),
+    )
 
     // deleteAll efface aussi l'alarme : rien ne rappellera cet objet.
     await this.ctx.storage.deleteAll()
@@ -494,12 +555,13 @@ export class GameRoom implements DurableObject {
 
   // ── Actions ─────────────────────────────────────────────────────────────
 
-  private rejoindre(
-    ws: WebSocket,
-    qui: Attachement,
-    etat: EtatPartie,
-    charge: unknown,
-  ) {
+  private rejoindre(ws: WebSocket, qui: Attachement, charge: unknown) {
+    const etat = this.lire()
+
+    if (!etat) {
+      return
+    }
+
     if (qui.role === "manager") {
       this.envoyer(
         ws,
@@ -553,8 +615,10 @@ export class GameRoom implements DurableObject {
     this.envoyer(ws, EVENTS.GAME.SUCCESS_JOIN, etat.gameId)
   }
 
-  private exclure(qui: Attachement, etat: EtatPartie, charge: unknown) {
-    if (qui.role !== "manager") {
+  private exclure(qui: Attachement, charge: unknown) {
+    const etat = this.lire()
+
+    if (!etat || qui.role !== "manager") {
       return
     }
 
@@ -581,7 +645,13 @@ export class GameRoom implements DurableObject {
     this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
   }
 
-  private async quitter(qui: Attachement, etat: EtatPartie) {
+  private async quitter(qui: Attachement) {
+    const etat = this.lire()
+
+    if (!etat) {
+      return
+    }
+
     if (qui.role === "manager") {
       this.diffuser(EVENTS.GAME.RESET, "errors:game.managerDisconnected")
 
@@ -619,21 +689,8 @@ export class GameRoom implements DurableObject {
    * autour de lui. Ici, seul le contenu de la manche change — PIN, QR et
    * joueurs connectés restent en place, donc personne ne rescanne.
    */
-  private async enchainer(
-    ws: WebSocket,
-    qui: Attachement,
-    etat: EtatPartie,
-    charge: unknown,
-  ) {
+  private async enchainer(ws: WebSocket, qui: Attachement, charge: unknown) {
     if (qui.role !== "manager") {
-      return
-    }
-
-    // Une manche en cours ne se remplace pas : il faudrait décider du sort
-    // des points déjà marqués, et l'animateur a « Abandonner » pour cela.
-    if (etat.manche.demarree) {
-      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.roundInProgress")
-
       return
     }
 
@@ -649,6 +706,9 @@ export class GameRoom implements DurableObject {
       return
     }
 
+    // La lecture D1 vient AVANT toute lecture d'état : pendant cette attente,
+    // d'autres messages sont délivrés et écrivent. Un état lu plus tôt serait
+    // périmé au moment de le réécrire, et emporterait leurs modifications.
     const quiz = await this.env.DB.prepare(
       `SELECT id, json FROM quizz WHERE id = ?`,
     )
@@ -657,6 +717,22 @@ export class GameRoom implements DurableObject {
 
     if (!quiz) {
       this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
+
+      return
+    }
+
+    // À partir d'ici, plus aucune attente : lecture, modifications et
+    // écriture forment une suite synchrone, donc indivisible.
+    const etat = this.lire()
+
+    if (!etat) {
+      return
+    }
+
+    // Une manche en cours ne se remplace pas : il faudrait décider du sort
+    // des points déjà marqués, et l'animateur a « Abandonner » pour cela.
+    if (etat.manche.demarree) {
+      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.roundInProgress")
 
       return
     }
@@ -679,12 +755,17 @@ export class GameRoom implements DurableObject {
     etat.statutAnimateur = null
     etat.statutsJoueurs = {}
 
-    // La ligne D1 suit, pour qu'elle ne désigne plus un quiz périmé.
-    await this.env.DB.prepare(`UPDATE games SET quizz_id = ? WHERE game_id = ?`)
-      .bind(quizzId, etat.gameId)
-      .run()
-
     this.ecrire(etat)
+
+    // La ligne D1 suit, pour qu'elle ne désigne plus un quiz périmé. Elle
+    // part APRÈS l'écriture et sans être attendue : la faire précéder
+    // rouvrirait la porte au beau milieu de la séquence.
+    this.ctx.waitUntil(
+      this.env.DB.prepare(`UPDATE games SET quizz_id = ? WHERE game_id = ?`)
+        .bind(quizzId, etat.gameId)
+        .run()
+        .then(() => undefined),
+    )
 
     // L'animateur retrouve le PIN, les joueurs leur écran d'attente.
     const salle = this.salleDAttente(etat)
@@ -706,8 +787,10 @@ export class GameRoom implements DurableObject {
 
   // ── Contrôles de la manche ──────────────────────────────────────────────
 
-  private demarrerPartie(ws: WebSocket, qui: Attachement, etat: EtatPartie) {
-    if (qui.role !== "manager") {
+  private demarrerPartie(ws: WebSocket, qui: Attachement) {
+    const etat = this.lire()
+
+    if (!etat || qui.role !== "manager") {
       return
     }
 
@@ -726,11 +809,13 @@ export class GameRoom implements DurableObject {
     }
   }
 
-  private enregistrerReponse(
-    qui: Attachement,
-    etat: EtatPartie,
-    charge: unknown,
-  ) {
+  private enregistrerReponse(qui: Attachement, charge: unknown) {
+    const etat = this.lire()
+
+    if (!etat) {
+      return
+    }
+
     const answerKeys = (charge as { data?: { answerKeys?: number[] } })?.data
       ?.answerKeys
 
@@ -756,8 +841,10 @@ export class GameRoom implements DurableObject {
   }
 
   /** « Passer » : l'animateur clôt la question avant la fin du temps. */
-  private trancher(qui: Attachement, etat: EtatPartie) {
-    if (qui.role !== "manager" || !etat.manche.demarree) {
+  private trancher(qui: Attachement) {
+    const etat = this.lire()
+
+    if (!etat || qui.role !== "manager" || !etat.manche.demarree) {
       return
     }
 
@@ -765,8 +852,10 @@ export class GameRoom implements DurableObject {
     this.ecrire(etat)
   }
 
-  private questionSuivante(qui: Attachement, etat: EtatPartie) {
-    if (qui.role !== "manager") {
+  private questionSuivante(qui: Attachement) {
+    const etat = this.lire()
+
+    if (!etat || qui.role !== "manager") {
       return
     }
 
@@ -775,8 +864,10 @@ export class GameRoom implements DurableObject {
     }
   }
 
-  private async montrerClassement(qui: Attachement, etat: EtatPartie) {
-    if (qui.role !== "manager") {
+  private async montrerClassement(qui: Attachement) {
+    const etat = this.lire()
+
+    if (!etat || qui.role !== "manager") {
       return
     }
 
