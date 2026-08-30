@@ -84,7 +84,8 @@ const SocketContext = createContext<SocketContextValue>({
 })
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isConnected, setIsConnected] = useState(false)
+  // Semé depuis l'état RÉEL du client, jamais depuis « false ».
+  const [isConnected, setIsConnected] = useState(() => socketClient.connected)
 
   useEffect(() => {
     // oxlint-disable-next-line no-explicit-any
@@ -95,6 +96,19 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Connection error:", err.message)
       // oxlint-disable-next-line no-explicit-any
     }) as any)
+
+    /*
+     * RATTRAPAGE INDISPENSABLE, et c'est un piège d'ordonnancement de React.
+     *
+     * Ce provider est le PARENT du composant qui appelle connect(), et les
+     * effets s'exécutent de l'enfant vers le parent : connect() a donc déjà
+     * eu lieu quand on arrive ici, et son événement s'est perdu faute
+     * d'écouteur. Sans cette relecture, isConnected restait faux à jamais et
+     * toute la partie administration s'immobilisait sur un chargement.
+     *
+     * S'abonner ne suffit pas : il faut aussi CONSTATER l'état courant.
+     */
+    setIsConnected(socketClient.connected)
 
     return () => {
       socketClient.disconnect()

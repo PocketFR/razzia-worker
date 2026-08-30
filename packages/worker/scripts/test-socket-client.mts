@@ -66,6 +66,27 @@ verifier("aucune WebSocket ouverte pour rien", FauxWS.dernier === undefined)
 s.connect()
 verifier("connect() est idempotent", connects === 1)
 
+// ── L'ORDRE RÉEL : connect() a lieu AVANT que l'abonné n'existe ───────────
+// React exécute les effets de l'enfant avant ceux du parent, or c'est le
+// parent qui s'abonne et l'enfant qui appelle connect(). L'événement se perd
+// donc toujours. Un abonné tardif doit pouvoir CONSTATER l'état, faute de
+// pouvoir le recevoir.
+const tardif = new RazziaSocket()
+tardif.configurer("client-3")
+tardif.connect()
+
+let recus = 0
+tardif.on("connect", () => recus++)
+
+verifier(
+  "l'événement est perdu, c'est attendu",
+  recus === 0,
+)
+verifier(
+  "mais l'état reste constatable",
+  tardif.connected === true,
+)
+
 // ── entrée en partie : une vraie WebSocket ────────────────────────────────
 s.viser("partie-1")
 verifier("une WebSocket est ouverte", FauxWS.dernier !== undefined)
