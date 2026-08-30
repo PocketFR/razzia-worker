@@ -290,6 +290,63 @@ verifier(
   config.results.some((r) => r.subject === "Manche de test"),
 )
 
+// ── amorce audio ──────────────────────────────────────────────────────────
+// Le média sonore n'accompagne pas SHOW_QUESTION, qui est diffusé à tous et
+// livrerait la réponse. Il part sur un événement adressé à l'animateur seul,
+// à l'annonce de la question — le lecteur Spotify a besoin de ces quelques
+// secondes d'avance.
+console.log("— amorce audio")
+
+const { id: quizzSonore } = await fetch(`${base}/api/quizz`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({
+    subject: "Sonore",
+    questions: [
+      {
+        ...question("Quel titre ?"),
+        media: { type: "audio", url: "spotify:5Aom4pV5XRvO33DrZ5bMLD:45" },
+      },
+    ],
+  }),
+}).then((r) => r.json())
+
+const partie3 = await fetch(`${base}/api/game`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({ quizzId: quizzSonore, clientId: "anim3" }),
+}).then((r) => r.json())
+
+const anim3 = await connecter(partie3.gameId, "anim3", "manager")
+const dede = await connecter(partie3.gameId, "dede", "player")
+dede.envoyer("player:login", { data: { username: "Dédé" } })
+await new Promise((r) => setTimeout(r, 300))
+
+anim3.envoyer("manager:startGame", { gameId: partie3.gameId })
+
+const amorce = await anim3.attendre((t) => t.e === "game:audioCue")
+verifier("l'animateur reçoit l'amorce", amorce !== undefined)
+verifier(
+  "elle porte l'identifiant du morceau",
+  amorce?.d?.id === "5Aom4pV5XRvO33DrZ5bMLD",
+  amorce?.d?.id,
+)
+verifier("et son décalage", amorce?.d?.depart === 45, String(amorce?.d?.depart))
+
+const enonceSonore = await anim3.statut("SHOW_QUESTION")
+verifier(
+  "l'amorce précède l'ouverture des réponses",
+  amorce.a <= enonceSonore.a + 100,
+)
+verifier(
+  "le média sonore n'est PAS dans l'énoncé diffusé",
+  enonceSonore?.d?.data?.media === undefined,
+  JSON.stringify(enonceSonore?.d?.data?.media),
+)
+
+const amorceJoueur = await dede.attendre((t) => t.e === "game:audioCue", 2000)
+verifier("le joueur ne la reçoit pas", amorceJoueur === undefined)
+
 // ── question sans limite de temps ─────────────────────────────────────────
 // C'est le cas le plus favorable à l'hibernation : aucune alarme n'est armée,
 // l'objet peut dormir jusqu'à ce que quelqu'un parle. On vérifie donc à la

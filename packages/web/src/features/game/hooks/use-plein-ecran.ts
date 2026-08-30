@@ -35,7 +35,9 @@ const demander = () => {
 }
 
 const quitter = () => {
-  const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> }
+  const doc = document as Document & {
+    webkitExitFullscreen?: () => Promise<void>
+  }
   const fn = doc.exitFullscreen ?? doc.webkitExitFullscreen
 
   return fn ? fn.call(doc) : null

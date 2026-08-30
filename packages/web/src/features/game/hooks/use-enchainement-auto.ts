@@ -78,8 +78,7 @@ export const useEnchainementAuto = (
       }, DELAI_MS)
     }
 
-    const suivante = () =>
-      socket.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId })
+    const suivante = () => socket.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId })
 
     const index = questionStates?.current
     const total = questionStates?.total
