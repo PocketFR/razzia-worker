@@ -114,10 +114,10 @@ const QuestionEditorMedia = () => {
               }
               className="bg-accent text-accent-foreground hover:bg-accent transition-colors"
             >
-              <div className="flex items-center gap-1.5">
-                <img src="/spotify.svg" alt="" className="h-6 w-auto" />
-                <p>Spotify</p>
-              </div>
+              {/* Le logotype porte déjà le nom — 512 x 123, texte compris.
+                  L'alt n'est donc pas décoratif : c'est le seul nom
+                  accessible du bouton une fois la légende retirée. */}
+              <img src="/spotify.svg" alt="Spotify" className="h-6 w-auto" />
             </Button>
           </div>
         </Card>
