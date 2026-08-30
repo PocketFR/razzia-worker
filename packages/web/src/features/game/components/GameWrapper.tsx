@@ -82,25 +82,31 @@ const GameWrapper = ({
                 </div>
               )}
 
-              {manager && auto && (
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={auto.actif}
-                    onChange={(e) => auto.basculer(e.target.checked)}
-                  />
-                  {t("game:auto")}
-                </label>
-              )}
+              {/* La case est solidaire du bouton « Passer », comme la
+                  surcouche qui la greffait dessus : hors partie il n'y a rien
+                  à enchaîner, et elle n'a donc pas lieu d'être affichée. */}
               {manager && next && (
-                <Button
-                  className={clsx("hover:bg-accent bg-white px-4 text-black", {
-                    "pointer-events-none": isDisabled,
-                  })}
-                  onClick={handleNext}
-                >
-                  {t(next)}
-                </Button>
+                <div className="ml-auto flex items-center gap-3">
+                  {auto && (
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-black">
+                      <input
+                        type="checkbox"
+                        checked={auto.actif}
+                        onChange={(e) => auto.basculer(e.target.checked)}
+                      />
+                      {t("game:auto")}
+                    </label>
+                  )}
+
+                  <Button
+                    className={clsx("hover:bg-accent bg-white px-4 text-black", {
+                      "pointer-events-none": isDisabled,
+                    })}
+                    onClick={handleNext}
+                  >
+                    {t(next)}
+                  </Button>
+                </div>
               )}
 
               {manager && onBack && (

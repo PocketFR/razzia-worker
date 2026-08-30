@@ -225,10 +225,15 @@ export class GameRoom implements DurableObject {
     // L'écran à restituer est le statut PERSONNEL s'il y en a un — un joueur
     // qui a déjà répondu doit retrouver son attente, pas la question. À
     // défaut, le dernier statut diffusé ; à défaut encore, la salle d'attente.
-    const avancement = {
-      current: etat.manche.question + 1,
-      total: etat.quizz.questions.length,
-    }
+    // Rien avant le lancement : le salon d'attente n'a pas de question en
+    // cours, et annoncer « 1 / 20 » y ferait apparaître un compteur qui ne
+    // veut rien dire.
+    const avancement = etat.manche.demarree
+      ? {
+          current: etat.manche.question + 1,
+          total: etat.quizz.questions.length,
+        }
+      : null
 
     if (roleReel === "manager") {
       this.envoyer(server, EVENTS.MANAGER.SUCCESS_RECONNECT, {

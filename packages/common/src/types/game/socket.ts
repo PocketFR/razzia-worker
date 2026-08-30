@@ -56,7 +56,9 @@ export interface ServerToClientEvents {
     gameId: string
     status: { name: Status; data: StatusDataMap[Status] }
     player: { username: string; points: number }
-    currentQuestion: GameUpdateQuestion
+    /* Null tant que la manche n'a pas démarré : le salon d'attente ne doit
+       pas afficher « 1 / 20 », il n'y a pas encore de question en cours. */
+    currentQuestion: GameUpdateQuestion | null
   }) => void
   [EVENTS.PLAYER.UPDATE_LEADERBOARD]: (_data: { leaderboard: Player[] }) => void
 
@@ -65,7 +67,7 @@ export interface ServerToClientEvents {
     gameId: string
     status: { name: Status; data: StatusDataMap[Status] }
     players: Player[]
-    currentQuestion: GameUpdateQuestion
+    currentQuestion: GameUpdateQuestion | null
   }) => void
   [EVENTS.MANAGER.CONFIG]: (_config: ManagerConfig) => void
   [EVENTS.QUIZZ.DATA]: (_quizz: QuizzWithId) => void

@@ -7,9 +7,10 @@
  * le SVG du QR avant sa disparition, faute de connaître le PIN autrement ;
  * ici il est dans le magasin.
  *
- * Un clic l'estompe sans le retirer : sur l'écran de l'animateur, il empiète
- * parfois sur les réponses, et le faire disparaître pour de bon obligerait à
- * savoir le rappeler.
+ * Un clic le fait DISPARAÎTRE complètement, comme la surcouche : sur un
+ * écran de télévision il empiète sur les réponses, et un simple
+ * estompement ne suffit pas à le faire oublier. La zone reste cliquable pour
+ * le rappeler — c'est le compromis qu'avait retenu razzia-qr.js.
  */
 
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
@@ -35,7 +36,7 @@ const QrIncruste = () => {
       className={clsx(
         "fixed bottom-4 left-4 z-50 rounded-xl bg-white p-2.5 text-center",
         "font-semibold text-black shadow-lg transition-opacity",
-        estompe ? "opacity-15" : "opacity-100",
+        estompe ? "opacity-0" : "opacity-100",
       )}
     >
       <QRCodeSVG

@@ -23,6 +23,8 @@ interface LecteurSDK {
   addListener: (_e: string, _cb: (_d: any) => void) => void
   connect: () => Promise<boolean>
   disconnect: () => void
+  /* Débloque l'élément audio du SDK. Voir activerAudio plus bas. */
+  activateElement: () => Promise<void>
 }
 
 declare global {
@@ -116,11 +118,40 @@ export const demarrerLecteur = async (
   return true
 }
 
+let audioActive = false
+
+/**
+ * Débloque la lecture, depuis un geste utilisateur.
+ *
+ * LE SYMPTÔME EST TROMPEUR : le lecteur s'annonce « prêt », les commandes de
+ * lecture renvoient 204, et pourtant rien ne sort. Les navigateurs — Firefox
+ * en tête — refusent qu'un son démarre sans geste de l'utilisateur, et
+ * l'élément audio que le SDK crée en coulisse reste muet tant qu'il n'a pas
+ * été activé pendant une interaction réelle.
+ *
+ * activateElement existe précisément pour ça, et n'a de valeur qu'appelée
+ * depuis un gestionnaire d'événement d'entrée. Une seule fois suffit.
+ */
+export const activerAudio = async () => {
+  if (audioActive || !lecteur) {
+    return
+  }
+
+  try {
+    await lecteur.activateElement()
+    audioActive = true
+    console.log("[spotify] audio débloqué")
+  } catch (e) {
+    console.error("[spotify] activation refusée :", e)
+  }
+}
+
 export const arreterLecteur = () => {
   lecteur?.disconnect()
   lecteur = null
   deviceId = null
   enCours = false
+  audioActive = false
 }
 
 /** "spotify:ID:offset" -> {id, depart}, ou null. */

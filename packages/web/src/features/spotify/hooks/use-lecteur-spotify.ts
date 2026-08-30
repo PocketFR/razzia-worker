@@ -19,6 +19,7 @@ import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
 import { useEvent } from "@razzia/web/features/game/contexts/socket-context"
 import {
+  activerAudio,
   demarrerLecteur,
   enLecture,
   jouer,
@@ -47,6 +48,31 @@ export const useLecteurSpotify = (clientId: string | null) => {
   useEvent(EVENTS.GAME.UPDATE_QUESTION, () => {
     nouvelleQuestion()
   })
+
+  /*
+   * Le premier geste de l'animateur débloque l'audio.
+   *
+   * Sans lui, tout paraît fonctionner — lecteur prêt, commandes acceptées en
+   * 204 — et rien ne sort des enceintes. N'importe quel geste convient ;
+   * en pratique c'est le clic sur « Démarrer la partie », soit juste avant
+   * la première question.
+   */
+  useEffect(() => {
+    if (!clientId) {
+      return
+    }
+
+    const surGeste = () => void activerAudio()
+    const options = { once: true, capture: true } as const
+
+    addEventListener("pointerup", surGeste, options)
+    addEventListener("keydown", surGeste, options)
+
+    return () => {
+      removeEventListener("pointerup", surGeste, options)
+      removeEventListener("keydown", surGeste, options)
+    }
+  }, [clientId])
 
   useEvent(EVENTS.GAME.AUDIO_CUE, ({ id, depart }) => {
     if (clientId) {
