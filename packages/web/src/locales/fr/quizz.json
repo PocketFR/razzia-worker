@@ -38,10 +38,20 @@
     "mediaUrlPlaceholder": "Entrez l'URL...",
     "placeholder": "Commencez à écrire votre question...",
     "spotify": {
+      "apply": "Appliquer",
+      "listen": "Écouter sur Spotify",
       "loading": "Chargement…",
+      "noResult": "Aucun résultat",
+      "none": "Aucun morceau sélectionné",
+      "noneHint": "Cherche un titre ci-dessous",
+      "premium": "Nécessite une connexion Spotify Premium",
+      "search": "Chercher un autre morceau…",
+      "searchButton": "Chercher",
       "start": "Démarrer à",
       "startHint": "secondes",
-      "search": "Chercher un autre morceau…"
+      "tooShort": "Requête trop courte",
+      "unavailable": "métadonnées indisponibles",
+      "unchanged": "Décalage inchangé"
     }
   },
   "questionType": {

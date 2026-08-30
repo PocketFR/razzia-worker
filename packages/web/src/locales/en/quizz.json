@@ -38,10 +38,20 @@
     "mediaUrlPlaceholder": "Enter URL...",
     "placeholder": "Start typing your question...",
     "spotify": {
+      "apply": "Apply",
+      "listen": "Listen on Spotify",
       "loading": "Loading…",
+      "noResult": "No result",
+      "none": "No track selected",
+      "noneHint": "Search for a title below",
+      "premium": "Requires a Spotify Premium connection",
+      "search": "Search another track…",
+      "searchButton": "Search",
       "start": "Start at",
       "startHint": "seconds",
-      "search": "Search for another track…"
+      "tooShort": "Query too short",
+      "unavailable": "metadata unavailable",
+      "unchanged": "Offset unchanged"
     }
   },
   "questionType": {

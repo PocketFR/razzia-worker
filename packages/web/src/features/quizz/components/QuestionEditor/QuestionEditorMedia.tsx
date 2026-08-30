@@ -51,7 +51,9 @@ const QuestionEditorMedia = () => {
     <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-4">
       {questionMedia && URI_SPOTIFY.test(questionMedia.url) ? (
         /* Le lecteur <audio> natif reste inerte sur une URI spotify: — on
-           montre le morceau plutôt qu'un contrôle qui ne répond pas. */
+           montre le morceau plutôt qu'un contrôle qui ne répond pas.
+           L'expression accepte « spotify: » sans identifiant : c'est
+           précisément l'état où l'animateur a besoin de la recherche. */
         <SpotifyMedia
           media={questionMedia}
           onChange={(media) => updateQuestion(currentIndex, { media })}

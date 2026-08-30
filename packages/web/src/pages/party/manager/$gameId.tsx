@@ -40,6 +40,10 @@ const ManagerGamePage = () => {
   const { setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
 
+  useEvent(EVENTS.MANAGER.CONFIG, (data) => {
+    setConfig(data)
+  })
+
   useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {
       setStatus(name, data)
@@ -58,6 +62,12 @@ const ManagerGamePage = () => {
     if (gameIdParam) {
       socket.emit(EVENTS.MANAGER.RECONNECT, { gameId: gameIdParam })
     }
+
+    // La configuration animateur porte l'identifiant client Spotify, dont le
+    // lecteur a besoin. Elle n'était chargée qu'en passant par l'écran de
+    // configuration : après un rechargement DIRECT sur cette page, elle
+    // manquait, et le lecteur ne démarrait jamais.
+    socket.emit(EVENTS.MANAGER.GET_CONFIG)
   })
 
   useEvent(

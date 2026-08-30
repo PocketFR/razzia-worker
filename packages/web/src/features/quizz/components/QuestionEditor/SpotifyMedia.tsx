@@ -1,25 +1,33 @@
 /*
  * Édition d'un morceau Spotify dans l'éditeur de quiz.
  *
- * Reprend razzia-media.js. L'éditeur affiche un lecteur <audio> pour le champ
- * media, mais une URI "spotify:ID:offset" n'est pas jouable par le
- * navigateur : le contrôle restait inerte, sans rien dire du morceau.
+ * Reprend razzia-media.js, y compris sa disposition : logo, mention Premium,
+ * pochette et métadonnées à gauche, écoute / décalage / application à droite,
+ * puis la recherche et ses résultats.
  *
- * CE QUI DISPARAÎT AVEC LA SURCOUCHE. Elle ne pouvait pas écrire directement
- * dans l'état de React : changer un morceau exigeait de cliquer « Supprimer »
- * pour faire réapparaître le champ, d'y écrire par le setter natif — une
- * affectation directe de .value étant perdue au premier rendu — puis de
- * recliquer « Audio ». Une séquence interrompue laissait la question sans
- * média, d'où une restauration automatique et une confirmation avant
- * écrasement. Ici, updateQuestion fait le tout en un appel.
+ * L'IDENTIFIANT EST OPTIONNEL dans l'URI reconnue, et c'est délibéré : le
+ * bloc doit apparaître dès qu'on tape « spotify: », AVANT de savoir quel
+ * morceau on veut — c'est justement là qu'on a besoin de la recherche. Une
+ * expression exigeant les 22 caractères laissait l'animateur devant un champ
+ * texte sans aucun moyen de trouver un titre.
+ *
+ * CE QUI DISPARAÎT AVEC LA SURCOUCHE. Elle ne pouvait pas écrire dans l'état
+ * de React : changer un morceau exigeait de cliquer « Supprimer » pour faire
+ * réapparaître le champ, d'y écrire par le setter natif — une affectation
+ * directe de .value étant perdue au premier rendu — puis de recliquer
+ * « Audio », avec restauration si la séquence était interrompue. Ici,
+ * updateQuestion fait le tout en un appel.
  */
 
 import type { QuestionMedia } from "@razzia/common/types/game"
+import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-export const URI_SPOTIFY = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/
+/* L'identifiant est optionnel : « spotify: » seul est une URI valide en
+   cours de saisie, que le bloc doit reconnaître pour offrir la recherche. */
+export const URI_SPOTIFY = /^spotify:(?:([A-Za-z0-9]{22})(?::(\d+))?)?$/
 
 interface Piste {
   id: string
@@ -34,6 +42,11 @@ interface Piste {
 const mmss = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
 
+const decrire = (p: Piste) =>
+  [p.artiste, p.album, p.annee ? String(p.annee) : "", p.duree ? mmss(p.duree) : ""]
+    .filter(Boolean)
+    .join(" · ")
+
 interface Props {
   media: QuestionMedia
   onChange: (_media: QuestionMedia) => void
@@ -46,45 +59,43 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
   const depart = parseInt(correspondance?.[2] ?? "0", 10) || 0
 
   const [piste, setPiste] = useState<Piste | null>(null)
+  const [introuvable, setIntrouvable] = useState(false)
   const [recherche, setRecherche] = useState("")
   const [resultats, setResultats] = useState<Piste[]>([])
+  const [message, setMessage] = useState<string | null>(null)
+  const [enCours, setEnCours] = useState(false)
 
   useEffect(() => {
     if (!id) {
+      setPiste(null)
+      setIntrouvable(false)
+
       return
     }
 
     let vivant = true
     setPiste(null)
+    setIntrouvable(false)
 
-    void fetch(`/ia/track/${id}`)
+    void fetch(`/ia/track/${id}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => vivant && d.ok && setPiste(d.track))
-      .catch(() => undefined)
+      .then((d) => {
+        if (!vivant) {
+          return
+        }
+
+        if (d?.ok && d.track) {
+          setPiste(d.track)
+        } else {
+          setIntrouvable(true)
+        }
+      })
+      .catch(() => vivant && setIntrouvable(true))
 
     return () => {
       vivant = false
     }
   }, [id])
-
-  // Recherche différée : une requête par frappe saturerait le quota Spotify
-  // pour un résultat que personne ne lit.
-  useEffect(() => {
-    if (recherche.trim().length < 2) {
-      setResultats([])
-
-      return
-    }
-
-    const minuteur = setTimeout(() => {
-      void fetch(`/ia/search?q=${encodeURIComponent(recherche.trim())}`)
-        .then((r) => r.json())
-        .then((d) => d.ok && setResultats(d.tracks))
-        .catch(() => undefined)
-    }, 400)
-
-    return () => clearTimeout(minuteur)
-  }, [recherche])
 
   const ecrire = (nouvelId: string, nouveauDepart: number) =>
     onChange({
@@ -94,88 +105,149 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
         : `spotify:${nouvelId}`,
     })
 
+  const chercher = async () => {
+    const q = recherche.trim()
+
+    if (q.length < 2) {
+      setMessage(t("question.spotify.tooShort"))
+
+      return
+    }
+
+    setEnCours(true)
+    setMessage(null)
+    setResultats([])
+
+    try {
+      const d = await fetch(`/ia/search?q=${encodeURIComponent(q)}`, {
+        cache: "no-store",
+      }).then((r) => r.json())
+
+      if (!d?.ok || !d.tracks?.length) {
+        setMessage(t("question.spotify.noResult"))
+
+        return
+      }
+
+      setResultats(d.tracks)
+    } catch {
+      setMessage(t("question.spotify.noResult"))
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  const lienEcoute = id
+    ? `https://open.spotify.com/track/${id}${depart ? `?t=${depart}` : ""}`
+    : null
+
   return (
-    <div className="flex w-full max-w-xl flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-xl bg-black/20 p-3">
+    <div className="border-accent text-foreground bg-background w-full max-w-xl rounded-xl border p-3 text-left">
+      <div className="flex items-start justify-between gap-2">
+        <img src="/spotify.svg" alt="Spotify" className="h-8 w-auto" />
+        <span className="text-xs opacity-50">{t("question.spotify.premium")}</span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
         {piste?.cover ? (
           <img
             src={piste.cover}
             alt=""
-            className="size-16 rounded-md object-cover"
+            className="size-16 shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="size-16 rounded-md bg-white/10" />
+          <div className="bg-accent size-16 shrink-0 rounded-lg" />
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">
-            {piste?.titre ?? t("question.spotify.loading")}
+          <p className="truncate font-bold">
+            {piste
+              ? piste.titre
+              : id
+                ? introuvable
+                  ? id
+                  : t("question.spotify.loading")
+                : t("question.spotify.none")}
           </p>
-          <p className="truncate text-sm opacity-70">
-            {piste ? piste.artiste : id}
+          <p className="truncate text-sm opacity-65">
+            {piste
+              ? decrire(piste)
+              : id
+                ? introuvable
+                  ? t("question.spotify.unavailable")
+                  : ""
+                : t("question.spotify.noneHint")}
           </p>
-          {piste && (
-            <p className="text-xs opacity-50">
-              {piste.album}
-              {piste.annee ? ` · ${piste.annee}` : ""} · {mmss(piste.duree)}
-            </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {lienEcoute && (
+            <a
+              href={lienEcoute}
+              target="_blank"
+              rel="noopener"
+              title={t("question.spotify.listen")}
+              className="border-accent flex size-9 items-center justify-center rounded-lg border"
+            >
+              ▶
+            </a>
           )}
+
+          <Input
+            variant="sm"
+            type="number"
+            min={0}
+            max={piste?.duree ?? 600}
+            className="w-20 text-right"
+            title={t("question.spotify.start")}
+            disabled={!id}
+            value={String(depart)}
+            onChange={(e) =>
+              ecrire(id, Math.max(0, parseInt(e.target.value, 10) || 0))
+            }
+          />
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <span className="opacity-70">{t("question.spotify.start")}</span>
+      <div className="mt-3 flex gap-2">
         <Input
           variant="sm"
-          type="number"
-          min={0}
-          max={piste?.duree ?? 600}
-          className="w-24"
-          value={String(depart)}
-          onChange={(e) =>
-            ecrire(id, Math.max(0, parseInt(e.target.value, 10) || 0))
-          }
-        />
-        <span className="opacity-50">{t("question.spotify.startHint")}</span>
-      </label>
-
-      <div className="flex flex-col gap-1">
-        <Input
-          variant="sm"
+          className="min-w-0 flex-1"
           placeholder={t("question.spotify.search")}
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void chercher()}
         />
-
-        {resultats.length > 0 && (
-          <ul className="max-h-56 overflow-y-auto rounded-lg bg-black/30">
-            {resultats.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 p-2 text-left hover:bg-white/10"
-                  onClick={() => {
-                    // Le départ ne suit pas le morceau : un décalage calé sur
-                    // l'introduction d'un titre n'a aucun sens sur un autre.
-                    ecrire(r.id, 0)
-                    setRecherche("")
-                    setResultats([])
-                  }}
-                >
-                  {r.cover && (
-                    <img src={r.cover} alt="" className="size-8 rounded" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    <span className="font-medium">{r.titre}</span>
-                    <span className="opacity-60"> — {r.artiste}</span>
-                  </span>
-                  <span className="text-xs opacity-50">{mmss(r.duree)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Button size="sm" disabled={enCours} onClick={() => void chercher()}>
+          {t("question.spotify.searchButton")}
+        </Button>
       </div>
+
+      {message && <p className="mt-2 text-sm text-red-500">{message}</p>}
+
+      {resultats.length > 0 && (
+        <ul className="border-accent mt-2 max-h-52 overflow-auto rounded-lg border">
+          {resultats.map((r) => (
+            <li key={r.id} className="border-accent border-b last:border-b-0">
+              <button
+                type="button"
+                className="hover:bg-accent w-full px-3 py-2 text-left"
+                onClick={() => {
+                  // Le décalage ne suit pas le morceau : calé sur
+                  // l'introduction d'un titre, il n'a aucun sens sur un autre.
+                  ecrire(r.id, 0)
+                  setRecherche("")
+                  setResultats([])
+                  setMessage(null)
+                }}
+              >
+                <div className="truncate font-semibold">{r.titre}</div>
+                <div className="truncate text-sm opacity-65">{decrire(r)}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
