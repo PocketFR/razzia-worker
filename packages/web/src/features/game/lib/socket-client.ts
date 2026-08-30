@@ -240,11 +240,20 @@ export class RazziaSocket {
         void this.appel("/settings/keys", {
           method: "PUT",
           body: JSON.stringify(charge),
-        }).then(({ statut, corps }) =>
-          statut === 200
-            ? this.local(EVENTS.SETTINGS.DATA, corps)
-            : this.local(EVENTS.SETTINGS.ERROR, corps.error),
-        )
+        }).then(({ statut, corps }) => {
+          if (statut !== 200) {
+            this.local(EVENTS.SETTINGS.ERROR, corps.error)
+
+            return
+          }
+
+          this.local(EVENTS.SETTINGS.DATA, corps)
+
+          // La configuration animateur porte aussi l'identifiant Spotify :
+          // sans ce rechargement, le bouton de connexion continuait de le
+          // croire absent alors qu'il venait d'être saisi.
+          return this.chargerConfig()
+        })
 
         return true
 

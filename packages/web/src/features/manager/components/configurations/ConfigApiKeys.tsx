@@ -86,61 +86,66 @@ const ConfigApiKeys = () => {
   const modifie = Object.values(saisies).some((v) => v.trim() !== "")
 
   return (
-    <div className="flex flex-col gap-6">
-      <BoutonSpotify />
+    // Même découpage que les autres onglets : une zone défilante, et ce qui
+    // doit rester atteignable en dehors. Le bouton d'enregistrement sortait
+    // du cadre quand les quatre champs étaient dépliés.
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="min-h-0 flex-1 space-y-6 overflow-auto p-0.5">
+        <BoutonSpotify />
 
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-xl font-bold">{t("keys.title")}</h2>
-          <p className="text-sm opacity-70">{t("keys.subtitle")}</p>
-        </div>
-
-        {cles.map((cle) => (
-          <div key={cle.nom} className="flex flex-col gap-1">
-            <label className="font-semibold" htmlFor={`cle-${cle.nom}`}>
-              {LIBELLES[cle.nom] ?? cle.nom}
-            </label>
-            <span className="text-xs opacity-60">{etatDe(cle)}</span>
-
-            <div className="flex items-center gap-2">
-              <Input
-                id={`cle-${cle.nom}`}
-                variant="sm"
-                className="min-w-0 flex-1"
-                type={cle.secrete ? "password" : "text"}
-                autoComplete="off"
-                placeholder={
-                  cle.secrete && cle.definie
-                    ? t("keys.leaveEmpty")
-                    : (cle.valeur ?? "")
-                }
-                value={saisies[cle.nom] ?? ""}
-                onChange={(e) =>
-                  setSaisies((s) => ({ ...s, [cle.nom]: e.target.value }))
-                }
-              />
-
-              {cle.origine === "base" && (
-                <Button
-                  size="sm"
-                  className="bg-accent text-foreground shrink-0"
-                  onClick={() => effacer(cle.nom)}
-                >
-                  {t("keys.clear")}
-                </Button>
-              )}
-            </div>
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-bold">{t("keys.title")}</h2>
+            <p className="text-sm opacity-70">{t("keys.subtitle")}</p>
           </div>
-        ))}
 
-        <Button
-          className="self-start disabled:cursor-default disabled:opacity-40"
-          disabled={!modifie}
-          onClick={enregistrer}
-        >
-          {t("keys.save")}
-        </Button>
-      </section>
+          {cles.map((cle) => (
+            <div key={cle.nom} className="flex flex-col gap-1">
+              <label className="font-semibold" htmlFor={`cle-${cle.nom}`}>
+                {LIBELLES[cle.nom] ?? cle.nom}
+              </label>
+              <span className="text-xs opacity-60">{etatDe(cle)}</span>
+
+              <div className="flex items-center gap-2">
+                <Input
+                  id={`cle-${cle.nom}`}
+                  variant="sm"
+                  className="min-w-0 flex-1"
+                  type={cle.secrete ? "password" : "text"}
+                  autoComplete="off"
+                  placeholder={
+                    cle.secrete && cle.definie
+                      ? t("keys.leaveEmpty")
+                      : (cle.valeur ?? "")
+                  }
+                  value={saisies[cle.nom] ?? ""}
+                  onChange={(e) =>
+                    setSaisies((s) => ({ ...s, [cle.nom]: e.target.value }))
+                  }
+                />
+
+                {cle.origine === "base" && (
+                  <Button
+                    size="sm"
+                    className="bg-accent text-foreground shrink-0"
+                    onClick={() => effacer(cle.nom)}
+                  >
+                    {t("keys.clear")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </section>
+      </div>
+
+      <Button
+        className="shrink-0 disabled:cursor-default disabled:opacity-40"
+        disabled={!modifie}
+        onClick={enregistrer}
+      >
+        {t("keys.save")}
+      </Button>
     </div>
   )
 }
