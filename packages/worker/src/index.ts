@@ -33,6 +33,7 @@
  */
 
 import { routerApi } from "./api"
+import { routerQuizia } from "./quizia"
 
 export { GameRoom } from "./game-room"
 
@@ -43,6 +44,14 @@ export interface Env {
   /* Secret. Ne sert jamais telle quelle : deux clés en sont dérivées, une
      pour signer les sessions, une pour chiffrer les clés API. */
   RAZZIA_MASTER_KEY: string
+
+  /* Clés de quizia. Servent de valeurs par défaut : à l'étape 7, une valeur
+     saisie dans l'interface les surchargera. SPOTIFY_CLIENT_ID n'est pas un
+     secret — le flux PKCE l'expose au navigateur. */
+  MISTRAL_API_KEY?: string
+  MISTRAL_MODEL?: string
+  SPOTIFY_CLIENT_ID?: string
+  SPOTIFY_CLIENT_SECRET?: string
 }
 
 const json = (data: unknown, status = 200) =>
@@ -63,8 +72,8 @@ export default {
       return routerApi(request, env, url)
     }
 
-    if (url.pathname.startsWith("/ia/")) {
-      return json({ ok: false, message: "not implemented" }, 501)
+    if (url.pathname === "/ia" || url.pathname.startsWith("/ia/")) {
+      return routerQuizia(request, env, url)
     }
 
     // Inatteignable en pratique : run_worker_first ne dirige ici que /ws et
