@@ -143,9 +143,7 @@ const pisteSpotify = (question: Question) => {
     question.media?.url ?? "",
   )
 
-  return trouve
-    ? { id: trouve[1], depart: parseInt(trouve[2], 10) || 0 }
-    : null
+  return trouve ? { id: trouve[1], depart: parseInt(trouve[2], 10) || 0 } : null
 }
 
 // ── Entrée dans les phases ────────────────────────────────────────────────

@@ -244,6 +244,28 @@ export async function routerApi(
     }
   }
 
+  // --- vieillissement artificiel, pour les tests ---------------------------
+  // Le balayage ne ramasse que des lignes de plus d'un jour : sans ce levier,
+  // le vérifier demanderait d'attendre vingt-quatre heures. Refusée en
+  // production, où elle n'aurait aucun usage légitime.
+  if (section === "__vieillir" && methode === "POST") {
+    if (!env.GRACE_MS) {
+      return erreur("not found", 404)
+    }
+
+    const { inviteCode } = (await request.json().catch(() => ({}))) as {
+      inviteCode?: string
+    }
+
+    await env.DB.prepare(
+      `UPDATE games SET created_at = ? WHERE invite_code = ?`,
+    )
+      .bind(Date.now() - 48 * 60 * 60 * 1000, inviteCode ?? "")
+      .run()
+
+    return json({ ok: true })
+  }
+
   // --- création d'une partie ----------------------------------------------
   // Le Durable Object n'est pas créé ici : il naîtra à la première connexion
   // WebSocket. Cette route ne fait que réserver le couple identifiant/PIN et

@@ -59,6 +59,9 @@ interface EtatPartie {
   managerClientId: string
   players: Player[]
   manche: Manche
+  /* Échéance de suppression, armée quand la dernière socket se ferme et
+     désarmée dès qu'une connexion revient. Null tant que quelqu'un est là. */
+  finDeGrace: number | null
   /* Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
      et devait les transposer à chaque retour ; indexés par clientId, ils
      survivent d'eux-mêmes. */
@@ -68,6 +71,21 @@ interface EtatPartie {
 }
 
 const CLE = "partie"
+
+/*
+ * Délai de grâce après le départ du dernier participant.
+ *
+ * Deux heures peuvent sembler démesurées pour du ménage. C'est délibéré, et
+ * ça tient à une asymétrie : supprimer une salle vivante fait tout rescanner
+ * et perd les scores cumulés, alors qu'une salle morte ne coûte qu'un objet
+ * hiberné — donc rien en durée facturée — et une ligne dans une table dont
+ * l'espace de PIN fait un million.
+ *
+ * S'y ajoute que sur mobile les déconnexions sont la NORME : un écran qui se
+ * verrouille ferme la WebSocket. Une pause, un téléphone à recharger, un
+ * changement de pièce ne doivent pas emporter la partie.
+ */
+const GRACE_PAR_DEFAUT_MS = 2 * 60 * 60 * 1000
 
 export class GameRoom implements DurableObject {
   private readonly ctx: DurableObjectState
@@ -86,6 +104,29 @@ export class GameRoom implements DurableObject {
 
   private ecrire(etat: EtatPartie) {
     this.ctx.storage.kv.put(CLE, etat)
+    this.reprogrammer(etat)
+  }
+
+  /*
+   * Un Durable Object n'a QU'UNE alarme — setAlarm écrase la précédente — et
+   * il lui faut ici deux minuteries : le rythme des manches et l'expiration
+   * de la salle. L'alarme devient donc un ordonnanceur : on arme toujours la
+   * plus proche des deux échéances, et le réveil regarde laquelle est due.
+   *
+   * Les deux échéances vivent dans l'état, jamais en mémoire : c'est ce qui
+   * permet de les recalculer après hibernation. Reprogrammer à chaque
+   * écriture garantit qu'aucune ne peut être oubliée.
+   */
+  private reprogrammer(etat: EtatPartie) {
+    const echeances = [etat.manche.finDePhase, etat.finDeGrace].filter(
+      (d): d is number => typeof d === "number",
+    )
+
+    if (echeances.length) {
+      void this.ctx.storage.setAlarm(Math.min(...echeances))
+    } else {
+      void this.ctx.storage.deleteAlarm()
+    }
   }
 
   /**
@@ -129,6 +170,7 @@ export class GameRoom implements DurableObject {
       managerClientId: ligne.managerClientId,
       players: [],
       manche: mancheNeuve(),
+      finDeGrace: null,
       dernierStatut: null,
       statutAnimateur: null,
       statutsJoueurs: {},
@@ -173,6 +215,12 @@ export class GameRoom implements DurableObject {
       clientId,
       role: roleReel,
     } satisfies Attachement)
+
+    // Quelqu'un est revenu : la salle n'est plus candidate à la suppression.
+    if (etat.finDeGrace !== null) {
+      etat.finDeGrace = null
+      this.ecrire(etat)
+    }
 
     // L'écran à restituer est le statut PERSONNEL s'il y en a un — un joueur
     // qui a déjà répondu doit retrouver son attente, pas la question. À
@@ -246,13 +294,12 @@ export class GameRoom implements DurableObject {
         this.versJoueur(clientId, EVENTS.GAME.STATUS, { name, data })
       },
 
-      programmer: (quand) => {
-        void this.ctx.storage.setAlarm(quand)
-      },
-
-      annulerAlarme: () => {
-        void this.ctx.storage.deleteAlarm()
-      },
+      // La machine à états pose finDePhase dans l'état avant d'appeler ces
+      // deux-là ; c'est cet état qui fait foi, et ecrire() en dérive
+      // l'alarme. Les garder évite de diverger de la logique amont, dont ils
+      // sont la trace.
+      programmer: () => undefined,
+      annulerAlarme: () => undefined,
     }
   }
 
@@ -291,7 +338,7 @@ export class GameRoom implements DurableObject {
 
       case EVENTS.PLAYER.LEAVE:
       case EVENTS.MANAGER.LEAVE:
-        this.quitter(qui, etat)
+        await this.quitter(qui, etat)
 
         return
 
@@ -334,17 +381,66 @@ export class GameRoom implements DurableObject {
     const qui = ws.deserializeAttachment() as Attachement | null
     const etat = this.lire()
 
-    if (!qui || !etat || qui.role === "manager") {
+    if (!qui || !etat) {
       return
     }
 
-    const joueur = etat.players.find((p) => p.clientId === qui.clientId)
+    // Une socket fermée ne dit RIEN de l'intention : un téléphone verrouillé,
+    // un tunnel, un onglet fermé et un départ définitif sont indiscernables.
+    // Le joueur reste donc dans la partie, avec son score — seul un
+    // player:leave explicite le retire.
+    if (qui.role !== "manager") {
+      const joueur = etat.players.find((p) => p.clientId === qui.clientId)
 
-    if (joueur) {
-      joueur.connected = false
-      this.ecrire(etat)
-      this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+      if (joueur) {
+        joueur.connected = false
+        this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+      }
     }
+
+    this.armerLaGrace(etat, ws)
+    this.ecrire(etat)
+  }
+
+  /**
+   * Arme la suppression si plus personne n'est connecté, animateur compris.
+   *
+   * ATTENTION AU COMPTE. Mesuré plutôt que supposé : pendant webSocketClose,
+   * la socket en train de se fermer est ENCORE rendue par getWebSockets().
+   * Un test à zéro ne serait donc jamais vrai et la salle ne se nettoierait
+   * jamais — une panne parfaitement silencieuse. D'où l'exclusion explicite.
+   *
+   * Le critère est « aucune socket », et non « aucun joueur » : un animateur
+   * seul devant sa salle d'attente attend que les gens arrivent.
+   */
+  private armerLaGrace(etat: EtatPartie, sortante?: WebSocket) {
+    const restantes = this.ctx
+      .getWebSockets()
+      .filter((autre) => autre !== sortante)
+
+    etat.finDeGrace = restantes.length === 0 ? Date.now() + this.grace() : null
+  }
+
+  /** Deux heures, sauf réglage explicite — les tests le raccourcissent. */
+  private grace() {
+    const regle = Number(this.env.GRACE_MS)
+
+    return Number.isFinite(regle) && regle > 0 ? regle : GRACE_PAR_DEFAUT_MS
+  }
+
+  /** Efface la salle : son stockage et son PIN. */
+  private async supprimer(etat: EtatPartie) {
+    try {
+      await this.env.DB.prepare(`DELETE FROM games WHERE game_id = ?`)
+        .bind(etat.gameId)
+        .run()
+    } catch (e) {
+      console.error("suppression du PIN impossible :", e)
+    }
+
+    // deleteAll efface aussi l'alarme : rien ne rappellera cet objet.
+    await this.ctx.storage.deleteAll()
+    console.log(`salle ${etat.inviteCode} supprimée`)
   }
 
   async webSocketError(ws: WebSocket) {
@@ -364,7 +460,20 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    avancer(this.contexte(etat), this.emetteur(etat))
+    const maintenant = Date.now()
+
+    // La grâce l'emporte : si elle est échue, il n'y a plus personne pour
+    // regarder la question suivante de toute façon.
+    if (etat.finDeGrace && maintenant >= etat.finDeGrace) {
+      await this.supprimer(etat)
+
+      return
+    }
+
+    if (etat.manche.finDePhase && maintenant >= etat.manche.finDePhase) {
+      avancer(this.contexte(etat), this.emetteur(etat))
+    }
+
     this.ecrire(etat)
   }
 
@@ -457,9 +566,17 @@ export class GameRoom implements DurableObject {
     this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
   }
 
-  private quitter(qui: Attachement, etat: EtatPartie) {
+  private async quitter(qui: Attachement, etat: EtatPartie) {
     if (qui.role === "manager") {
       this.diffuser(EVENTS.GAME.RESET, "errors:game.managerDisconnected")
+
+      // Un départ explicite est le SEUL signal non ambigu dont on dispose.
+      // Avant le lancement, il n'y a ni score ni manche à préserver : la
+      // salle est défaite tout de suite, comme le faisait l'amont. Une
+      // partie commencée, elle, garde sa grâce — l'animateur peut revenir.
+      if (!etat.manche.demarree) {
+        await this.supprimer(etat)
+      }
 
       return
     }

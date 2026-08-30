@@ -34,5 +34,9 @@
   // pendant toute la durée du portage, pour pouvoir comparer les deux.
   "routes": [{ "pattern": "quiz.exemple.fr", "custom_domain": true }],
 
+  // Quotidien, à 4 h UTC : il ne ramasse que des lignes vieilles d'un jour,
+  // l'heure exacte n'a donc aucune importance.
+  "triggers": { "crons": ["0 4 * * *"] },
+
   "observability": { "enabled": true }
 }

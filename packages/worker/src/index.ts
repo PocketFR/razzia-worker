@@ -48,6 +48,10 @@ export interface Env {
   /* Clés de quizia. Servent de valeurs par défaut : à l'étape 7, une valeur
      saisie dans l'interface les surchargera. SPOTIFY_CLIENT_ID n'est pas un
      secret — le flux PKCE l'expose au navigateur. */
+  /* Délai de grâce avant suppression d'une salle vide, en millisecondes.
+     Défaut : deux heures. Les tests le raccourcissent à quelques secondes. */
+  GRACE_MS?: string
+
   MISTRAL_API_KEY?: string
   MISTRAL_MODEL?: string
   SPOTIFY_CLIENT_ID?: string
@@ -60,7 +64,34 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   })
 
+/*
+ * Balayage quotidien des parties anciennes.
+ *
+ * Le nettoyage par alarme ne suffit pas, et pour une raison structurelle :
+ * /api/game écrit la ligne AVANT qu'aucun Durable Object n'existe. Si
+ * personne ne se connecte jamais — l'animateur crée une partie puis ferme
+ * son onglet — aucun objet n'est créé, aucune alarme n'est armée, et cette
+ * ligne resterait indéfiniment. Aucun objet ne peut la voir.
+ *
+ * L'horizon est volontairement bien plus long que la grâce de deux heures :
+ * ce balayage ne doit jamais devancer une salle encore vivante, seulement
+ * ramasser ce que personne ne réclamera plus.
+ */
+const RETENTION_MS = 24 * 60 * 60 * 1000
+
 export default {
+  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+    const { meta } = await env.DB.prepare(
+      `DELETE FROM games WHERE created_at < ?`,
+    )
+      .bind(Date.now() - RETENTION_MS)
+      .run()
+
+    if (meta.changes) {
+      console.log(`${meta.changes} partie(s) ancienne(s) purgée(s)`)
+    }
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
