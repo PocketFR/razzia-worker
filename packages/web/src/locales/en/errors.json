@@ -7,7 +7,8 @@
   "branding": {
     "badType": "Unsupported image format",
     "invalid": "Invalid appearance",
-    "tooLarge": "Image too large"
+    "tooLarge": "Image too large",
+    "unsafeSvg": "SVG rejected: it contains executable code"
   },
   "game": {
     "expired": "Game expired",

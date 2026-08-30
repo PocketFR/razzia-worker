@@ -33,7 +33,7 @@
  */
 
 import { routerApi } from "./api"
-import { estImage, lireImage, themePublic } from "./services/branding"
+import { estImage, estSvg, lireImage, themePublic } from "./services/branding"
 import { routerQuizia } from "./quizia"
 
 export { GameRoom } from "./game-room"
@@ -173,6 +173,20 @@ async function routerBranding(
         // donc une image remplacée change d'adresse et n'est jamais servie
         // depuis le cache d'une version précédente.
         "cache-control": "public, max-age=31536000, immutable",
+        // Le type annoncé fait foi : sans cela un navigateur pourrait deviner
+        // du HTML dans un fichier déclaré image, et l'exécuter comme tel.
+        "x-content-type-options": "nosniff",
+        // LA protection réelle du SVG. Affiché dans une balise <img> il ne
+        // s'exécute déjà pas ; c'est la navigation DIRECTE vers cette adresse
+        // qui en ferait un document de notre origine. `sandbox` sans jeton le
+        // pose dans une origine isolée et lui retire tout, script compris.
+        // L'examen du contenu à l'envoi vient en plus, jamais à la place.
+        ...(estSvg(image.mime)
+          ? {
+              "content-security-policy":
+                "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+            }
+          : {}),
       },
     })
   }

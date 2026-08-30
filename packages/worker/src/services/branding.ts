@@ -41,7 +41,7 @@ export const estImage = (nom: string): nom is NomImage =>
  */
 export const TAILLE_MAX = 1_800_000
 
-/** Les types acceptés. Un SVG peut porter du script : il n'est pas dans la liste. */
+/** Les types acceptés. Le SVG y figure, sous les deux réserves ci-dessous. */
 export const MIMES = new Set([
   "image/png",
   "image/jpeg",
@@ -50,7 +50,85 @@ export const MIMES = new Set([
   "image/x-icon",
   "image/vnd.microsoft.icon",
   "image/avif",
+  "image/svg+xml",
 ])
+
+export const estSvg = (mime: string) => mime === "image/svg+xml"
+
+/*
+ * Le SVG, et pourquoi il demande deux protections plutôt qu'un refus.
+ *
+ * Un SVG n'est pas une image : c'est un document XML, qui peut porter du
+ * script, charger des ressources distantes et poser des gestionnaires
+ * d'événements. Le refuser était la réponse simple, mais coûteuse — un logo
+ * est vectoriel neuf fois sur dix, et c'est le format qu'on a sous la main.
+ *
+ * PREMIÈRE PROTECTION, ici : ce qui suit. Elle écarte les formes connues.
+ * Elle n'est PAS une preuve d'innocuité — une analyse par expressions
+ * régulières sur du XML se contourne, et prétendre le contraire serait le
+ * plus sûr moyen de s'en contenter. C'est une barrière contre l'accident et
+ * contre le fichier récupéré n'importe où, pas contre un adversaire décidé.
+ *
+ * SECONDE PROTECTION, au service : le fichier part avec une Content-Security-
+ * Policy qui interdit tout, `sandbox` compris. C'est elle qui garantit
+ * réellement qu'aucun script ne s'exécute, y compris pour ce que la première
+ * aurait laissé passer. Voir routerBranding dans index.ts.
+ *
+ * Rappel du modèle de menace : pour déposer un fichier ici, il faut déjà être
+ * authentifié comme animateur. Le risque n'est pas l'inconnu de passage, mais
+ * l'image reprise sur un site quelconque — exactement ce que la première
+ * protection attrape.
+ */
+const DANGERS: [RegExp, string][] = [
+  [/<\s*script/, "script"],
+  [/<\s*foreignobject/, "foreignObject"],
+  [/<\s*(?:iframe|embed|object)/, "document imbriqué"],
+  [/\bon[a-z]+\s*=/, "gestionnaire d'événement"],
+  [/javascript\s*:/, "URL javascript:"],
+  [/<!entity/, "entité XML"],
+  // SMIL sait réécrire un attribut, href compris, une fois le document chargé.
+  [/<\s*(?:set|animate)/, "animation SMIL"],
+  // Une référence externe fait sortir du fichier qu'on vient de contrôler.
+  [/\b(?:href|xlink:href|src)\s*=\s*["']?\s*(?:https?:|\/\/)/, "référence externe"],
+]
+
+/** Ce qui rend le fichier refusable, ou null s'il paraît sain. */
+export const dangerDuSvg = (octets: Uint8Array): string | null => {
+  let texte: string
+
+  try {
+    // `fatal` : un fichier qui n'est pas de l'UTF-8 valide n'est pas un SVG
+    // qu'on saurait contrôler, et le laisser passer en remplaçant les octets
+    // illisibles reviendrait à ne rien contrôler du tout.
+    texte = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(octets)
+  } catch {
+    return "encodage illisible"
+  }
+
+  // Les entités numériques sont dépliées AVANT l'examen : « &#106;avascript: »
+  // est un javascript: pour le navigateur, et ne ressemblerait à rien sans
+  // cette étape.
+  const normalise = texte
+    .toLowerCase()
+    .replace(/&#x([0-9a-f]+);?/g, (_, hex: string) =>
+      String.fromCodePoint(parseInt(hex, 16)),
+    )
+    .replace(/&#(\d+);?/g, (_, dec: string) =>
+      String.fromCodePoint(parseInt(dec, 10)),
+    )
+
+  if (!normalise.includes("<svg")) {
+    return "ce n'est pas un SVG"
+  }
+
+  for (const [motif, quoi] of DANGERS) {
+    if (motif.test(normalise)) {
+      return quoi
+    }
+  }
+
+  return null
+}
 
 export interface Theme {
   appName?: string

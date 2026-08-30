@@ -206,14 +206,82 @@ try {
 
   const mauvaisType = await api("/branding/image/logo", {
     method: "PUT",
-    body: JSON.stringify({ mime: "image/svg+xml", base64: png }),
+    body: JSON.stringify({ mime: "image/tiff", base64: png }),
   })
-  verifier("SVG refusé", mauvaisType.statut === 400, `reçu ${mauvaisType.statut}`)
+  verifier("format inconnu refusé", mauvaisType.statut === 400, `reçu ${mauvaisType.statut}`)
   verifier(
     "clé i18n connue",
     cleExiste(mauvaisType.corps.error),
     mauvaisType.corps.error,
   )
+
+  console.log("— SVG")
+  // LE LOGO RÉEL de l'installation, et non un carré inventé pour l'occasion :
+  // c'est le fichier que l'animateur va vouloir déposer, et le refuser serait
+  // le pire des résultats — un contrôle si strict qu'il interdit le cas
+  // nominal ne protège personne, il pousse à le désactiver.
+  const logo = fs.readFileSync(
+    path.join(import.meta.dirname, "../../web/public/branding/logo.svg"),
+  )
+  const svgPropre = await api("/branding/image/logo", {
+    method: "PUT",
+    body: JSON.stringify({
+      mime: "image/svg+xml",
+      base64: logo.toString("base64"),
+    }),
+  })
+  verifier(
+    "le logo livré est accepté",
+    svgPropre.statut === 200,
+    JSON.stringify(svgPropre.corps),
+  )
+
+  const svgServi = await fetch(`${base}/branding/asset/logo`)
+  const politique = svgServi.headers.get("content-security-policy") ?? ""
+  verifier(
+    "servi en image/svg+xml",
+    svgServi.headers.get("content-type") === "image/svg+xml",
+    svgServi.headers.get("content-type"),
+  )
+  // La vraie garantie : même un SVG que l'examen aurait laissé passer ne peut
+  // rien exécuter en navigation directe.
+  verifier(
+    "sous une politique qui interdit tout",
+    politique.includes("default-src 'none'") && politique.includes("sandbox"),
+    politique,
+  )
+  verifier(
+    "type annoncé faisant foi",
+    svgServi.headers.get("x-content-type-options") === "nosniff",
+    svgServi.headers.get("x-content-type-options"),
+  )
+
+  const svgArme = await api("/branding/image/logo", {
+    method: "PUT",
+    body: JSON.stringify({
+      mime: "image/svg+xml",
+      base64: Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`,
+      ).toString("base64"),
+    }),
+  })
+  verifier("SVG porteur de script refusé", svgArme.statut === 400, `reçu ${svgArme.statut}`)
+  verifier("clé i18n connue", cleExiste(svgArme.corps.error), svgArme.corps.error)
+
+  const svgIntact = await fetch(`${base}/branding/asset/logo`).then((r) =>
+    r.arrayBuffer(),
+  )
+  verifier(
+    "le refus n'a pas écrasé l'image en place",
+    Buffer.from(svgIntact).equals(logo),
+    `${svgIntact.byteLength} contre ${logo.length}`,
+  )
+
+  await api("/branding/image/logo", { method: "DELETE" })
+  await api("/branding/image/logo", {
+    method: "PUT",
+    body: JSON.stringify({ mime: "image/png", base64: png }),
+  })
 
   const inconnue = await api("/branding/image/banniere", {
     method: "PUT",

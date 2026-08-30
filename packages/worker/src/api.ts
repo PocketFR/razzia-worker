@@ -23,10 +23,12 @@ import {
 } from "./services/secrets"
 import { genererQuiz, manquePourGenerer } from "./quizia/core"
 import {
+  dangerDuSvg,
   effacerImage,
   ecrireImage,
   ecrireTheme,
   estImage,
+  estSvg,
   etatDesImages,
   lireTheme,
   MIMES,
@@ -286,6 +288,20 @@ export async function routerApi(
         // l'animateur.
         if (octets.byteLength > TAILLE_MAX) {
           return erreur("errors:branding.tooLarge", 413)
+        }
+
+        // Le SVG est un document, pas une image : il passe à l'examen. Ce
+        // n'est que la première des deux protections — la seconde, la
+        // Content-Security-Policy posée au service, est celle qui garantit
+        // qu'aucun script ne s'exécute.
+        if (estSvg(corps.mime)) {
+          const danger = dangerDuSvg(octets)
+
+          if (danger) {
+            console.log(`! SVG refusé (${danger})`)
+
+            return erreur("errors:branding.unsafeSvg", 400)
+          }
         }
 
         await ecrireImage(

@@ -20,6 +20,7 @@ import { EVENTS } from "@razzia/common/constants"
 import type { BrandingData, BrandingTheme } from "@razzia/common/types/manager"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
+import { pourPastille } from "@razzia/web/features/manager/lib/couleur"
 import {
   useEvent,
   useSocket,
@@ -35,14 +36,6 @@ const COULEURS = ["primary", "secondary"] as const
 const IMAGES = ["logo", "favicon", "background"] as const
 
 type NomImage = (typeof IMAGES)[number]
-
-/* Une couleur peut arriver du thème sous une forme que <input type=color>
-   refuse (« red », « #abc », une variable). Il exige #rrggbb et retombe
-   silencieusement sur le noir sinon — d'où ce garde-fou, qui laisse le champ
-   texte seul maître dans ce cas. */
-const HEXA = /^#[0-9a-f]{6}$/i
-
-const pourPastille = (valeur: string) => (HEXA.test(valeur) ? valeur : "#000000")
 
 const enOctets = (n: number) =>
   n < 1024 * 1024
@@ -259,7 +252,7 @@ const ConfigBranding = () => {
                       champs.current[nom] = el
                     }}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/x-icon,.ico"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml,image/x-icon,.ico"
                     className="hidden"
                     onChange={(e) => {
                       const fichier = e.target.files?.[0]
