@@ -4,6 +4,9 @@ import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import SpotifyMedia, {
+  URI_SPOTIFY,
+} from "@razzia/web/features/quizz/components/QuestionEditor/SpotifyMedia"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { Image, ImageOff, Music, Video } from "lucide-react"
 import { type ChangeEvent } from "react"
@@ -46,7 +49,16 @@ const QuestionEditorMedia = () => {
 
   return (
     <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-4">
-      <QuestionMedia media={currentQuestion.media} alt="Question Media" />
+      {questionMedia && URI_SPOTIFY.test(questionMedia.url) ? (
+        /* Le lecteur <audio> natif reste inerte sur une URI spotify: — on
+           montre le morceau plutôt qu'un contrôle qui ne répond pas. */
+        <SpotifyMedia
+          media={questionMedia}
+          onChange={(media) => updateQuestion(currentIndex, { media })}
+        />
+      ) : (
+        <QuestionMedia media={currentQuestion.media} alt="Question Media" />
+      )}
 
       {!questionMedia?.type && (
         <Card className="my-auto flex max-h-100 w-full max-w-xl flex-1 flex-col items-center justify-center gap-2">

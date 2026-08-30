@@ -132,6 +132,22 @@ const tempsVersPoints = (debut: number, question: Question): number => {
 
 const dans = (secondes: number) => Date.now() + secondes * 1000
 
+/**
+ * Extrait l'identifiant Spotify d'une question sonore.
+ *
+ * Le format « spotify:ID[:offset] » est celui qu'écrit quizia. L'offset sert
+ * quand l'introduction rend le morceau trop reconnaissable.
+ */
+const pisteSpotify = (question: Question) => {
+  const trouve = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/.exec(
+    question.media?.url ?? "",
+  )
+
+  return trouve
+    ? { id: trouve[1], depart: parseInt(trouve[2], 10) || 0 }
+    : null
+}
+
 // ── Entrée dans les phases ────────────────────────────────────────────────
 
 /** Démarre la partie. Rend false si les conditions ne sont pas réunies. */
@@ -200,6 +216,14 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
     cooldown: question.cooldown,
     endsAt: ctx.manche.finDePhase,
   })
+  // L'amorce part à l'animateur seul : c'est lui qui tient le lecteur, et
+  // l'envoyer à tous divulguerait le morceau avant la question.
+  const piste = pisteSpotify(question)
+
+  if (piste) {
+    em.versAnimateur(EVENTS.GAME.AUDIO_CUE, piste)
+  }
+
   em.programmer(ctx.manche.finDePhase)
 }
 

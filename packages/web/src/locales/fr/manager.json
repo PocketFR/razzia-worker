@@ -48,6 +48,10 @@
     "playerCount": "{{count}} joueur(s)",
     "timeLimitSuffix": "s limite"
   },
+  "spotify": {
+    "connect": "Connecter Spotify",
+    "disconnect": "Déconnecter Spotify"
+  },
   "tabs": {
     "play": "Jouer",
     "quizz": "Quizz",

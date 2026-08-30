@@ -18,6 +18,7 @@ import {
   CLES_CONNUES,
   ecrireCle,
   etatDesCles,
+  lireCles,
   type NomDeCle,
 } from "./services/secrets"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
@@ -121,9 +122,13 @@ export async function routerApi(
 
   // Équivalent de emitConfig : la liste des quiz et des résultats.
   if (section === "manager" && reste[0] === "config" && methode === "GET") {
+    const cles = await lireCles(env)
+
     return json({
       quizz: await config.getQuizzMeta(),
       results: await config.getResultsMeta(),
+      // Le navigateur en a besoin pour le flux PKCE ; il n'a rien de secret.
+      spotifyClientId: cles.spotifyId || null,
     })
   }
 

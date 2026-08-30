@@ -29,6 +29,13 @@ const QuestionMedia = ({ media, alt = "" }: Props) => {
   }
 
   if (media?.type === MEDIA_TYPES.AUDIO) {
+    // Une URI « spotify:… » n'est pas jouable par le navigateur : le contrôle
+    // resterait inerte, et la surcouche le masquait en CSS. Le morceau est
+    // joué par le SDK Spotify côté animateur, pas par cette balise.
+    if (media.url.startsWith("spotify:")) {
+      return null
+    }
+
     return (
       <audio
         className="m-4 mb-2 w-auto rounded-md"

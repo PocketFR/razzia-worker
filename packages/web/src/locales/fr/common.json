@@ -17,5 +17,8 @@
   "save": "Enregistrer",
   "seconds": "sec",
   "skip": "Passer",
+  "spotify": {
+    "premiumRequired": "Le lecteur Spotify exige un compte Premium"
+  },
   "submit": "Valider"
 }

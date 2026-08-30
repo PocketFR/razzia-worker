@@ -17,5 +17,8 @@
   "save": "Save",
   "seconds": "sec",
   "skip": "Skip",
+  "spotify": {
+    "premiumRequired": "The Spotify player requires a Premium account"
+  },
   "submit": "Submit"
 }

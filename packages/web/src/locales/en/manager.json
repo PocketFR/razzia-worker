@@ -48,6 +48,10 @@
     "playerCount": "{{count}} player(s)",
     "timeLimitSuffix": "s time limit"
   },
+  "spotify": {
+    "connect": "Connect Spotify",
+    "disconnect": "Disconnect Spotify"
+  },
   "tabs": {
     "play": "Play",
     "quizz": "Quizz",

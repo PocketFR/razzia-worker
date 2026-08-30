@@ -11,6 +11,11 @@ export const EVENTS = {
     UPDATE_QUESTION: "game:updateQuestion",
     PLAYER_ANSWER: "game:playerAnswer",
     CREATE: "game:create",
+    /* Amorce de lecture, envoyée au SEUL animateur à l'annonce de la
+       question. Le média audio n'accompagne pas SHOW_QUESTION — il ferait
+       démarrer un lecteur deux fois — et n'arrive qu'avec SELECT_ANSWER,
+       trop tard pour couvrir l'annonce. */
+    AUDIO_CUE: "game:audioCue",
   },
   PLAYER: {
     SUCCESS_RECONNECT: "player:successReconnect",

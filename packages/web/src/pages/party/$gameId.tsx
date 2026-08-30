@@ -5,6 +5,7 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import { usePleinEcran } from "@razzia/web/features/game/hooks/use-plein-ecran"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import {
@@ -16,6 +17,8 @@ import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const PlayerGamePage = () => {
+  usePleinEcran()
+
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })

@@ -18,6 +18,8 @@ import { useTranslation } from "react-i18next"
 type Props = PropsWithChildren & {
   statusName: Status | undefined
   onNext?: () => void
+  /* Case d'enchaînement automatique, côté animateur uniquement. */
+  auto?: { actif: boolean; basculer: (_v: boolean) => void }
   onBack?: () => void
   manager?: boolean
 }
@@ -26,6 +28,7 @@ const GameWrapper = ({
   children,
   statusName,
   onNext,
+  auto,
   onBack,
   manager,
 }: Props) => {
@@ -79,6 +82,16 @@ const GameWrapper = ({
                 </div>
               )}
 
+              {manager && auto && (
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={auto.actif}
+                    onChange={(e) => auto.basculer(e.target.checked)}
+                  />
+                  {t("game:auto")}
+                </label>
+              )}
               {manager && next && (
                 <Button
                   className={clsx("hover:bg-accent bg-white px-4 text-black", {

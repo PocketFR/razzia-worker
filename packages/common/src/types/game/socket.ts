@@ -41,6 +41,7 @@ export interface ServerToClientEvents {
   [EVENTS.GAME.TOTAL_PLAYERS]: (_count: number) => void
   [EVENTS.GAME.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.GAME.START_COOLDOWN]: (_data: { endsAt: number }) => void
+  [EVENTS.GAME.AUDIO_CUE]: (_data: { id: string; depart: number }) => void
   [EVENTS.GAME.COOLDOWN]: (_count: number) => void
   [EVENTS.GAME.RESET]: (_message: string) => void
   [EVENTS.GAME.UPDATE_QUESTION]: (_data: {
