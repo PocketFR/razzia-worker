@@ -70,6 +70,10 @@ export interface Manche {
   finDePhase: number | null
   debutReponses: number
   reponses: Answer[]
+  /* Date du dernier compteur de réponses diffusé, et échéance du prochain
+     quand une diffusion a été retenue. Voir `compteur` dans l'émetteur. */
+  compteurEnvoyeA: number
+  compteurDu: number | null
   classement: Player[]
   ancienClassement: Player[] | null
   historique: QuestionResult[]
@@ -82,6 +86,8 @@ export const mancheNeuve = (): Manche => ({
   finDePhase: null,
   debutReponses: 0,
   reponses: [],
+  compteurEnvoyeA: 0,
+  compteurDu: null,
   classement: [],
   ancienClassement: null,
   historique: [],
@@ -97,6 +103,19 @@ export interface Emetteur {
   statutJoueur(_clientId: string, _nom: string, _donnees: unknown): void
   programmer(_quand: number): void
   annulerAlarme(): void
+  /*
+   * Le compteur de réponses, diffusé à tout le monde — mais pas à chaque
+   * réponse.
+   *
+   * C'était LE point qui bornait la taille d'une salle. Diffuser le compteur
+   * à chacune des N réponses, vers chacune des N sockets, fait N² envois par
+   * question : mesuré, le coût d'une réponse passait de 4,5 ms à dix joueurs
+   * à 26,7 ms à quatre cents, et la salve entière de 45 ms à 10,7 s.
+   *
+   * L'émetteur regroupe donc les diffusions rapprochées. Voir l'implantation
+   * dans game-room.ts pour la règle exacte.
+   */
+  compteur(_valeur: number): void
 }
 
 export interface ContextePartie {
@@ -231,6 +250,10 @@ const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
 
   ctx.manche.phase = PHASE.REPONSES
   ctx.manche.debutReponses = Date.now()
+  // Le regroupement repart à neuf : la première réponse d'une question doit
+  // se voir tout de suite, quoi qu'ait fait la précédente.
+  ctx.manche.compteurEnvoyeA = 0
+  ctx.manche.compteurDu = null
   ctx.manche.finDePhase = sansLimite ? null : dans(question.time)
 
   em.statutPourTous(STATUS.SELECT_ANSWER, {
@@ -333,7 +356,7 @@ export const repondre = (
   ctx.manche.reponses.push({ playerId: clientId, answerIds, points })
 
   em.statutJoueur(clientId, STATUS.WAIT, { text: "game:waitingForAnswers" })
-  em.diffuser(EVENTS.GAME.PLAYER_ANSWER, ctx.manche.reponses.length)
+  em.compteur(ctx.manche.reponses.length)
 
   // Tout le monde a répondu : inutile d'attendre la fin du compte à rebours.
   return ctx.manche.reponses.length >= ctx.players.length
@@ -347,6 +370,9 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
   em.annulerAlarme()
   ctx.manche.phase = null
   ctx.manche.finDePhase = null
+  // Un compteur retenu n'a plus personne à informer : l'écran a changé. Le
+  // laisser armé coûterait un réveil pour un message que nul n'écoute.
+  ctx.manche.compteurDu = null
 
   const ancien =
     ctx.manche.classement.length === 0

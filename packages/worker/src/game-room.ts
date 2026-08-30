@@ -86,6 +86,16 @@ interface EtatPartie {
 const CLE = "partie"
 
 /*
+ * Le pas de regroupement du compteur de réponses.
+ *
+ * 250 ms : assez court pour qu'un compteur qui monte reste vivant à l'œil,
+ * assez long pour transformer N² envois en une poignée. Le raccourcir rendrait
+ * le regroupement inopérant sans rien gagner de visible ; l'allonger ferait
+ * traîner l'affichage sans rien gagner de plus.
+ */
+const PALIER_COMPTEUR = 250
+
+/*
  * Délai de grâce après le départ du dernier participant.
  *
  * Deux heures peuvent sembler démesurées pour du ménage. C'est délibéré, et
@@ -131,9 +141,11 @@ export class GameRoom implements DurableObject {
    * écriture garantit qu'aucune ne peut être oubliée.
    */
   private reprogrammer(etat: EtatPartie) {
-    const echeances = [etat.manche.finDePhase, etat.finDeGrace].filter(
-      (d): d is number => typeof d === "number",
-    )
+    const echeances = [
+      etat.manche.finDePhase,
+      etat.finDeGrace,
+      etat.manche.compteurDu ?? null,
+    ].filter((d): d is number => typeof d === "number")
 
     if (echeances.length) {
       void this.ctx.storage.setAlarm(Math.min(...echeances))
@@ -236,10 +248,20 @@ export class GameRoom implements DurableObject {
 
     const { 0: client, 1: server } = new WebSocketPair()
 
-    // acceptWebSocket et non server.accept() : c'est la variante hibernante.
-    // Avec accept(), l'objet resterait en mémoire tant que la socket est
-    // ouverte, et serait facturé en durée pour toute la soirée.
-    this.ctx.acceptWebSocket(server)
+    /*
+     * acceptWebSocket et non server.accept() : c'est la variante hibernante.
+     * Avec accept(), l'objet resterait en mémoire tant que la socket est
+     * ouverte, et serait facturé en durée pour toute la soirée.
+     *
+     * LES ÉTIQUETTES SONT UNE OPTIMISATION, pas une commodité. Sans elles,
+     * écrire à un joueur précis oblige à parcourir toutes les sockets en
+     * désérialisant l'attachement de chacune — donc N désérialisations pour
+     * un seul destinataire, à chaque réponse reçue. C'était, après le
+     * regroupement du compteur, le dernier coût proportionnel au nombre de
+     * joueurs sur le chemin d'une réponse. getWebSockets(étiquette) les rend
+     * directement.
+     */
+    this.ctx.acceptWebSocket(server, [clientId, roleReel])
     server.serializeAttachment({
       clientId,
       role: roleReel,
@@ -363,6 +385,51 @@ export class GameRoom implements DurableObject {
         etat.statutAnimateur = null
         etat.statutsJoueurs = {}
         this.diffuser(EVENTS.GAME.STATUS, { name, data, seq: ++etat.seq })
+      },
+
+      /*
+       * LE COMPTEUR DE RÉPONSES, REGROUPÉ. C'est ce qui décide de la taille
+       * qu'une salle peut atteindre.
+       *
+       * Il partait à chaque réponse, vers chaque socket : N² envois par
+       * question. Mesuré au banc d'essai, une salve de quatre cents joueurs
+       * mettait 10,7 s à s'écouler, et le dernier à répondre attendait
+       * autant avant de voir son écran changer.
+       *
+       * La règle a deux moitiés, et les deux comptent :
+       *
+       *   CLAIRSEMÉ, ON DIFFUSE TOUT DE SUITE. Une réponse qui arrive plus
+       *   de 250 ms après la dernière diffusion part immédiatement. C'est le
+       *   cas ordinaire d'une petite soirée, où rien ne change.
+       *
+       *   DENSE, ON REGROUPE. Sous les 250 ms, la diffusion est retenue et
+       *   une échéance est posée. Le compteur monte alors par paquets — ce
+       *   qui est indiscernable à l'œil, personne ne lisant « 47, 48, 49 »
+       *   sur un écran de télévision.
+       *
+       * L'échéance passe par l'alarme, jamais par un minuteur : une
+       * minuterie armée empêcherait l'hibernation, et c'est la règle
+       * fondatrice de cet objet. Elle n'est posée QUE lorsqu'une diffusion a
+       * été retenue, donc une question où les réponses s'égrènent n'en
+       * coûte aucune.
+       */
+      compteur: (valeur) => {
+        const maintenant = Date.now()
+        // `?? 0` : une salle créée avant ce regroupement n'a pas le champ, et
+        // une soustraction sur undefined donnerait NaN — donc un compteur qui
+        // ne partirait plus jamais.
+        const depuis = maintenant - (etat.manche.compteurEnvoyeA ?? 0)
+
+        if (depuis >= PALIER_COMPTEUR) {
+          etat.manche.compteurEnvoyeA = maintenant
+          etat.manche.compteurDu = null
+          this.diffuser(EVENTS.GAME.PLAYER_ANSWER, valeur)
+
+          return
+        }
+
+        etat.manche.compteurDu =
+          (etat.manche.compteurEnvoyeA ?? 0) + PALIER_COMPTEUR
       },
 
       statutAnimateur: (name, data) => {
@@ -597,6 +664,15 @@ export class GameRoom implements DurableObject {
       return
     }
 
+    // Le compteur retenu part avant tout le reste : il se peut que la même
+    // alarme serve aussi à changer de phase, et une salve dont le dernier
+    // chiffre n'arrive jamais laisserait l'animateur sur « 47 / 50 ».
+    if (etat.manche.compteurDu && Date.now() >= etat.manche.compteurDu) {
+      etat.manche.compteurEnvoyeA = Date.now()
+      etat.manche.compteurDu = null
+      this.diffuser(EVENTS.GAME.PLAYER_ANSWER, etat.manche.reponses.length)
+    }
+
     this.rattraper(etat)
     this.ecrire(etat)
   }
@@ -680,13 +756,9 @@ export class GameRoom implements DurableObject {
     etat.players = etat.players.filter((p) => p.id !== playerId)
     this.ecrire(etat)
 
-    for (const ws of this.ctx.getWebSockets()) {
-      const a = ws.deserializeAttachment() as Attachement | null
-
-      if (a?.clientId === joueur.clientId) {
-        this.envoyer(ws, EVENTS.GAME.RESET, "errors:game.kickedByManager")
-        ws.close(1000, "kicked")
-      }
+    for (const ws of this.ctx.getWebSockets(joueur.clientId)) {
+      this.envoyer(ws, EVENTS.GAME.RESET, "errors:game.kickedByManager")
+      ws.close(1000, "kicked")
     }
 
     this.versAnimateur(etat, EVENTS.MANAGER.PLAYER_KICKED, joueur.id)
@@ -1014,22 +1086,14 @@ export class GameRoom implements DurableObject {
     evenement: string,
     charge?: unknown,
   ) {
-    for (const ws of this.ctx.getWebSockets()) {
-      const a = ws.deserializeAttachment() as Attachement | null
-
-      if (a?.role === "manager") {
-        this.envoyer(ws, evenement, charge)
-      }
+    for (const ws of this.ctx.getWebSockets("manager")) {
+      this.envoyer(ws, evenement, charge)
     }
   }
 
   private versJoueur(clientId: string, evenement: string, charge?: unknown) {
-    for (const ws of this.ctx.getWebSockets()) {
-      const a = ws.deserializeAttachment() as Attachement | null
-
-      if (a?.clientId === clientId) {
-        this.envoyer(ws, evenement, charge)
-      }
+    for (const ws of this.ctx.getWebSockets(clientId)) {
+      this.envoyer(ws, evenement, charge)
     }
   }
 }

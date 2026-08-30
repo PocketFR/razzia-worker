@@ -162,11 +162,6 @@ const palier = async (n) => {
   const attentesPersonnelles = joueurs.map((j) =>
     j.attendre((t) => t.e === "game:status" && t.d?.name === "WAIT"),
   )
-  const compteurPlein = animateur.attendre(
-    (t) => t.e === "game:playerAnswer" && t.d === n,
-    120000,
-  )
-
   const t0 = Date.now()
 
   for (const j of joueurs) {
@@ -176,12 +171,21 @@ const palier = async (n) => {
     })
   }
 
-  const fin = await compteurPlein
-  const salve = fin ? fin.a - t0 : NaN
+  /*
+   * La fin de la salve, c'est le dernier joueur servi — et non le compteur
+   * atteignant N.
+   *
+   * Le détecteur guettait d'abord ce compteur, ce qui a cessé d'avoir un sens
+   * le jour où les diffusions rapprochées ont été regroupées : les valeurs
+   * intermédiaires ne partent plus, et l'attente expirait sur un NaN. Un banc
+   * d'essai qui dépend du détail qu'on optimise mesure l'optimisation, pas le
+   * système.
+   */
   const personnels = (await Promise.all(attentesPersonnelles))
     .filter(Boolean)
     .map((t) => t.a - t0)
     .sort((a, b) => a - b)
+  const salve = personnels.length ? personnels[personnels.length - 1] : NaN
 
   animateur.fermer()
   joueurs.forEach((j) => j.fermer())
