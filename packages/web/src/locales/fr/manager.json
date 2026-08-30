@@ -1,15 +1,16 @@
 {
   "configurationsTitle": "Configurations",
   "keys": {
-    "title": "Clés API",
-    "subtitle": "Modifiables ici, sans redéploiement",
-    "fromDatabase": "Saisie ici le {{date}}",
+    "clear": "Effacer",
+    "cleared": "Effacé",
     "fromBinding": "Venant de la configuration de déploiement",
-    "unset": "Non définie",
+    "fromDatabase": "Saisie ici le {{date}}",
     "leaveEmpty": "Laisser vide pour conserver la valeur actuelle",
     "save": "Enregistrer",
-    "clear": "Effacer",
-    "saved": "Enregistré"
+    "saved": "Enregistré",
+    "subtitle": "Modifiables ici, sans redéploiement",
+    "title": "Clés API",
+    "unset": "Non définie"
   },
   "logout": "Déconnexion",
   "passwordPlaceholder": "Mot de passe",
@@ -50,7 +51,12 @@
   },
   "spotify": {
     "connect": "Connecter Spotify",
-    "disconnect": "Déconnecter Spotify"
+    "connected": "Connecté — le lecteur est prêt",
+    "disconnect": "Déconnecter Spotify",
+    "disconnected": "Non connecté — le blind test restera muet",
+    "httpsRequired": "La connexion Spotify exige HTTPS",
+    "noClientId": "Renseigner d'abord l'identifiant client Spotify",
+    "title": "Spotify"
   },
   "tabs": {
     "play": "Jouer",

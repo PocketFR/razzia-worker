@@ -1,0 +1,12 @@
+{
+  "appName": "Razzia",
+  "colors": { "primary": "#555", "secondary": "#000" },
+  "answerColors": ["#64dd16", "#f11414", "#bfac2e", "#368ccc"],
+  "font": {
+    "family": "Rubik",
+    "url": "https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap"
+  },
+  "logo": "/branding/logo.svg",
+  "favicon": "/branding/R.ico",
+  "background": "/branding/background.webp"
+}

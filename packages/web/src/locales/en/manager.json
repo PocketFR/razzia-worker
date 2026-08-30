@@ -1,15 +1,16 @@
 {
   "configurationsTitle": "Configurations",
   "keys": {
-    "title": "API keys",
-    "subtitle": "Change them here — no redeploy needed",
-    "fromDatabase": "Set here on {{date}}",
+    "clear": "Clear",
+    "cleared": "Cleared",
     "fromBinding": "Coming from the deployment configuration",
-    "unset": "Not set",
+    "fromDatabase": "Set here on {{date}}",
     "leaveEmpty": "Leave empty to keep the current value",
     "save": "Save",
-    "clear": "Clear",
-    "saved": "Saved"
+    "saved": "Saved",
+    "subtitle": "Change them here — no redeploy needed",
+    "title": "API keys",
+    "unset": "Not set"
   },
   "logout": "Logout",
   "passwordPlaceholder": "Password",
@@ -50,7 +51,12 @@
   },
   "spotify": {
     "connect": "Connect Spotify",
-    "disconnect": "Disconnect Spotify"
+    "connected": "Connected — the player is ready",
+    "disconnect": "Disconnect Spotify",
+    "disconnected": "Not connected — the blind test will stay silent",
+    "httpsRequired": "Connecting to Spotify requires HTTPS",
+    "noClientId": "Set the Spotify client ID first",
+    "title": "Spotify"
   },
   "tabs": {
     "play": "Play",

@@ -6,7 +6,6 @@
  * test est précisément ce qu'il faut éviter.
  */
 
-import Card from "@razzia/web/components/Card"
 import {
   autoriser,
   lireSession,
@@ -49,7 +48,7 @@ const BoutonSpotify = ({ clientId }: Props) => {
   }
 
   return (
-    <Card className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2">
       <h2 className="text-xl font-bold">{t("spotify.title")}</h2>
       <p className="text-sm opacity-70">
         {connecte ? t("spotify.connected") : t("spotify.disconnected")}
@@ -64,7 +63,7 @@ const BoutonSpotify = ({ clientId }: Props) => {
       >
         {connecte ? t("spotify.disconnect") : t("spotify.connect")}
       </button>
-    </Card>
+    </section>
   )
 }
 

@@ -6,6 +6,11 @@
 
   // La SPA renvoie index.html pour tout chemin inconnu, donc sans cette liste
   // /ws et /ia n'atteindraient JAMAIS le Worker : les assets répondraient avant.
+  //
+  // Le branding vit dans packages/web/public/branding : le frontend va
+  // chercher /branding/theme.json au démarrage, et il n'y a plus de dossier
+  // config monté pour le servir. Remplacer ces fichiers et redéployer suffit
+  // à changer l'apparence.
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",

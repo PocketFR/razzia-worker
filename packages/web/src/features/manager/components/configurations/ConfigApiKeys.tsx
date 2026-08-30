@@ -6,21 +6,26 @@
  *
  * LES SECRETS NE SONT JAMAIS PRÉ-REMPLIS. Le serveur ne les renvoie pas, et
  * c'est délibéré : personne n'a besoin de relire une clé Mistral, alors que
- * l'afficher dans un champ l'exposerait à toute personne passant derrière
- * l'écran — en soirée, précisément. Un champ laissé vide signifie donc
- * « ne pas changer », et non « effacer ».
+ * l'afficher dans un champ l'exposerait à qui passe derrière l'écran — en
+ * soirée, précisément. Un champ laissé vide signifie donc « ne pas changer »,
+ * et non « effacer » ; c'est le bouton dédié qui efface.
+ *
+ * Pas de Card ici : le contenu d'un onglet est déjà dans celle de
+ * Configurations, et l'imbriquer lui imposait son max-w-80 — d'où le
+ * débordement constaté au premier essai en navigateur.
  */
 
 import { EVENTS } from "@razzia/common/constants"
 import type { CleApi } from "@razzia/common/types/game/socket"
-import Card from "@razzia/web/components/Card"
-import BoutonSpotify from "@razzia/web/features/spotify/components/BoutonSpotify"
-import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import Button from "@razzia/web/components/Button"
+import Input from "@razzia/web/components/Input"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import BoutonSpotify from "@razzia/web/features/spotify/components/BoutonSpotify"
 import { useEffect, useState } from "react"
+import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const LIBELLES: Record<string, string> = {
@@ -32,12 +37,10 @@ const LIBELLES: Record<string, string> = {
 
 const ConfigApiKeys = () => {
   const { socket } = useSocket()
-  const { config } = useManagerStore()
   const { t } = useTranslation("manager")
 
   const [cles, setCles] = useState<CleApi[]>([])
   const [saisies, setSaisies] = useState<Record<string, string>>({})
-  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     socket.emit(EVENTS.SETTINGS.GET)
@@ -46,64 +49,66 @@ const ConfigApiKeys = () => {
   useEvent(EVENTS.SETTINGS.DATA, ({ keys }) => {
     setCles(keys)
     setSaisies({})
-    setMessage(t("keys.saved"))
   })
 
   useEvent(EVENTS.SETTINGS.ERROR, (erreur) => {
-    setMessage(String(erreur))
+    toast.error(String(erreur))
   })
 
   const enregistrer = () => {
     const aEnvoyer = Object.fromEntries(
-      Object.entries(saisies).filter(([, v]) => v !== ""),
+      Object.entries(saisies).filter(([, v]) => v.trim() !== ""),
     )
 
     if (Object.keys(aEnvoyer).length === 0) {
       return
     }
 
-    setMessage(null)
     socket.emit(EVENTS.SETTINGS.SAVE, aEnvoyer)
+    toast.success(t("keys.saved"))
   }
 
   const effacer = (nom: string) => {
-    setMessage(null)
     socket.emit(EVENTS.SETTINGS.SAVE, { [nom]: "" })
+    toast.success(t("keys.cleared"))
   }
 
   const etatDe = (cle: CleApi) => {
     if (cle.origine === "base") {
-      const quand = cle.modifiee
-        ? new Date(cle.modifiee).toLocaleDateString()
-        : ""
-
-      return t("keys.fromDatabase", { date: quand })
+      return t("keys.fromDatabase", {
+        date: cle.modifiee ? new Date(cle.modifiee).toLocaleDateString() : "",
+      })
     }
 
     return cle.origine === "liaison" ? t("keys.fromBinding") : t("keys.unset")
   }
 
+  const modifie = Object.values(saisies).some((v) => v.trim() !== "")
+
   return (
-    <div className="flex flex-col gap-4">
-      <BoutonSpotify clientId={config?.spotifyClientId ?? null} />
-      <Card className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <BoutonSpotify />
+
+      <section className="flex flex-col gap-4">
         <div>
           <h2 className="text-xl font-bold">{t("keys.title")}</h2>
           <p className="text-sm opacity-70">{t("keys.subtitle")}</p>
         </div>
 
         {cles.map((cle) => (
-          <label key={cle.nom} className="flex flex-col gap-1">
-            <span className="text-sm font-semibold">
+          <div key={cle.nom} className="flex flex-col gap-1">
+            <label className="font-semibold" htmlFor={`cle-${cle.nom}`}>
               {LIBELLES[cle.nom] ?? cle.nom}
-            </span>
+            </label>
             <span className="text-xs opacity-60">{etatDe(cle)}</span>
 
-            <div className="flex gap-2">
-              <input
+            <div className="flex items-center gap-2">
+              <Input
+                id={`cle-${cle.nom}`}
+                variant="sm"
+                className="min-w-0 flex-1"
                 type={cle.secrete ? "password" : "text"}
                 autoComplete="off"
-                className="flex-1 rounded-lg border border-white/20 bg-white/5 px-3 py-2"
                 placeholder={
                   cle.secrete && cle.definie
                     ? t("keys.leaveEmpty")
@@ -116,29 +121,26 @@ const ConfigApiKeys = () => {
               />
 
               {cle.origine === "base" && (
-                <button
-                  type="button"
-                  className="rounded-lg bg-white/10 px-3 py-2 text-sm"
+                <Button
+                  size="sm"
+                  className="bg-accent text-foreground shrink-0"
                   onClick={() => effacer(cle.nom)}
                 >
                   {t("keys.clear")}
-                </button>
+                </Button>
               )}
             </div>
-          </label>
+          </div>
         ))}
 
-        {message && <p className="text-sm opacity-70">{message}</p>}
-
-
-        <button
-          type="button"
-          className="bg-primary self-start rounded-lg px-5 py-2 font-semibold"
+        <Button
+          className="self-start disabled:cursor-default disabled:opacity-40"
+          disabled={!modifie}
           onClick={enregistrer}
         >
           {t("keys.save")}
-        </button>
-      </Card>
+        </Button>
+      </section>
     </div>
   )
 }
