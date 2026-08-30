@@ -222,6 +222,16 @@ export class GameRoom implements DurableObject {
       this.ecrire(etat)
     }
 
+    /*
+     * L'heure du serveur, en tout premier.
+     *
+     * Les échéances voyagent en dates absolues, et le client les comparait à
+     * SA propre horloge. Un poste en retard de dix secondes affichait donc un
+     * compte à rebours de 13, 12, 11 là où il fallait 3, 2, 1. Le décalage se
+     * mesure une fois, ici, et s'applique à toutes les échéances.
+     */
+    this.envoyer(server, "time", { now: Date.now() })
+
     // L'écran à restituer est le statut PERSONNEL s'il y en a un — un joueur
     // qui a déjà répondu doit retrouver son attente, pas la question. À
     // défaut, le dernier statut diffusé ; à défaut encore, la salle d'attente.

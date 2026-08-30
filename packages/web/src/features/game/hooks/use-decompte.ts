@@ -14,10 +14,16 @@
  * `surSeconde` sert aux composants qui sonnent à chaque unité.
  */
 
+import { decalageHorloge } from "@razzia/web/features/game/lib/socket-client"
 import { useEffect, useRef, useState } from "react"
 
+/*
+ * L'échéance est une date du SERVEUR : on la ramène à l'horloge locale avant
+ * de compter. Sans cette correction, un poste dont l'heure retarde de dix
+ * secondes affichait 13, 12, 11 au lieu de 3, 2, 1.
+ */
 const restant = (finAt: number) =>
-  Math.max(0, Math.ceil((finAt - Date.now()) / 1000))
+  Math.max(0, Math.ceil((finAt - decalageHorloge() - Date.now()) / 1000))
 
 export const useDecompte = (
   finAt: number | null | undefined,

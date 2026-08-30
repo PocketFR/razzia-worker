@@ -31,6 +31,7 @@ const ManagerGamePage = () => {
     config,
     gameId,
     status,
+    setConfig,
     setGameId,
     setInviteCode,
     setStatus,

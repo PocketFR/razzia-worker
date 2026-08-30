@@ -28,6 +28,18 @@ const RECONNEXION = new Set<string>([
   EVENTS.MANAGER.RECONNECT,
 ])
 
+/*
+ * Écart entre l'horloge du serveur et celle du navigateur, en millisecondes.
+ *
+ * Les échéances de manche sont des dates absolues du serveur. Les comparer
+ * telles quelles à Date.now() donne un décompte faux d'autant que les deux
+ * horloges divergent — ce qui n'a rien d'exceptionnel sur un poste dont
+ * l'heure n'est pas synchronisée.
+ */
+let decalage = 0
+
+export const decalageHorloge = () => decalage
+
 export class RazziaSocket {
   connected = false
 
@@ -38,6 +50,11 @@ export class RazziaSocket {
   private role: "manager" | "player" = "player"
   private ferme = false
   private tentatives = 0
+  /* Messages émis avant que la WebSocket ne soit ouverte. Le cas est la
+     règle, pas l'exception : viser() ouvre la connexion et l'appelant émet
+     dans la foulée — manager:reconnect en tête, qui se perdait, laissant
+     l'animateur devant une page morte après un rechargement. */
+  private enAttente: string[] = []
 
   configurer(clientId: string) {
     this.clientId = clientId
@@ -84,6 +101,7 @@ export class RazziaSocket {
     this.ws?.close()
     this.ws = null
     this.connected = false
+    this.enAttente = []
     // Quitter une partie, c'est n'avoir plus de cible : sans cela, revenir
     // sur un écran d'administration tenterait de rouvrir une WebSocket vers
     // une partie terminée.
@@ -97,13 +115,22 @@ export class RazziaSocket {
       return
     }
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn(`[ws] ${evenement} émis sans connexion`)
+    const trame = JSON.stringify({ e: evenement, d: charge })
+
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(trame)
 
       return
     }
 
-    this.ws.send(JSON.stringify({ e: evenement, d: charge }))
+    if (this.gameId && !this.ferme) {
+      // La connexion est en route : on garde le message pour l'ouverture.
+      this.enAttente.push(trame)
+
+      return
+    }
+
+    console.warn(`[ws] ${evenement} émis sans partie visée`)
   }
 
   // ── Distribution ────────────────────────────────────────────────────────
@@ -418,6 +445,14 @@ export class RazziaSocket {
     ws.addEventListener("open", () => {
       this.connected = true
       this.tentatives = 0
+
+      const differes = this.enAttente
+      this.enAttente = []
+
+      for (const trame of differes) {
+        ws.send(trame)
+      }
+
       this.local("connect")
     })
 
@@ -427,6 +462,13 @@ export class RazziaSocket {
       try {
         trame = JSON.parse(String(ev.data))
       } catch {
+        return
+      }
+
+      // Trame de service : elle cale l'horloge et ne concerne aucun écouteur.
+      if (trame.e === "time") {
+        decalage = ((trame.d as { now: number }).now ?? Date.now()) - Date.now()
+
         return
       }
 
