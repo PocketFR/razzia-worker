@@ -9,6 +9,11 @@
  * première lecture, ce que D1 ne permet plus (l'id est une clé primaire, il
  * doit exister à l'insertion).
  *
+ * Le mot de passe animateur est repris EN CLAIR, volontairement : le hacher
+ * ici demanderait la clé maîtresse du déploiement, que ce script n'a pas. Il
+ * est converti en empreinte à la première connexion réussie, seul moment où
+ * le mot de passe est connu.
+ *
  * Un fichier illisible est signalé sur stderr et ignoré, jamais fatal : c'est
  * exactement ce que fait getQuizz() à la lecture, et le dossier d'origine
  * contient au moins un JSON invalide (virgule traînante) que razzia rejette

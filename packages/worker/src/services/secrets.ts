@@ -49,8 +49,7 @@ export const estSecrete = (nom: NomDeCle) => SECRETES.has(nom)
 const encodeur = new TextEncoder()
 const decodeur = new TextDecoder()
 
-const enB64 = (octets: Uint8Array) =>
-  btoa(String.fromCharCode(...octets))
+const enB64 = (octets: Uint8Array) => btoa(String.fromCharCode(...octets))
 
 const deB64 = (texte: string) =>
   Uint8Array.from(atob(texte), (c) => c.charCodeAt(0))

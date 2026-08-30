@@ -64,6 +64,8 @@
  * réponses — est inchangé.
  */
 
+import { verifierAcces } from "../services/config"
+
 export interface Cles {
   mistralKey: string
   mistralModel: string
@@ -74,82 +76,97 @@ export interface Cles {
 // Réglages restés en dur : ce sont des choix de conception mesurés, pas des
 // paramètres d'exploitation. Seules les CLÉS varient d'un déploiement à
 // l'autre, et elles arrivent par l'objet Cles.
-const MISTRAL_MAX_TOKENS = 8000;
+const MISTRAL_MAX_TOKENS = 8000
 // Tâche factuelle : on veut l'association la plus probable, pas la plus
 // originale. La valeur par défaut du modèle (~0.7) invente trop.
-const TEMPERATURE = 0.2;
+const TEMPERATURE = 0.2
 
-const MARKET = 'FR';
-const SPOTIFY_TIMEOUT_MS = 15000;
+const MARKET = "FR"
+const SPOTIFY_TIMEOUT_MS = 15000
 // Plafond constaté sur /search comme sur /artists/{id}/albums.
-const SPOTIFY_LIMIT = 10;
+const SPOTIFY_LIMIT = 10
 
-const OPENTDB_URL = 'https://opentdb.com';
-const OPENTDB_TIMEOUT_MS = 15000;
-const OPENTDB_ESSAIS = 2;
+const OPENTDB_URL = "https://opentdb.com"
+const OPENTDB_TIMEOUT_MS = 15000
+const OPENTDB_ESSAIS = 2
 // Au-delà des cinq secondes de cadence imposées par OpenTDB.
-const OPENTDB_PAUSE_MS = 6000;
+const OPENTDB_PAUSE_MS = 6000
 
-const DUREE = 30;
+const DUREE = 30
 // Le schéma de razzia impose 3 à 15 : en dehors, le quiz est rejeté au listage.
-const COOLDOWN = 3;
+const COOLDOWN = 3
 
 // Bornes du schéma de razzia, pas des préférences : une question hors de ces
 // clous fait rejeter le FICHIER ENTIER, avec pour seule trace un console.warn
 // côté razzia. Mieux vaut écarter la question ici.
-const MIN_REPONSES = 2;
-const MAX_REPONSES = 4;
-const MAX_QUESTIONS = 40;
+const MIN_REPONSES = 2
+const MAX_REPONSES = 4
+const MAX_QUESTIONS = 40
 
-const MAX_ARTISTES = 18;
-const PISTES_PAR_ARTISTE = 2;
+const MAX_ARTISTES = 18
+const PISTES_PAR_ARTISTE = 2
 // En série plutôt qu'en rafale : la leçon de la saturation de MA.
-const CONCURRENCE = 3;
+const CONCURRENCE = 3
 
-const log = (...a: unknown[]) => console.log(new Date().toISOString().slice(11, 19), ...a);
+const log = (...a: unknown[]) =>
+  console.log(new Date().toISOString().slice(11, 19), ...a)
 
-export const norm = (s: unknown) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+export const norm = (s: unknown) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
 
 // Versions parasites : un blind test sur un live ou un karaoké ne marche pas.
-const NOISE = /\b(live|remaster\w*|karaoke|tribute|instrumental|acoustic|demo|re-?recorded|sped\s*up|slowed|cover|version)\b/i;
-const ALBUM_KO = new Set(['compilation']);
+const NOISE =
+  /\b(live|remaster\w*|karaoke|tribute|instrumental|acoustic|demo|re-?recorded|sped\s*up|slowed|cover|version)\b/i
+const ALBUM_KO = new Set(["compilation"])
 
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // Les surcouches injectées par sub_filter (razzia-qr, media, spotify, auto,
 // fullscreen) ne sont plus servies ici : elles rejoignent packages/web à
 // l'étape 8, et le reverse proxy disparaît avec elles.
 
-const melanger = <T,>(liste: T[]): T[] => {
-  const copie = [...liste];
+const melanger = <T>(liste: T[]): T[] => {
+  const copie = [...liste]
   for (let i = copie.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copie[i], copie[j]] = [copie[j], copie[i]];
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copie[i], copie[j]] = [copie[j], copie[i]]
   }
-  return copie;
-};
+  return copie
+}
 
-async function parLots<T, R>(items: T[], taille: number, fn: (_i: T) => Promise<R>): Promise<R[]> {
-  const resultats: R[] = [];
+async function parLots<T, R>(
+  items: T[],
+  taille: number,
+  fn: (_i: T) => Promise<R>,
+): Promise<R[]> {
+  const resultats: R[] = []
   for (let i = 0; i < items.length; i += taille) {
-    const lot = items.slice(i, i + taille);
-    resultats.push(...await Promise.all(lot.map(fn)));
+    const lot = items.slice(i, i + taille)
+    resultats.push(...(await Promise.all(lot.map(fn))))
   }
-  return resultats;
+  return resultats
 }
 
 // ----------------------------------------------------------- authentification
 
-async function motDePasseManager(db: D1Database): Promise<string> {
+// La vérification est déléguée : le mot de passe est désormais une empreinte
+// à clé, et le comparer ici demanderait de dupliquer la logique — donc de
+// risquer qu'une des deux copies dérive de l'autre.
+async function accesAccorde(
+  db: D1Database,
+  maitresse: string,
+  saisi: string,
+): Promise<boolean> {
   try {
-    const ligne = await db
-      .prepare(`SELECT value FROM settings WHERE key = 'managerPassword'`)
-      .first<{ value: string }>();
-    return ligne?.value || '';
+    return (await verifierAcces(db, maitresse, saisi)) === "ok"
   } catch (e) {
-    console.error(`! mot de passe illisible: ${(e as Error).message}`);
-    return '';
+    console.error(`! vérification impossible: ${(e as Error).message}`)
+    return false
   }
 }
 
@@ -158,131 +175,150 @@ async function motDePasseManager(db: D1Database): Promise<string> {
 // Cache par isolat : un Worker n'a pas de processus qui dure, mais un isolat
 // sert plusieurs requêtes. Un jeton déjà émis reste d'ailleurs valable même
 // si le secret est renouvelé entre-temps, jusqu'à sa propre expiration.
-let jeton: string | null = null;
-let jetonExpire = 0;
+let jeton: string | null = null
+let jetonExpire = 0
 
 async function jetonSpotify(cles: Cles): Promise<string> {
-  if (jeton && Date.now() < jetonExpire) return jeton;
-  const basic = btoa(`${cles.spotifyId}:${cles.spotifySecret}`);
-  const r = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
+  if (jeton && Date.now() < jetonExpire) return jeton
+  const basic = btoa(`${cles.spotifyId}:${cles.spotifySecret}`)
+  const r = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: 'grant_type=client_credentials',
-  });
-  if (!r.ok) throw new Error(`token Spotify HTTP ${r.status}`);
-  const j = (await r.json()) as { access_token: string; expires_in: number };
-  jeton = j.access_token;
-  jetonExpire = Date.now() + (j.expires_in - 60) * 1000;
-  return jeton;
+    body: "grant_type=client_credentials",
+  })
+  if (!r.ok) throw new Error(`token Spotify HTTP ${r.status}`)
+  const j = (await r.json()) as { access_token: string; expires_in: number }
+  jeton = j.access_token
+  jetonExpire = Date.now() + (j.expires_in - 60) * 1000
+  return jeton
 }
 
 /** GET sur l'API Spotify, avec respect du Retry-After en cas de 429. */
 async function spotify(cles: Cles, chemin: string, essai = 0): Promise<any> {
-  const t = await jetonSpotify(cles);
+  const t = await jetonSpotify(cles)
   const r = await fetch(`https://api.spotify.com/v1${chemin}`, {
     headers: { Authorization: `Bearer ${t}` },
     signal: AbortSignal.timeout(SPOTIFY_TIMEOUT_MS),
-  });
+  })
 
   if (r.status === 429) {
-    const attente = Math.min(30, parseInt(r.headers.get('retry-after') || '2', 10));
-    if (essai >= 2) throw new Error(`quota Spotify épuisé (429 après ${essai + 1} essais)`);
-    log(`quota Spotify atteint, pause ${attente}s`);
-    await pause(attente * 1000);
-    return spotify(cles, chemin, essai + 1);
+    const attente = Math.min(
+      30,
+      parseInt(r.headers.get("retry-after") || "2", 10),
+    )
+    if (essai >= 2)
+      throw new Error(`quota Spotify épuisé (429 après ${essai + 1} essais)`)
+    log(`quota Spotify atteint, pause ${attente}s`)
+    await pause(attente * 1000)
+    return spotify(cles, chemin, essai + 1)
   }
-  if (r.status === 401 && essai < 1) {   // jeton périmé plus tôt que prévu
-    jeton = null;
-    return spotify(cles, chemin, essai + 1);
+  if (r.status === 401 && essai < 1) {
+    // jeton périmé plus tôt que prévu
+    jeton = null
+    return spotify(cles, chemin, essai + 1)
   }
   if (!r.ok) {
-    const detail = await r.text();
-    throw new Error(`Spotify HTTP ${r.status} sur ${chemin.split('?')[0]} `
-      + `— ${detail.slice(0, 120)}`);
+    const detail = await r.text()
+    throw new Error(
+      `Spotify HTTP ${r.status} sur ${chemin.split("?")[0]} ` +
+        `— ${detail.slice(0, 120)}`,
+    )
   }
-  return r.json();
+  return r.json()
 }
 
 /** Normalise une piste Spotify, ou null si elle n'est pas exploitable. */
 function retenirPiste(t: any, nomArtiste: string) {
-  if (!t || !t.id || !t.name) return null;
-  if (NOISE.test(t.name)) return null;
+  if (!t || !t.id || !t.name) return null
+  if (NOISE.test(t.name)) return null
 
-  const album = t.album || {};
-  if (ALBUM_KO.has(String(album.album_type || '').toLowerCase())) return null;
-  if (NOISE.test(album.name || '')) return null;
+  const album = t.album || {}
+  if (ALBUM_KO.has(String(album.album_type || "").toLowerCase())) return null
+  if (NOISE.test(album.name || "")) return null
 
   // La recherche remonte reprises et artistes voisins : sur « Indochine »,
   // Louise Attaque figurait dans les résultats.
-  const interprete = ((t.artists || [])[0] || {}).name || '';
-  if (norm(interprete) !== norm(nomArtiste)) return null;
+  const interprete = ((t.artists || [])[0] || {}).name || ""
+  if (norm(interprete) !== norm(nomArtiste)) return null
 
   // Le format varie : "1982" pour l'un, "1985-12-10" pour l'autre.
-  const annee = parseInt(String(album.release_date || '').slice(0, 4), 10) || null;
+  const annee =
+    parseInt(String(album.release_date || "").slice(0, 4), 10) || null
   // L'identifiant est la raison d'être de cette passe : c'est lui qui finira
   // dans le champ media du quiz. Le résoudre ici, contre le catalogue réel,
   // est le seul moyen d'être sûr qu'il désigne bien ce morceau-là.
-  return { id: t.id, artiste: interprete, titre: t.name, annee };
+  return { id: t.id, artiste: interprete, titre: t.name, annee }
 }
 
 /** Métadonnées affichables d'un objet track, pour la surcouche d'édition. */
 function decrireTrack(t: any) {
-  if (!t || !t.id) return null;
-  const album = t.album || {};
-  const images = album.images || [];
+  if (!t || !t.id) return null
+  const album = t.album || {}
+  const images = album.images || []
   // Spotify classe les images de la plus grande à la plus petite : la
   // dernière suffit pour une vignette et évite de charger du 640x640.
-  const cover = images.length ? images[images.length - 1].url : null;
+  const cover = images.length ? images[images.length - 1].url : null
 
-  const artistes = [];
-  for (const a of t.artists || []) if (a && a.name) artistes.push(a.name);
+  const artistes = []
+  for (const a of t.artists || []) if (a && a.name) artistes.push(a.name)
 
   return {
     id: t.id,
     titre: t.name,
-    artiste: artistes.join(', '),
-    album: album.name || '',
-    annee: parseInt(String(album.release_date || '').slice(0, 4), 10) || null,
+    artiste: artistes.join(", "),
+    album: album.name || "",
+    annee: parseInt(String(album.release_date || "").slice(0, 4), 10) || null,
     duree: Math.round((t.duration_ms || 0) / 1000),
     cover,
-  };
+  }
 }
 
 /** Un titre par nom normalisé, avec l'année de sortie la plus ancienne. */
 const dedupliquer = (pistes: any[]) => {
-  const parTitre = new Map<string, any>();
+  const parTitre = new Map<string, any>()
   for (const p of pistes) {
-    const cle = norm(p.titre);
-    if (!cle) continue;
-    const connue = parTitre.get(cle);
-    if (!connue) { parTitre.set(cle, p); continue; }
+    const cle = norm(p.titre)
+    if (!cle) continue
+    const connue = parTitre.get(cle)
+    if (!connue) {
+      parTitre.set(cle, p)
+      continue
+    }
     if (p.annee && (!connue.annee || p.annee < connue.annee)) {
-      parTitre.set(cle, { ...connue, annee: p.annee });
+      parTitre.set(cle, { ...connue, annee: p.annee })
     }
   }
-  return [...parTitre.values()];
-};
+  return [...parTitre.values()]
+}
 
 /** Pistes d'un artiste, en UN appel. La période est un qualificateur. */
-async function pistesArtiste(cles: Cles, nom: string, anneeMin: number | null, anneeMax: number | null) {
-  let requete = `artist:${nom}`;
+async function pistesArtiste(
+  cles: Cles,
+  nom: string,
+  anneeMin: number | null,
+  anneeMax: number | null,
+) {
+  let requete = `artist:${nom}`
   if (anneeMin || anneeMax) {
-    requete += ` year:${anneeMin || 1900}-${anneeMax || new Date().getFullYear()}`;
+    requete += ` year:${anneeMin || 1900}-${anneeMax || new Date().getFullYear()}`
   }
 
-  const res = await spotify(cles, '/search?type=track'
-    + `&limit=${SPOTIFY_LIMIT}&market=${MARKET}`
-    + `&q=${encodeURIComponent(requete)}`);
+  const res = await spotify(
+    cles,
+    "/search?type=track" +
+      `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
+      `&q=${encodeURIComponent(requete)}`,
+  )
 
-  const pistes = [];
-  for (const t of ((res.tracks || {}).items) || []) {
-    const p = retenirPiste(t, nom);
-    if (p) pistes.push(p);
+  const pistes = []
+  for (const t of (res.tracks || {}).items || []) {
+    const p = retenirPiste(t, nom)
+    if (p) pistes.push(p)
   }
-  return dedupliquer(pistes);
+  return dedupliquer(pistes)
 }
 
 // -------------------------------------------------------------------- OpenTDB
@@ -290,43 +326,55 @@ async function pistesArtiste(cles: Cles, nom: string, anneeMin: number | null, a
 // Catégories OpenTDB. Sert à la fois de consigne pour la passe 1 et de
 // garde-fou : un identifiant hors de cette table est ignoré.
 const CATEGORIES: Record<number, string> = {
-  9: 'Culture générale',
-  10: 'Livres',
-  11: 'Cinéma',
-  12: 'Musique',
-  13: 'Comédies musicales et théâtre',
-  14: 'Télévision',
-  15: 'Jeux vidéo',
-  16: 'Jeux de société',
-  17: 'Sciences et nature',
-  18: 'Informatique',
-  19: 'Mathématiques',
-  20: 'Mythologie',
-  21: 'Sport',
-  22: 'Géographie',
-  23: 'Histoire',
-  24: 'Politique',
-  25: 'Art',
-  26: 'Célébrités',
-  27: 'Animaux',
-  28: 'Véhicules',
-  29: 'Bandes dessinées',
-  30: 'Gadgets',
-  31: 'Manga et anime',
-  32: 'Dessins animés',
-};
+  9: "Culture générale",
+  10: "Livres",
+  11: "Cinéma",
+  12: "Musique",
+  13: "Comédies musicales et théâtre",
+  14: "Télévision",
+  15: "Jeux vidéo",
+  16: "Jeux de société",
+  17: "Sciences et nature",
+  18: "Informatique",
+  19: "Mathématiques",
+  20: "Mythologie",
+  21: "Sport",
+  22: "Géographie",
+  23: "Histoire",
+  24: "Politique",
+  25: "Art",
+  26: "Célébrités",
+  27: "Animaux",
+  28: "Véhicules",
+  29: "Bandes dessinées",
+  30: "Gadgets",
+  31: "Manga et anime",
+  32: "Dessins animés",
+}
 
 /** Entités HTML : l'API les renvoie encodées, y compris dans les réponses. */
 function decoderHtml(texte: string): string {
   const table: Record<string, string> = {
-    '&quot;': '"', '&#039;': "'", '&apos;': "'", '&amp;': '&',
-    '&lt;': '<', '&gt;': '>', '&eacute;': 'é', '&egrave;': 'è',
-    '&ldquo;': '«', '&rdquo;': '»', '&hellip;': '…', '&ntilde;': 'ñ',
-    '&uuml;': 'ü', '&ouml;': 'ö', '&auml;': 'ä', '&deg;': '°',
-  };
-  return String(texte || '')
+    "&quot;": '"',
+    "&#039;": "'",
+    "&apos;": "'",
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&eacute;": "é",
+    "&egrave;": "è",
+    "&ldquo;": "«",
+    "&rdquo;": "»",
+    "&hellip;": "…",
+    "&ntilde;": "ñ",
+    "&uuml;": "ü",
+    "&ouml;": "ö",
+    "&auml;": "ä",
+    "&deg;": "°",
+  }
+  return String(texte || "")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&[a-zA-Z]+;|&#\d+;/g, (e) => table[e] || e);
+    .replace(/&[a-zA-Z]+;|&#\d+;/g, (e) => table[e] || e)
 }
 
 /**
@@ -346,139 +394,159 @@ function decoderHtml(texte: string): string {
  * questions « hard » alors qu'elle en a cinquante tous niveaux confondus,
  * donc la contrainte de difficulté est presque toujours la vraie cause.
  */
-async function questionsOpenTDB(categorie: number, nombre: number, difficulte: string | null, essai = 0,
-                                niveau = difficulte, demandeInitiale = nombre) {
+async function questionsOpenTDB(
+  categorie: number,
+  nombre: number,
+  difficulte: string | null,
+  essai = 0,
+  niveau = difficulte,
+  demandeInitiale = nombre,
+) {
   const niveaux: Record<string, string> = {
-    facile: 'easy', moyen: 'medium', expert: 'hard',
-  };
+    facile: "easy",
+    moyen: "medium",
+    expert: "hard",
+  }
   const params = new URLSearchParams({
     amount: String(Math.min(50, Math.max(1, nombre))),
-    encode: 'url3986',
-  });
-  if (CATEGORIES[categorie]) params.set('category', String(categorie));
-  if (niveau && niveaux[niveau]) params.set('difficulty', niveaux[niveau]);
+    encode: "url3986",
+  })
+  if (CATEGORIES[categorie]) params.set("category", String(categorie))
+  if (niveau && niveaux[niveau]) params.set("difficulty", niveaux[niveau])
 
   const rejouer = async (
     motif: string,
     combien = nombre,
     prochainNiveau: string | null = niveau,
   ): Promise<any[]> => {
-    if (essai >= OPENTDB_ESSAIS) throw new Error(`${motif} (après ${essai + 1} essais)`);
-    const attente = OPENTDB_PAUSE_MS * (essai + 1);
-    const quoi: string[] = [];
-    if (combien !== nombre) quoi.push(`${combien} question(s)`);
-    if (prochainNiveau !== niveau) quoi.push(`niveau ${prochainNiveau || 'libre'}`);
-    log(`opentdb : ${motif}, nouvelle tentative dans ${attente / 1000}s`
-      + (quoi.length ? ` avec ${quoi.join(' et ')}` : ''));
-    await pause(attente);
-    return questionsOpenTDB(categorie, combien, difficulte, essai + 1,
-      prochainNiveau, demandeInitiale);
-  };
+    if (essai >= OPENTDB_ESSAIS)
+      throw new Error(`${motif} (après ${essai + 1} essais)`)
+    const attente = OPENTDB_PAUSE_MS * (essai + 1)
+    const quoi: string[] = []
+    if (combien !== nombre) quoi.push(`${combien} question(s)`)
+    if (prochainNiveau !== niveau)
+      quoi.push(`niveau ${prochainNiveau || "libre"}`)
+    log(
+      `opentdb : ${motif}, nouvelle tentative dans ${attente / 1000}s` +
+        (quoi.length ? ` avec ${quoi.join(" et ")}` : ""),
+    )
+    await pause(attente)
+    return questionsOpenTDB(
+      categorie,
+      combien,
+      difficulte,
+      essai + 1,
+      prochainNiveau,
+      demandeInitiale,
+    )
+  }
 
-  let r;
+  let r
   try {
     r = await fetch(`${OPENTDB_URL}/api.php?${params}`, {
       signal: AbortSignal.timeout(OPENTDB_TIMEOUT_MS),
-    });
+    })
   } catch (e) {
-    return rejouer(`réseau: ${(e as Error).message}`);
+    return rejouer(`réseau: ${(e as Error).message}`)
   }
 
   // 429 = cadence dépassée, 5xx = incident passager : les deux se rejouent.
-  if (r.status === 429 || r.status >= 500) return rejouer(`HTTP ${r.status}`);
-  if (!r.ok) throw new Error(`OpenTDB HTTP ${r.status}`);
+  if (r.status === 429 || r.status >= 500) return rejouer(`HTTP ${r.status}`)
+  if (!r.ok) throw new Error(`OpenTDB HTTP ${r.status}`)
 
-  let data: any;
+  let data: any
   try {
-    data = await r.json();
+    data = await r.json()
   } catch (e) {
-    return rejouer(`réponse illisible: ${(e as Error).message}`);
+    return rejouer(`réponse illisible: ${(e as Error).message}`)
   }
 
   if (data.response_code === 1) {
-    const reduit = Math.floor(nombre * 0.75);
+    const reduit = Math.floor(nombre * 0.75)
     // Palier 1 : un quart de questions en moins, difficulté conservée.
     if (niveau && reduit >= 1 && reduit < nombre) {
-      return rejouer('pas assez de questions', reduit);
+      return rejouer("pas assez de questions", reduit)
     }
     // Palier 2 : difficulté relâchée, et retour au nombre demandé.
     if (niveau) {
-      return rejouer('pas assez de questions', demandeInitiale, null);
+      return rejouer("pas assez de questions", demandeInitiale, null)
     }
     // Plus de difficulté à relâcher : il ne reste qu'à demander moins.
     if (reduit >= 1 && reduit < nombre) {
-      return rejouer('pas assez de questions', reduit);
+      return rejouer("pas assez de questions", reduit)
     }
-    throw new Error('catégorie OpenTDB vide pour ces critères');
+    throw new Error("catégorie OpenTDB vide pour ces critères")
   }
 
   // 5 = cadence dépassée, signalée dans le corps plutôt qu'en HTTP.
-  if (data.response_code === 5) return rejouer('cadence dépassée');
+  if (data.response_code === 5) return rejouer("cadence dépassée")
   if (data.response_code !== 0) {
-    throw new Error(`OpenTDB code ${data.response_code}`);
+    throw new Error(`OpenTDB code ${data.response_code}`)
   }
 
-  const sortie: any[] = [];
+  const sortie: any[] = []
   for (const q of data.results || []) {
-    const bonne = decoderHtml(decodeURIComponent(q.correct_answer));
-    const mauvaises: string[] = [];
+    const bonne = decoderHtml(decodeURIComponent(q.correct_answer))
+    const mauvaises: string[] = []
     for (const m of q.incorrect_answers || []) {
-      mauvaises.push(decoderHtml(decodeURIComponent(m)));
+      mauvaises.push(decoderHtml(decodeURIComponent(m)))
     }
     // Une seule mauvaise réponse suffit : c'est le cas des vrai/faux.
-    if (!bonne || !mauvaises.length) continue;
+    if (!bonne || !mauvaises.length) continue
 
     // Position de la bonne réponse fixée ici : la passe 3 a interdiction de
     // réordonner, et rebattre() redistribuera les cartes à l'enregistrement.
-    const reponses = [bonne, ...mauvaises];
+    const reponses = [bonne, ...mauvaises]
     sortie.push({
       question: decoderHtml(decodeURIComponent(q.question)),
       reponses,
       index: 0,
-      booleen: q.type === 'boolean',
-      categorie: decoderHtml(decodeURIComponent(q.category || '')),
-    });
+      booleen: q.type === "boolean",
+      categorie: decoderHtml(decodeURIComponent(q.category || "")),
+    })
   }
-  return sortie;
+  return sortie
 }
 
 // -------------------------------------------------------------------- Mistral
 
 async function mistral(cles: Cles, systeme: string, utilisateur: string) {
-  const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
+  const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${cles.mistralKey}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model: cles.mistralModel,
       max_tokens: MISTRAL_MAX_TOKENS,
       temperature: TEMPERATURE,
-      response_format: { type: 'json_object' },
+      response_format: { type: "json_object" },
       messages: [
-        { role: 'system', content: systeme },
-        { role: 'user', content: utilisateur },
+        { role: "system", content: systeme },
+        { role: "user", content: utilisateur },
       ],
     }),
-  });
+  })
 
-  const texte = await r.text();
-  if (!r.ok) throw new Error(`Mistral HTTP ${r.status} — ${texte.slice(0, 300)}`);
+  const texte = await r.text()
+  if (!r.ok)
+    throw new Error(`Mistral HTTP ${r.status} — ${texte.slice(0, 300)}`)
 
-  const enveloppe = JSON.parse(texte);
-  const choix = (enveloppe.choices || [])[0] || {};
-  if (choix.finish_reason === 'length') {
-    throw new Error('réponse tronquée — réduis le nombre de questions');
+  const enveloppe = JSON.parse(texte)
+  const choix = (enveloppe.choices || [])[0] || {}
+  if (choix.finish_reason === "length") {
+    throw new Error("réponse tronquée — réduis le nombre de questions")
   }
   return {
-    data: JSON.parse((choix.message || {}).content || '{}'),
+    data: JSON.parse((choix.message || {}).content || "{}"),
     usage: enveloppe.usage || {},
-  };
+  }
 }
 
 const TABLE_CATEGORIES = Object.entries(CATEGORIES)
-  .map(([id, nom]) => `${id} = ${nom}`).join(', ');
+  .map(([id, nom]) => `${id} = ${nom}`)
+  .join(", ")
 
 const SYSTEME_ARTISTES = `Tu prépares un quiz de soirée. On te donne un
 thème ; tu réponds en JSON, sans rien d'autre.
@@ -527,7 +595,7 @@ musicale vaut donc "questions" moins "opentdb_part".
 si la demande évoque des connaisseurs ou des questions pointues.
 
 "annee_min" / "annee_max" : les bornes de la période si le thème en désigne
-une (« années 80 » donne 1980 et 1989), sinon null pour les deux.`;
+une (« années 80 » donne 1980 et 1989), sinon null pour les deux.`
 
 const SYSTEME_QUESTIONS = `Tu prépares les questions d'un quiz de soirée, en
 français. Réponds UNIQUEMENT en JSON : {"questions": [...]}.
@@ -571,7 +639,7 @@ ne mets pas tous les morceaux imposés d'abord puis les questions à traduire.
 
 Les mauvaises réponses des questions musicales appartiennent au même univers
 que la bonne sans prêter à confusion (sauf si le niveau souhaité est avancé).
-Ne te soucie pas de la position de la bonne réponse : les propositions sont rebattues à l'enregistrement.`;
+Ne te soucie pas de la position de la bonne réponse : les propositions sont rebattues à l'enregistrement.`
 
 // ------------------------------------------------------------ écriture du quiz
 
@@ -589,21 +657,26 @@ Ne te soucie pas de la position de la bonne réponse : les propositions sont reb
 
 // Alphabet des identifiants razzia. Exactement 64 caractères, donc un octet
 // masqué par 63 donne un tirage uniforme, sans modulo biaisé.
-const ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+const ALPHABET =
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
 
 /** Identifiant de quiz, dans la forme de ceux que razzia génère lui-même. */
 export function identifiant(taille = 21) {
-  const octets = crypto.getRandomValues(new Uint8Array(taille));
-  let sortie = '';
-  for (const octet of octets) sortie += ALPHABET[octet & 63];
-  return sortie;
+  const octets = crypto.getRandomValues(new Uint8Array(taille))
+  let sortie = ""
+  for (const octet of octets) sortie += ALPHABET[octet & 63]
+  return sortie
 }
 
 /** Nom de fichier sûr, sans accent ni traversée de chemin. */
 export function slug(nom: unknown) {
-  const s = String(nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return s.slice(0, 60) || 'quiz';
+  const s = String(nom || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return s.slice(0, 60) || "quiz"
 }
 
 /**
@@ -617,20 +690,20 @@ export function slug(nom: unknown) {
  * un cadeau aux joueurs.
  */
 export function serieOrdonnee(reponses: string[]) {
-  if (reponses.length < 2) return false;
-  const valeurs = [];
+  if (reponses.length < 2) return false
+  const valeurs = []
   for (const r of reponses) {
-    const texte = String(r).trim();
-    if (!/^-?\d{1,6}$/.test(texte)) return false;
-    valeurs.push(parseInt(texte, 10));
+    const texte = String(r).trim()
+    if (!/^-?\d{1,6}$/.test(texte)) return false
+    valeurs.push(parseInt(texte, 10))
   }
-  let croissant = true;
-  let decroissant = true;
+  let croissant = true
+  let decroissant = true
   for (let i = 1; i < valeurs.length; i++) {
-    if (valeurs[i] < valeurs[i - 1]) croissant = false;
-    if (valeurs[i] > valeurs[i - 1]) decroissant = false;
+    if (valeurs[i] < valeurs[i - 1]) croissant = false
+    if (valeurs[i] > valeurs[i - 1]) decroissant = false
   }
-  return croissant || decroissant;
+  return croissant || decroissant
 }
 
 /**
@@ -640,23 +713,31 @@ export function serieOrdonnee(reponses: string[]) {
  * consigne explicite, les modèles reviennent régulièrement placer la bonne
  * réponse au même endroit. Biais connu, non corrigeable par le prompt.
  */
-export function rebattre(reponses: string[], index: number): [string[], number] {
-  if (reponses.length < 2) return [reponses, index];
-  const bonne = reponses[index];
+export function rebattre(
+  reponses: string[],
+  index: number,
+): [string[], number] {
+  if (reponses.length < 2) return [reponses, index]
+  const bonne = reponses[index]
   const sortie = serieOrdonnee(reponses)
     ? [...reponses].sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
-    : melanger(reponses);
-  return [sortie, sortie.indexOf(bonne)];
+    : melanger(reponses)
+  return [sortie, sortie.indexOf(bonne)]
 }
 
 /** Premier champ non vide parmi plusieurs noms possibles. */
 export function champ(item: any, ...noms: string[]): any {
   for (const nom of noms) {
-    const valeur = item[nom];
-    if (valeur !== undefined && valeur !== null && valeur !== ''
-      && !(Array.isArray(valeur) && !valeur.length)) return valeur;
+    const valeur = item[nom]
+    if (
+      valeur !== undefined &&
+      valeur !== null &&
+      valeur !== "" &&
+      !(Array.isArray(valeur) && !valeur.length)
+    )
+      return valeur
   }
-  return null;
+  return null
 }
 
 /**
@@ -665,71 +746,86 @@ export function champ(item: any, ...noms: string[]): any {
  * Le modèle alterne volontiers entre "q"/"question" ou "s"/"solutions" : on
  * accepte les deux plutôt que d'échouer là-dessus.
  */
-export function validerQuestion(item: any, numero: number): [any, string | null] {
-  if (!item || typeof item !== 'object' || Array.isArray(item)) {
-    return [null, `question ${numero} : objet attendu`];
+export function validerQuestion(
+  item: any,
+  numero: number,
+): [any, string | null] {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    return [null, `question ${numero} : objet attendu`]
   }
 
-  const intitule = String(champ(item, 'q', 'question') || '').trim();
-  if (!intitule) return [null, `question ${numero} : intitulé manquant`];
+  const intitule = String(champ(item, "q", "question") || "").trim()
+  if (!intitule) return [null, `question ${numero} : intitulé manquant`]
 
-  const brutes = champ(item, 'a', 'answers', 'reponses');
+  const brutes = champ(item, "a", "answers", "reponses")
   if (!Array.isArray(brutes)) {
-    return [null, `question ${numero} : réponses non listées`];
+    return [null, `question ${numero} : réponses non listées`]
   }
 
-  const reponses: string[] = [];
+  const reponses: string[] = []
   for (const valeur of brutes) {
-    const texte = String(valeur).trim();
-    if (!texte) continue;
-    if (reponses.some((retenue) => norm(retenue) === norm(texte))) continue;
-    reponses.push(texte);
+    const texte = String(valeur).trim()
+    if (!texte) continue
+    if (reponses.some((retenue) => norm(retenue) === norm(texte))) continue
+    reponses.push(texte)
   }
 
   if (reponses.length < MIN_REPONSES) {
-    return [null, `question ${numero} : ${reponses.length} réponse(s) distincte(s)`];
+    return [
+      null,
+      `question ${numero} : ${reponses.length} réponse(s) distincte(s)`,
+    ]
   }
   // Rogner écraserait la bonne réponse une fois sur deux : c'est la question
   // entière qu'on écarte. Le modèle est prévenu de la limite dans le prompt.
   if (reponses.length > MAX_REPONSES) {
-    return [null, `question ${numero} : ${reponses.length} réponses, maximum ${MAX_REPONSES}`];
+    return [
+      null,
+      `question ${numero} : ${reponses.length} réponses, maximum ${MAX_REPONSES}`,
+    ]
   }
 
   // La solution arrive en index, ou directement en texte.
-  let brute = champ(item, 's', 'solution', 'solutions');
-  if (Array.isArray(brute)) brute = brute[0];
+  let brute = champ(item, "s", "solution", "solutions")
+  if (Array.isArray(brute)) brute = brute[0]
 
-  let index = null;
-  if (typeof brute === 'boolean') {
-    index = null;
+  let index = null
+  if (typeof brute === "boolean") {
+    index = null
   } else if (Number.isInteger(brute)) {
-    index = brute;
-  } else if (typeof brute === 'string' && /^\d+$/.test(brute.trim())) {
-    index = parseInt(brute.trim(), 10);
-  } else if (typeof brute === 'string') {
-    const cible = norm(brute);
-    index = reponses.findIndex((r) => norm(r) === cible);
-    if (index < 0) index = null;
+    index = brute
+  } else if (typeof brute === "string" && /^\d+$/.test(brute.trim())) {
+    index = parseInt(brute.trim(), 10)
+  } else if (typeof brute === "string") {
+    const cible = norm(brute)
+    index = reponses.findIndex((r) => norm(r) === cible)
+    if (index < 0) index = null
   }
 
   if (index === null || index < 0 || index >= reponses.length) {
-    return [null, `question ${numero} : solution invalide (${JSON.stringify(brute)})`];
+    return [
+      null,
+      `question ${numero} : solution invalide (${JSON.stringify(brute)})`,
+    ]
   }
 
-  const [melangees, position] = rebattre(reponses, index);
+  const [melangees, position] = rebattre(reponses, index)
 
-  const n = parseInt(champ(item, 'n', 'numero'), 10);
-  const start = parseInt(champ(item, 'start', 'debut'), 10);
+  const n = parseInt(champ(item, "n", "numero"), 10)
+  const start = parseInt(champ(item, "start", "debut"), 10)
 
-  return [{
-    intitule,
-    reponses: melangees,
-    index: position,
-    n: Number.isInteger(n) ? n : null,
-    artiste: String(champ(item, 'artiste', 'artist') || '').trim(),
-    titre: String(champ(item, 'titre', 'title') || '').trim(),
-    start: Number.isInteger(start) && start > 0 ? start : 0,
-  }, null];
+  return [
+    {
+      intitule,
+      reponses: melangees,
+      index: position,
+      n: Number.isInteger(n) ? n : null,
+      artiste: String(champ(item, "artiste", "artist") || "").trim(),
+      titre: String(champ(item, "titre", "title") || "").trim(),
+      start: Number.isInteger(start) && start > 0 ? start : 0,
+    },
+    null,
+  ]
 }
 
 /**
@@ -741,28 +837,33 @@ export function validerQuestion(item: any, numero: number): [any, string | null]
  * cette recherche, elle serait écartée alors qu'elle était jouable avant.
  */
 async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
-  const requete = `artist:${artiste} track:${titre}`;
-  let res;
+  const requete = `artist:${artiste} track:${titre}`
+  let res
   try {
-    res = await spotify(cles, '/search?type=track'
-      + `&limit=${SPOTIFY_LIMIT}&market=${MARKET}`
-      + `&q=${encodeURIComponent(requete)}`);
+    res = await spotify(
+      cles,
+      "/search?type=track" +
+        `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
+        `&q=${encodeURIComponent(requete)}`,
+    )
   } catch (e) {
-    console.error(`! résolution "${artiste} — ${titre}": ${(e as Error).message}`);
-    return null;
+    console.error(
+      `! résolution "${artiste} — ${titre}": ${(e as Error).message}`,
+    )
+    return null
   }
 
-  const vise = norm(titre);
-  for (const t of ((res.tracks || {}).items) || []) {
+  const vise = norm(titre)
+  for (const t of (res.tracks || {}).items || []) {
     // retenirPiste applique déjà le filtre NOISE et l'égalité d'artiste.
-    const p = retenirPiste(t, artiste);
-    if (!p) continue;
-    const nom = norm(p.titre);
+    const p = retenirPiste(t, artiste)
+    if (!p) continue
+    const nom = norm(p.titre)
     // Garde-fou contre les homonymies : la recherche remonte volontiers un
     // autre titre du même artiste quand celui demandé n'existe pas.
-    if (nom.includes(vise) || vise.includes(nom)) return { ...p, id: t.id };
+    if (nom.includes(vise) || vise.includes(nom)) return { ...p, id: t.id }
   }
-  return null;
+  return null
 }
 
 /**
@@ -775,7 +876,10 @@ async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
  * l'offset est omis quand il vaut 0.
  */
 export function media(id: string, start: number) {
-  return { type: 'audio', url: start ? `spotify:${id}:${start}` : `spotify:${id}` };
+  return {
+    type: "audio",
+    url: start ? `spotify:${id}:${start}` : `spotify:${id}`,
+  }
 }
 
 /**
@@ -791,18 +895,24 @@ async function deposer(
   db: D1Database,
   document: { id: string; subject: string; questions: unknown[] },
 ) {
-  const maintenant = Date.now();
-  const { id, subject, ...corps } = document;
+  const maintenant = Date.now()
+  const { id, subject, ...corps } = document
 
   await db
     .prepare(
       `INSERT INTO quizz (id, subject, json, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?)`,
     )
-    .bind(id, subject, JSON.stringify({ subject, ...corps }), maintenant, maintenant)
-    .run();
+    .bind(
+      id,
+      subject,
+      JSON.stringify({ subject, ...corps }),
+      maintenant,
+      maintenant,
+    )
+    .run()
 
-  return id;
+  return id
 }
 
 /**
@@ -820,179 +930,233 @@ export async function ecrireQuiz(
   brutes: any[],
   pistes: any[],
 ) {
-  const rejets: string[] = [];
-  const questions: any[] = [];
-  const positions: Record<number, number> = {};
-  const vus = new Set<string>();
-  let sonores = 0;
+  const rejets: string[] = []
+  const questions: any[] = []
+  const positions: Record<number, number> = {}
+  const vus = new Set<string>()
+  let sonores = 0
 
-  const parTexte = new Map<string, any>();
-  for (const p of pistes) parTexte.set(`${norm(p.artiste)}|${norm(p.titre)}`, p);
+  const parTexte = new Map<string, any>()
+  for (const p of pistes) parTexte.set(`${norm(p.artiste)}|${norm(p.titre)}`, p)
 
   for (let i = 0; i < brutes.length && questions.length < MAX_QUESTIONS; i++) {
-    const [q, motif] = validerQuestion(brutes[i], i + 1);
-    if (motif) { rejets.push(motif); continue; }
+    const [q, motif] = validerQuestion(brutes[i], i + 1)
+    if (motif) {
+      rejets.push(motif)
+      continue
+    }
 
     // Trois chemins, du plus sûr au plus coûteux : le numéro rendu par la
     // passe 3, la recopie de l'artiste et du titre, puis le catalogue.
-    let piste = null;
-    if (q.n !== null && q.n >= 1 && q.n <= pistes.length) piste = pistes[q.n - 1];
+    let piste = null
+    if (q.n !== null && q.n >= 1 && q.n <= pistes.length)
+      piste = pistes[q.n - 1]
     if (!piste && q.artiste && q.titre) {
-      piste = parTexte.get(`${norm(q.artiste)}|${norm(q.titre)}`)
-        || await resoudreMorceau(cles, q.artiste, q.titre);
+      piste =
+        parTexte.get(`${norm(q.artiste)}|${norm(q.titre)}`) ||
+        (await resoudreMorceau(cles, q.artiste, q.titre))
     }
 
     // Une question musicale sans morceau est injouable : le joueur entendrait
     // le silence. On l'écarte plutôt que de la laisser passer muette.
-    const musicale = q.n !== null || (q.artiste && q.titre);
+    const musicale = q.n !== null || (q.artiste && q.titre)
     if (musicale) {
       if (!piste) {
-        rejets.push(`question ${i + 1} : morceau introuvable `
-          + `(n=${q.n}, ${q.artiste} — ${q.titre})`);
-        continue;
+        rejets.push(
+          `question ${i + 1} : morceau introuvable ` +
+            `(n=${q.n}, ${q.artiste} — ${q.titre})`,
+        )
+        continue
       }
       if (vus.has(piste.id)) {
-        rejets.push(`question ${i + 1} : morceau en double (${piste.artiste} — ${piste.titre})`);
-        continue;
+        rejets.push(
+          `question ${i + 1} : morceau en double (${piste.artiste} — ${piste.titre})`,
+        )
+        continue
       }
-      vus.add(piste.id);
-      sonores++;
+      vus.add(piste.id)
+      sonores++
     }
 
     const question: any = {
-      type: 'single',
+      type: "single",
       question: q.intitule,
       answers: q.reponses,
       solutions: [q.index],
       cooldown: COOLDOWN,
       time: DUREE,
-    };
-    if (musicale) question.media = media(piste.id, q.start);
-    questions.push(question);
-    positions[q.index] = (positions[q.index] || 0) + 1;
+    }
+    if (musicale) question.media = media(piste.id, q.start)
+    questions.push(question)
+    positions[q.index] = (positions[q.index] || 0) + 1
   }
 
   if (!questions.length) {
-    throw new Error(`aucune question exploitable — ${rejets.join(' ; ') || 'liste vide'}`);
+    throw new Error(
+      `aucune question exploitable — ${rejets.join(" ; ") || "liste vide"}`,
+    )
   }
 
-  const id = identifiant();
-  await deposer(db, { id, subject: nom, questions });
+  const id = identifiant()
+  await deposer(db, { id, subject: nom, questions })
 
   // La répartition des positions est le seul contrôle qui prouve que le
   // mélange agit : concentrée sur 0, c'est que rebattre() ne passe plus.
-  log(`quiz « ${nom} » : ${questions.length} question(s) sur ${brutes.length}, `
-    + `${sonores} sonore(s), positions ${JSON.stringify(positions)}, id ${id}`
-    + (rejets.length ? ` | rejetés : ${rejets.join(' ; ')}` : ''));
+  log(
+    `quiz « ${nom} » : ${questions.length} question(s) sur ${brutes.length}, ` +
+      `${sonores} sonore(s), positions ${JSON.stringify(positions)}, id ${id}` +
+      (rejets.length ? ` | rejetés : ${rejets.join(" ; ")}` : ""),
+  )
 
-  return { id, sonores, rejets, retenues: questions.length };
+  return { id, sonores, rejets, retenues: questions.length }
 }
 
 // ------------------------------------------------------------------ pipeline
 
 async function construire(cles: Cles, titre: string, description: string) {
-  const rapport: any = { absents: [] as string[], tokens: 0, musicales: 0, culture: 0 };
+  const rapport: any = {
+    absents: [] as string[],
+    tokens: 0,
+    musicales: 0,
+    culture: 0,
+  }
 
   // --- passe 1 : répartition, artistes, niveau, période -------------------
   const p1 = await mistral(
     cles,
     SYSTEME_ARTISTES,
-    `Titre du quiz : ${titre}\n\nDemande : ${description}`);
-  rapport.tokens += p1.usage.total_tokens || 0;
+    `Titre du quiz : ${titre}\n\nDemande : ${description}`,
+  )
+  rapport.tokens += p1.usage.total_tokens || 0
 
-  const voulues = Math.max(5, parseInt(p1.data.questions, 10) || 15);
-  const difficulte = ['facile', 'moyen', 'expert'].includes(p1.data.difficulte)
-    ? p1.data.difficulte : 'moyen';
-  const anneeMin = parseInt(p1.data.annee_min, 10) || null;
-  const anneeMax = parseInt(p1.data.annee_max, 10) || null;
+  const voulues = Math.max(5, parseInt(p1.data.questions, 10) || 15)
+  const difficulte = ["facile", "moyen", "expert"].includes(p1.data.difficulte)
+    ? p1.data.difficulte
+    : "moyen"
+  const anneeMin = parseInt(p1.data.annee_min, 10) || null
+  const anneeMax = parseInt(p1.data.annee_max, 10) || null
 
   const categorie = CATEGORIES[p1.data.opentdb_categorie]
-    ? parseInt(p1.data.opentdb_categorie, 10) : null;
+    ? parseInt(p1.data.opentdb_categorie, 10)
+    : null
   const partCulture = categorie
-    ? Math.min(voulues, Math.max(0, parseInt(p1.data.opentdb_part, 10) || 0)) : 0;
-  const partMusique = voulues - partCulture;
+    ? Math.min(voulues, Math.max(0, parseInt(p1.data.opentdb_part, 10) || 0))
+    : 0
+  const partMusique = voulues - partCulture
 
-  const noms = partMusique > 0
-    ? (p1.data.artistes || []).slice(0, MAX_ARTISTES) : [];
+  const noms =
+    partMusique > 0 ? (p1.data.artistes || []).slice(0, MAX_ARTISTES) : []
 
-  Object.assign(rapport, { difficulte, anneeMin, anneeMax, categorie, partCulture });
+  Object.assign(rapport, {
+    difficulte,
+    anneeMin,
+    anneeMax,
+    categorie,
+    partCulture,
+  })
   if (!noms.length && !partCulture) {
-    throw new Error('ni artiste ni catégorie exploitable pour ce thème');
+    throw new Error("ni artiste ni catégorie exploitable pour ce thème")
   }
 
-  log(`passe 1 : ${partMusique} musicale(s) sur ${noms.length} artiste(s), `
-    + `${partCulture} culture générale`
-    + (categorie ? ` (${CATEGORIES[categorie]})` : '')
-    + `, ${difficulte}`
-    + (anneeMin || anneeMax ? ` [${anneeMin || '…'}-${anneeMax || '…'}]` : ''));
+  log(
+    `passe 1 : ${partMusique} musicale(s) sur ${noms.length} artiste(s), ` +
+      `${partCulture} culture générale` +
+      (categorie ? ` (${CATEGORIES[categorie]})` : "") +
+      `, ${difficulte}` +
+      (anneeMin || anneeMax ? ` [${anneeMin || "…"}-${anneeMax || "…"}]` : ""),
+  )
 
   // --- passe 2 : les deux sources, en parallèle ---------------------------
-  const debut = Date.now();
+  const debut = Date.now()
 
   const tacheCulture = partCulture
-    ? questionsOpenTDB(categorie as number, partCulture, difficulte)
-      .catch((e: unknown) => {
-        console.error(`! opentdb: ${(e as Error).message}`);
-        return [] as any[];
-      })
-    : Promise.resolve([]);
+    ? questionsOpenTDB(categorie as number, partCulture, difficulte).catch(
+        (e: unknown) => {
+          console.error(`! opentdb: ${(e as Error).message}`)
+          return [] as any[]
+        },
+      )
+    : Promise.resolve([])
 
-  const tacheMusique = parLots(noms as string[], CONCURRENCE, async (nom: string) => {
-    try {
-      const pistes = await pistesArtiste(cles, nom, anneeMin, anneeMax);
-      if (!pistes.length) return { nom, pistes: [] as any[] };
-      return { nom, pistes: melanger(pistes).slice(0, PISTES_PAR_ARTISTE) };
-    } catch (e) {
-      console.error(`! ${nom}: ${(e as Error).message}`);
-      return { nom, pistes: [] as any[] };
-    }
-  });
+  const tacheMusique = parLots(
+    noms as string[],
+    CONCURRENCE,
+    async (nom: string) => {
+      try {
+        const pistes = await pistesArtiste(cles, nom, anneeMin, anneeMax)
+        if (!pistes.length) return { nom, pistes: [] as any[] }
+        return { nom, pistes: melanger(pistes).slice(0, PISTES_PAR_ARTISTE) }
+      } catch (e) {
+        console.error(`! ${nom}: ${(e as Error).message}`)
+        return { nom, pistes: [] as any[] }
+      }
+    },
+  )
 
-  const [culture, lots] = await Promise.all([tacheCulture, tacheMusique]);
+  const [culture, lots] = await Promise.all([tacheCulture, tacheMusique])
 
-  let pistes: any[] = [];
+  let pistes: any[] = []
   for (const lot of lots) {
-    if (!lot.pistes.length) rapport.absents.push(lot.nom);
-    else pistes.push(...lot.pistes);
+    if (!lot.pistes.length) rapport.absents.push(lot.nom)
+    else pistes.push(...lot.pistes)
   }
-  pistes = melanger(pistes).slice(0, partMusique);
+  pistes = melanger(pistes).slice(0, partMusique)
 
   if (!pistes.length && !culture.length) {
-    throw new Error('aucune matière récupérée pour ce thème');
+    throw new Error("aucune matière récupérée pour ce thème")
   }
-  rapport.musicales = pistes.length;
-  rapport.culture = culture.length;
-  log(`passe 2 : ${pistes.length} morceau(x) et ${culture.length} question(s) `
-    + `de culture générale, en ${Math.round((Date.now() - debut) / 1000)}s`);
+  rapport.musicales = pistes.length
+  rapport.culture = culture.length
+  log(
+    `passe 2 : ${pistes.length} morceau(x) et ${culture.length} question(s) ` +
+      `de culture générale, en ${Math.round((Date.now() - debut) / 1000)}s`,
+  )
 
   // --- passe 3 : rédaction et traduction, en un seul appel ----------------
-  const blocs = [`Titre du quiz : ${titre}`, `Contexte : ${description}`,
-    `Niveau : ${difficulte}`];
+  const blocs = [
+    `Titre du quiz : ${titre}`,
+    `Contexte : ${description}`,
+    `Niveau : ${difficulte}`,
+  ]
 
   if (pistes.length) {
-    blocs.push('MORCEAUX IMPOSÉS (artiste | titre | année) :\n'
-      + pistes.map((p, i) => `${i + 1}. ${p.artiste} | ${p.titre}`
-        + (p.annee ? ` | ${p.annee}` : '')).join('\n'));
+    blocs.push(
+      "MORCEAUX IMPOSÉS (artiste | titre | année) :\n" +
+        pistes
+          .map(
+            (p, i) =>
+              `${i + 1}. ${p.artiste} | ${p.titre}` +
+              (p.annee ? ` | ${p.annee}` : ""),
+          )
+          .join("\n"),
+    )
   }
   if (culture.length) {
-    blocs.push('QUESTIONS À TRADUIRE (l\'index donne la bonne réponse, '
-      + 'garde l\'ordre) :\n'
-      + culture.map((q: any, i: number) => `${i + 1}. [index ${q.index}] ${q.question}\n`
-        + `   ${q.reponses.map((r: string, j: number) => `(${j}) ${r}`).join(' | ')}`).join('\n'));
+    blocs.push(
+      "QUESTIONS À TRADUIRE (l'index donne la bonne réponse, " +
+        "garde l'ordre) :\n" +
+        culture
+          .map(
+            (q: any, i: number) =>
+              `${i + 1}. [index ${q.index}] ${q.question}\n` +
+              `   ${q.reponses.map((r: string, j: number) => `(${j}) ${r}`).join(" | ")}`,
+          )
+          .join("\n"),
+    )
   }
 
-  const p3 = await mistral(cles, SYSTEME_QUESTIONS, blocs.join('\n\n'));
-  rapport.tokens += p3.usage.total_tokens || 0;
+  const p3 = await mistral(cles, SYSTEME_QUESTIONS, blocs.join("\n\n"))
+  rapport.tokens += p3.usage.total_tokens || 0
 
-  const questions = p3.data.questions || [];
+  const questions = p3.data.questions || []
   if (!Array.isArray(questions) || !questions.length) {
-    throw new Error('aucune question rédigée');
+    throw new Error("aucune question rédigée")
   }
-  log(`passe 3 : ${questions.length} question(s), ${rapport.tokens} tokens`);
+  log(`passe 3 : ${questions.length} question(s), ${rapport.tokens} tokens`)
 
   // `pistes` repart avec les questions : c'est la table que le champ "n" de
   // la passe 3 indexe pour retrouver l'identifiant Spotify de chaque morceau.
-  return { questions, pistes, rapport };
+  return { questions, pistes, rapport }
 }
 
 // ----------------------------------------------------------------------- page
@@ -1078,8 +1242,7 @@ form.addEventListener('submit', async (ev) => {
   }
   envoyer.disabled = false;
 });
-</script>`;
-
+</script>`
 
 /*
  * Retour d'autorisation Spotify, pour le flux PKCE mené par le navigateur.
@@ -1143,7 +1306,7 @@ function echec(message) {
     echec('Échange impossible : ' + e.message);
   }
 })();
-</script>`;
+</script>`
 
 // ---------------------------------------------------------------- endpoints
 //
@@ -1155,121 +1318,136 @@ const json = (donnees: unknown, code = 200) =>
   new Response(JSON.stringify(donnees), {
     status: code,
     headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
     },
-  });
+  })
 
 const html = (contenu: string) =>
   new Response(contenu, {
-    headers: { 'content-type': 'text/html; charset=utf-8' },
-  });
+    headers: { "content-type": "text/html; charset=utf-8" },
+  })
 
 /** Métadonnées d'un morceau, pour la surcouche de l'éditeur. */
 export async function endpointTrack(cles: Cles, id: string) {
   if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: 'Identifiants Spotify absents' }, 500);
+    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
   }
 
   try {
-    const info = decrireTrack(await spotify(cles, `/tracks/${id}?market=${MARKET}`));
-    if (!info) return json({ ok: false, message: 'Morceau introuvable' }, 404);
-    return json({ ok: true, track: info });
+    const info = decrireTrack(
+      await spotify(cles, `/tracks/${id}?market=${MARKET}`),
+    )
+    if (!info) return json({ ok: false, message: "Morceau introuvable" }, 404)
+    return json({ ok: true, track: info })
   } catch (e) {
-    console.error(`! track ${id}: ${(e as Error).message}`);
-    return json({ ok: false, message: (e as Error).message }, 502);
+    console.error(`! track ${id}: ${(e as Error).message}`)
+    return json({ ok: false, message: (e as Error).message }, 502)
   }
 }
 
 /** Recherche libre, pour la liste déroulante de la surcouche. */
 export async function endpointSearch(cles: Cles, q: string) {
   if (q.trim().length < 2) {
-    return json({ ok: false, message: 'Requête trop courte' }, 400);
+    return json({ ok: false, message: "Requête trop courte" }, 400)
   }
   if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: 'Identifiants Spotify absents' }, 500);
+    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
   }
 
   try {
-    const res = await spotify(cles, '/search?type=track'
-      + `&limit=${SPOTIFY_LIMIT}&market=${MARKET}`
-      + `&q=${encodeURIComponent(q.trim())}`);
-    const sortie = [];
-    for (const t of ((res.tracks || {}).items) || []) {
-      const info = decrireTrack(t);
-      if (info) sortie.push(info);
+    const res = await spotify(
+      cles,
+      "/search?type=track" +
+        `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
+        `&q=${encodeURIComponent(q.trim())}`,
+    )
+    const sortie = []
+    for (const t of (res.tracks || {}).items || []) {
+      const info = decrireTrack(t)
+      if (info) sortie.push(info)
     }
-    return json({ ok: true, tracks: sortie });
+    return json({ ok: true, tracks: sortie })
   } catch (e) {
-    console.error(`! search "${q}": ${(e as Error).message}`);
-    return json({ ok: false, message: (e as Error).message }, 502);
+    console.error(`! search "${q}": ${(e as Error).message}`)
+    return json({ ok: false, message: (e as Error).message }, 502)
   }
 }
 
 /** Génération complète, protégée par le mot de passe manager. */
 export async function endpointGenerer(
   db: D1Database,
+  maitresse: string,
   cles: Cles,
   form: URLSearchParams,
 ) {
-  const titre = String(form.get('titre') || '').trim();
-  const description = String(form.get('description') || '').trim();
-  const motdepasse = String(form.get('motdepasse') || '');
+  const titre = String(form.get("titre") || "").trim()
+  const description = String(form.get("description") || "").trim()
+  const motdepasse = String(form.get("motdepasse") || "")
 
-  const attendu = await motDePasseManager(db);
-  if (!attendu || motdepasse !== attendu) {
-    log('tentative refusée (mot de passe)');
-    return json({ ok: false, message: 'Mot de passe incorrect' }, 403);
+  if (!(await accesAccorde(db, maitresse, motdepasse))) {
+    log("tentative refusée (mot de passe)")
+    return json({ ok: false, message: "Mot de passe incorrect" }, 403)
   }
-  if (!titre) return json({ ok: false, message: 'Titre manquant' }, 400);
-  if (!description) return json({ ok: false, message: 'Description manquante' }, 400);
-  if (!cles.mistralKey) return json({ ok: false, message: 'Clé Mistral absente' }, 500);
+  if (!titre) return json({ ok: false, message: "Titre manquant" }, 400)
+  if (!description)
+    return json({ ok: false, message: "Description manquante" }, 400)
+  if (!cles.mistralKey)
+    return json({ ok: false, message: "Clé Mistral absente" }, 500)
   if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: 'Identifiants Spotify absents' }, 500);
+    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
   }
 
-  let questions, pistes, rapport;
+  let questions, pistes, rapport
   try {
-    log(`génération « ${titre} »`);
-    ({ questions, pistes, rapport } = await construire(cles, titre, description));
+    log(`génération « ${titre} »`)
+    ;({ questions, pistes, rapport } = await construire(
+      cles,
+      titre,
+      description,
+    ))
   } catch (e) {
-    console.error(`! ${(e as Error).message}`);
-    return json({ ok: false, message: `Échec : ${(e as Error).message}` }, 502);
+    console.error(`! ${(e as Error).message}`)
+    return json({ ok: false, message: `Échec : ${(e as Error).message}` }, 502)
   }
 
-  let ecrit;
+  let ecrit
   try {
-    ecrit = await ecrireQuiz(db, cles, titre, questions, pistes);
+    ecrit = await ecrireQuiz(db, cles, titre, questions, pistes)
   } catch (e) {
     // Les questions repartent quand même : la génération a coûté des tokens,
     // l'aperçu permet de ne pas la perdre.
-    console.error(`! écriture: ${(e as Error).message}`);
-    return json({
-      ok: false,
-      message: `Questions générées mais non enregistrées : ${(e as Error).message}`,
-      questions,
-    }, 502);
+    console.error(`! écriture: ${(e as Error).message}`)
+    return json(
+      {
+        ok: false,
+        message: `Questions générées mais non enregistrées : ${(e as Error).message}`,
+        questions,
+      },
+      502,
+    )
   }
 
   const absents = rapport.absents.length
-    ? ` Sans morceau : ${rapport.absents.join(', ')}.`
-    : '';
+    ? ` Sans morceau : ${rapport.absents.join(", ")}.`
+    : ""
   const ecartees = ecrit.rejets.length
     ? ` ${ecrit.rejets.length} écartée(s) à l'enregistrement.`
-    : '';
+    : ""
 
   return json({
     ok: true,
-    message: `${ecrit.retenues} questions — ${ecrit.sonores} sonore(s), `
-      + `niveau ${rapport.difficulte}, ${rapport.tokens} tokens.`
-      + `${absents}${ecartees} Enregistré.`,
+    message:
+      `${ecrit.retenues} questions — ${ecrit.sonores} sonore(s), ` +
+      `niveau ${rapport.difficulte}, ${rapport.tokens} tokens.` +
+      `${absents}${ecartees} Enregistré.`,
     questions,
-  });
+  })
 }
 
 /** La page de création. */
-export const pageCreation = () => html(PAGE);
+export const pageCreation = () => html(PAGE)
 
 /** Le retour de l'autorisation Spotify, pour le flux PKCE du navigateur. */
 export const pageCallbackSpotify = (clientId: string) =>
-  html(CALLBACK_SPOTIFY.replace('__SPOTIFY_CLIENT_ID__', clientId));
+  html(CALLBACK_SPOTIFY.replace("__SPOTIFY_CLIENT_ID__", clientId))

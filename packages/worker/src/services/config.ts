@@ -31,15 +31,16 @@ import type {
   QuizzWithId,
 } from "@razzia/common/types/game"
 import { quizzValidator } from "@razzia/common/validators/quizz"
+import { estHache, hacherMotDePasse, verifierMotDePasse } from "./password"
 import { nanoid } from "nanoid"
 
-// Local, comme en amont : le type n'est pas exporté depuis @razzia/common.
-interface GameConfig {
-  managerPassword: string
-}
+/** Verdict d'une tentative de connexion animateur. */
+export type Acces = "ok" | "mauvais" | "defaut" | "absent"
 
 export interface ConfigService {
-  getGameConfig(): Promise<GameConfig>
+  /* Rend un verdict, jamais le mot de passe : le faire circuler n'apportait
+     rien et multipliait les endroits où il pouvait fuir. */
+  verifierAcces(_maitresse: string, _saisi: string): Promise<Acces>
   getQuizzMeta(): Promise<{ id: string; subject: string }[]>
   getQuizzById(id: string): Promise<QuizzWithId>
   getQuizz(): Promise<QuizzWithId[]>
@@ -52,19 +53,55 @@ export interface ConfigService {
   deleteResult(id: string): Promise<void>
 }
 
+/**
+ * Vérifie un accès animateur. Exportée à part de la fabrique pour que quizia
+ * puisse l'appeler sans construire tout le service.
+ */
+export const verifierAcces = async (
+  db: D1Database,
+  maitresse: string,
+  saisi: string,
+): Promise<Acces> => {
+  const row = await db
+    .prepare(`SELECT value FROM settings WHERE key = 'managerPassword'`)
+    .first<{ value: string }>()
+
+  if (!row?.value) {
+    return "absent"
+  }
+
+  // Garde-fou hérité de l'amont : le mot de passe d'exemple ne doit jamais
+  // ouvrir une instance réellement exposée. Il se teste désormais contre
+  // l'empreinte, puisque la valeur n'est plus lisible.
+  if (await verifierMotDePasse(maitresse, "PASSWORD", row.value)) {
+    return "defaut"
+  }
+
+  if (!(await verifierMotDePasse(maitresse, saisi, row.value))) {
+    return "mauvais"
+  }
+
+  // Conversion à la volée d'une valeur héritée en clair. C'est le seul
+  // moment où le mot de passe est connu, donc le seul où la conversion est
+  // possible sans demander quoi que ce soit à l'animateur.
+  if (!estHache(row.value)) {
+    const empreinte = await hacherMotDePasse(maitresse, saisi)
+
+    await db
+      .prepare(
+        `UPDATE settings SET value = ?, updated_at = ? WHERE key = 'managerPassword'`,
+      )
+      .bind(empreinte, Date.now())
+      .run()
+
+    console.log("mot de passe animateur converti en empreinte")
+  }
+
+  return "ok"
+}
+
 export const createConfigService = (db: D1Database): ConfigService => ({
-  async getGameConfig() {
-    const row = await db
-      .prepare(`SELECT value FROM settings WHERE key = 'managerPassword'`)
-      .first<{ value: string }>()
-
-    if (!row) {
-      // Même message qu'en amont : l'interface le distingue déjà.
-      throw new Error("Game config not found")
-    }
-
-    return { managerPassword: row.value }
-  },
+  verifierAcces: (maitresse, saisi) => verifierAcces(db, maitresse, saisi),
 
   // Le listage ne touche plus au JSON : le sujet est une colonne. C'est ce qui
   // permet d'afficher la liste des quiz sans désérialiser chaque partie.

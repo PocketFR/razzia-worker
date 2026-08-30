@@ -42,7 +42,12 @@ export async function routerQuizia(
   if (request.method === "POST" && chemin === "generer") {
     const corps = await request.text()
 
-    return endpointGenerer(env.DB, cles, new URLSearchParams(corps))
+    return endpointGenerer(
+      env.DB,
+      env.RAZZIA_MASTER_KEY,
+      cles,
+      new URLSearchParams(corps),
+    )
   }
 
   if (request.method === "GET" && (chemin === "" || chemin === "/")) {

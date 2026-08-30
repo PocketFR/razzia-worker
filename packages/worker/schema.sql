@@ -25,8 +25,16 @@ CREATE TABLE IF NOT EXISTS results (
 );
 CREATE INDEX IF NOT EXISTS results_date ON results (date DESC);
 
--- game.json, plus les clés API saisies depuis /manager/config.
--- encrypted = 1 quand la valeur est scellée en AES-GCM par la clé maîtresse.
+-- Le mot de passe animateur, plus les clés API saisies depuis /manager/config.
+--
+-- Deux protections distinctes cohabitent ici, et la colonne `encrypted` ne
+-- décrit que la première :
+--   encrypted = 1  valeur scellée en AES-GCM, donc RÉVERSIBLE — c'est le cas
+--                  des clés API, qu'il faut pouvoir relire pour s'en servir ;
+--   managerPassword  empreinte à clé, préfixée « hmac$ », donc À SENS UNIQUE.
+--                  Sa colonne encrypted vaut 0 : ce n'est pas un chiffré.
+--                  Une valeur sans ce préfixe est du clair hérité du
+--                  game.json de l'amont, converti à la première connexion.
 CREATE TABLE IF NOT EXISTS settings (
   key        TEXT    PRIMARY KEY,
   value      TEXT    NOT NULL,

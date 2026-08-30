@@ -32,7 +32,8 @@ const json = (data: unknown, status = 200) =>
     },
   })
 
-const erreur = (message: string, status: number) => json({ error: message }, status)
+const erreur = (message: string, status: number) =>
+  json({ error: message }, status)
 
 /** Code d'invitation : même forme qu'en amont, 6 caractères. */
 const creerCodeInvitation = () => {
@@ -66,21 +67,26 @@ export async function routerApi(
       password?: string
     }
 
-    let attendu: string
+    let verdict
 
     try {
-      attendu = (await config.getGameConfig()).managerPassword
+      verdict = await config.verifierAcces(
+        env.RAZZIA_MASTER_KEY,
+        password ?? "",
+      )
     } catch {
       return erreur("errors:manager.failedToReadConfig", 500)
     }
 
-    // Garde-fou hérité de l'amont : le mot de passe d'exemple ne doit jamais
-    // ouvrir une instance réellement exposée.
-    if (attendu === "PASSWORD") {
+    if (verdict === "absent") {
+      return erreur("errors:manager.failedToReadConfig", 500)
+    }
+
+    if (verdict === "defaut") {
       return erreur("errors:manager.passwordNotConfigured", 403)
     }
 
-    if (!password || password !== attendu) {
+    if (verdict !== "ok") {
       return erreur("errors:manager.invalidPassword", 401)
     }
 

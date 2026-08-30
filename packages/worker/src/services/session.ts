@@ -34,7 +34,7 @@ const base64url = (octets: ArrayBuffer) =>
 /** Dérive une clé d'usage à partir de la clé maîtresse. */
 export const deriverCle = async (
   maitresse: string,
-  usage: "session" | "chiffrement",
+  usage: "session" | "chiffrement" | "motdepasse",
   algo: "HMAC" | "AES-GCM" = "HMAC",
 ) => {
   const base = await crypto.subtle.importKey(
@@ -103,8 +103,9 @@ export const jetonValide = async (
   return crypto.subtle.verify(
     "HMAC",
     cle,
-    Uint8Array.from(atob(attendue.replaceAll("-", "+").replaceAll("_", "/")), (c) =>
-      c.charCodeAt(0),
+    Uint8Array.from(
+      atob(attendue.replaceAll("-", "+").replaceAll("_", "/")),
+      (c) => c.charCodeAt(0),
     ),
     encodeur.encode(String(expiration)),
   )

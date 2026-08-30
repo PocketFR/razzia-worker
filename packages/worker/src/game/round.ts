@@ -30,7 +30,12 @@
  * déclenchement.
  */
 
-import { EVENTS, MAX_POINTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
+import {
+  EVENTS,
+  MAX_POINTS,
+  MEDIA_TYPES,
+  NO_TIME_LIMIT,
+} from "@razzia/common/constants"
 import type {
   Answer,
   Player,
@@ -190,7 +195,8 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
     question: question.question,
     // Seule l'image est montrée avant les réponses : une vidéo ou un morceau
     // se lancerait deux fois.
-    media: question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined,
+    media:
+      question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined,
     cooldown: question.cooldown,
     endsAt: ctx.manche.finDePhase,
   })
@@ -389,7 +395,10 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
 
 // ── Contrôles de l'animateur ──────────────────────────────────────────────
 
-export const questionSuivante = (ctx: ContextePartie, em: Emetteur): boolean => {
+export const questionSuivante = (
+  ctx: ContextePartie,
+  em: Emetteur,
+): boolean => {
   if (!ctx.manche.demarree) {
     return false
   }

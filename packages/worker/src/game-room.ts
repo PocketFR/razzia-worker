@@ -186,7 +186,8 @@ export class GameRoom implements DurableObject {
       this.envoyer(server, EVENTS.MANAGER.SUCCESS_RECONNECT, {
         gameId: etat.gameId,
         currentQuestion: avancement,
-        status: etat.statutAnimateur ??
+        status:
+          etat.statutAnimateur ??
           etat.dernierStatut ??
           this.salleDAttente(etat),
         players: etat.players,
@@ -376,16 +377,25 @@ export class GameRoom implements DurableObject {
     charge: unknown,
   ) {
     if (qui.role === "manager") {
-      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.managerCannotJoin")
+      this.envoyer(
+        ws,
+        EVENTS.GAME.ERROR_MESSAGE,
+        "errors:game.managerCannotJoin",
+      )
 
       return
     }
 
-    const username = (charge as { data?: { username?: string } })?.data?.username
+    const username = (charge as { data?: { username?: string } })?.data
+      ?.username
     const verdict = usernameValidator.safeParse(username)
 
     if (!verdict.success) {
-      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, verdict.error.issues[0].message)
+      this.envoyer(
+        ws,
+        EVENTS.GAME.ERROR_MESSAGE,
+        verdict.error.issues[0].message,
+      )
 
       return
     }
@@ -570,7 +580,11 @@ export class GameRoom implements DurableObject {
     }
 
     if (etat.players.length === 0) {
-      this.envoyer(ws, EVENTS.GAME.ERROR_MESSAGE, "errors:game.noPlayersConnected")
+      this.envoyer(
+        ws,
+        EVENTS.GAME.ERROR_MESSAGE,
+        "errors:game.noPlayersConnected",
+      )
 
       return
     }
