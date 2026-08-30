@@ -1,5 +1,27 @@
 {
   "configurationsTitle": "設定",
+  "ia": {
+    "absent": "曲が見つかりませんでした：{{noms}}",
+    "back": "一覧に戻る",
+    "create": "AIで作成",
+    "credit": "一般常識問題：Open Trivia Database、CC BY-SA 4.0",
+    "description": "説明",
+    "descriptionPlaceholder": "80年代ロックに関する15問のイントロクイズ、上級者向け。",
+    "generate": "生成",
+    "generating": "構成、出典、そして作成中…",
+    "level": {
+      "expert": "上級",
+      "facile": "やさしい",
+      "moyen": "ふつう"
+    },
+    "rejected_other": "保存時に{{count}}問を除外しました。",
+    "subject": "クイズのタイトル",
+    "subjectPlaceholder": "80年代ロックのイントロクイズ",
+    "subtitle": "作りたいクイズを説明してください。AIが曲を選び、問題を調べて作成します。1分ほどかかります。",
+    "summary_other": "{{count}}問 — うち音声{{sonores}}問、難易度{{niveau}}、{{tokens}}トークン。保存しました。",
+    "title": "AIでクイズを作成",
+    "unavailable": "先にAPIキーを設定してください：{{cles}}"
+  },
   "keys": {
     "clear": "消去",
     "cleared": "消去しました",
@@ -23,7 +45,7 @@
   },
   "passwordPlaceholder": "パスワード",
   "quizz": {
-    "create": "クイズを作成",
+    "create": "手動で作成",
     "delete": "クイズを削除",
     "deleteConfirm": "「{{name}}」を削除してもよろしいですか？この操作は元に戻せません。",
     "deleted": "クイズを削除しました",

@@ -6,7 +6,10 @@ import type {
   QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
-import type { ManagerConfig } from "@razzia/common/types/manager"
+import type {
+  ManagerConfig,
+  ResultatGeneration,
+} from "@razzia/common/types/manager"
 import type { Server as ServerIO, Socket as SocketIO } from "socket.io"
 
 export type Server = ServerIO<ClientToServerEvents, ServerToClientEvents>
@@ -79,6 +82,7 @@ export interface ServerToClientEvents {
   }) => void
   [EVENTS.MANAGER.CONFIG]: (_config: ManagerConfig) => void
   [EVENTS.QUIZZ.DATA]: (_quizz: QuizzWithId) => void
+  [EVENTS.QUIZZ.GENERATED]: (_resultat: ResultatGeneration) => void
   [EVENTS.MANAGER.GAME_CREATED]: (_data: {
     gameId: string
     inviteCode: string
@@ -149,6 +153,10 @@ export interface ClientToServerEvents {
   [EVENTS.QUIZZ.SAVE]: (_quizz: unknown) => void
   [EVENTS.QUIZZ.UPDATE]: (_data: QuizzWithId) => void
   [EVENTS.QUIZZ.DELETE]: (_id: string) => void
+  [EVENTS.QUIZZ.GENERATE]: (_demande: {
+    titre: string
+    description: string
+  }) => void
 
   // Player actions
   [EVENTS.PLAYER.CHECK_PIN]: (_inviteCode: string) => void

@@ -1,5 +1,29 @@
 {
   "configurationsTitle": "Configurations",
+  "ia": {
+    "absent": "No track found for: {{noms}}.",
+    "back": "Back to the list",
+    "create": "Create with AI",
+    "credit": "General knowledge questions: Open Trivia Database, CC BY-SA 4.0",
+    "description": "Description",
+    "descriptionPlaceholder": "A 15-question blind test on 80s British rock, for seasoned players.",
+    "generate": "Generate",
+    "generating": "Planning, sourcing, then writing…",
+    "level": {
+      "expert": "expert",
+      "facile": "easy",
+      "moyen": "medium"
+    },
+    "rejected_one": "{{count}} question dropped when saving.",
+    "rejected_other": "{{count}} questions dropped when saving.",
+    "subject": "Quizz title",
+    "subjectPlaceholder": "80s British Rock Blind Test",
+    "subtitle": "Describe the quizz you want: the AI picks the tracks, sources the questions and writes them. Allow about a minute.",
+    "summary_one": "{{count}} question — {{sonores}} with audio, {{niveau}} level, {{tokens}} tokens. Saved.",
+    "summary_other": "{{count}} questions — {{sonores}} with audio, {{niveau}} level, {{tokens}} tokens. Saved.",
+    "title": "Create a quizz with AI",
+    "unavailable": "API keys still missing: {{cles}}"
+  },
   "keys": {
     "clear": "Clear",
     "cleared": "Cleared",
@@ -23,7 +47,7 @@
   },
   "passwordPlaceholder": "Password",
   "quizz": {
-    "create": "Create Quizz",
+    "create": "Create manually",
     "delete": "Delete quizz",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
     "deleted": "Quizz deleted",

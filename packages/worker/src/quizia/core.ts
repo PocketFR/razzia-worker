@@ -1389,27 +1389,60 @@ export async function endpointSearch(cles: Cles, q: string) {
 }
 
 /** Génération complète, protégée par le mot de passe manager. */
-export async function endpointGenerer(
-  db: D1Database,
-  maitresse: string,
-  cles: Cles,
-  form: URLSearchParams,
-) {
-  const titre = String(form.get("titre") || "").trim()
-  const description = String(form.get("description") || "").trim()
-  const motdepasse = String(form.get("motdepasse") || "")
+/**
+ * Ce qui manque pour qu'une génération puisse aboutir. Tableau vide = prête.
+ *
+ * C'est délibérément la MÊME liste que les refus de `genererQuiz` ci-dessous,
+ * et c'est tout l'intérêt de la fonction : l'animateur peut voir son bouton
+ * grisé au lieu de remplir un formulaire pour se le faire refuser au bout de
+ * la génération. Deux listes tenues séparément finiraient par diverger, et
+ * c'est le bouton actif menant à un échec qui coûterait le plus cher.
+ *
+ * Spotify y figure au même titre que Mistral : `genererQuiz` refuse sans lui,
+ * la partie musicale étant le cœur de l'exercice.
+ */
+export function manquePourGenerer(cles: Cles): string[] {
+  const manque: string[] = []
 
-  if (!(await accesAccorde(db, maitresse, motdepasse))) {
-    log("tentative refusée (mot de passe)")
-    return json({ ok: false, message: "Mot de passe incorrect" }, 403)
-  }
+  if (!cles.mistralKey) manque.push("MISTRAL_API_KEY")
+  if (!cles.mistralModel) manque.push("MISTRAL_MODEL")
+  if (!cles.spotifyId) manque.push("SPOTIFY_CLIENT_ID")
+  if (!cles.spotifySecret) manque.push("SPOTIFY_CLIENT_SECRET")
+
+  return manque
+}
+
+/*
+ * La génération elle-même, SANS AUCUN CONTRÔLE D'ACCÈS.
+ *
+ * Deux appelants s'en servent, et c'est la raison de cette séparation : la
+ * page autonome /ia, qui demande le mot de passe animateur puisqu'elle n'a
+ * pas de session, et l'onglet « quiz » du manager, où la session vient déjà
+ * d'être vérifiée par le routeur d'API. Redemander le mot de passe là-bas
+ * n'aurait rien protégé de plus.
+ *
+ * Elle est donc à n'appeler qu'une fois l'appelant authentifié.
+ */
+export async function genererQuiz(
+  db: D1Database,
+  cles: Cles,
+  titreBrut: string,
+  descriptionBrute: string,
+) {
+  const titre = titreBrut.trim()
+  const description = descriptionBrute.trim()
+
   if (!titre) return json({ ok: false, message: "Titre manquant" }, 400)
   if (!description)
     return json({ ok: false, message: "Description manquante" }, 400)
-  if (!cles.mistralKey)
-    return json({ ok: false, message: "Clé Mistral absente" }, 500)
-  if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
+
+  const manque = manquePourGenerer(cles)
+
+  if (manque.length) {
+    return json(
+      { ok: false, message: `Clés absentes : ${manque.join(", ")}` },
+      500,
+    )
   }
 
   let questions, pistes, rapport
@@ -1451,12 +1484,49 @@ export async function endpointGenerer(
 
   return json({
     ok: true,
+    // La phrase sert la page autonome, qui n'a pas de traductions. Le manager,
+    // lui, recompose la sienne à partir de `rapport` — sans quoi le seul
+    // compte rendu de l'application serait en français quelle que soit la
+    // langue choisie.
     message:
       `${ecrit.retenues} questions — ${ecrit.sonores} sonore(s), ` +
       `niveau ${rapport.difficulte}, ${rapport.tokens} tokens.` +
       `${absents}${ecartees} Enregistré.`,
+    rapport: {
+      retenues: ecrit.retenues,
+      sonores: ecrit.sonores,
+      difficulte: rapport.difficulte,
+      tokens: rapport.tokens,
+      absents: rapport.absents,
+      rejets: ecrit.rejets.length,
+    },
     questions,
   })
+}
+
+/*
+ * La page autonome /ia : mot de passe animateur, puis la génération partagée.
+ */
+export async function endpointGenerer(
+  db: D1Database,
+  maitresse: string,
+  cles: Cles,
+  form: URLSearchParams,
+) {
+  const motdepasse = String(form.get("motdepasse") || "")
+
+  if (!(await accesAccorde(db, maitresse, motdepasse))) {
+    log("tentative refusée (mot de passe)")
+
+    return json({ ok: false, message: "Mot de passe incorrect" }, 403)
+  }
+
+  return genererQuiz(
+    db,
+    cles,
+    String(form.get("titre") || ""),
+    String(form.get("description") || ""),
+  )
 }
 
 /** La page de création. */

@@ -299,6 +299,30 @@ export class RazziaSocket {
 
         return true
 
+      // La génération dure des dizaines de secondes — trois passes Mistral et
+      // autant de recherches Spotify. Rien à faire de particulier ici : la
+      // requête reste en vol, et le formulaire montre son attente. Mais c'est
+      // la raison pour laquelle elle ne passe pas par la WebSocket, dont la
+      // coupure pendant l'attente perdrait le résultat.
+      case EVENTS.QUIZZ.GENERATE:
+        void this.appel("/quizz/generate", {
+          method: "POST",
+          body: JSON.stringify(charge),
+        }).then(({ corps }) => {
+          this.local(EVENTS.QUIZZ.GENERATED, {
+            ok: Boolean(corps?.ok),
+            message: String(corps?.message ?? ""),
+            rapport: corps?.rapport,
+            questions: corps?.questions,
+          })
+
+          // Le quiz vient d'entrer en base : sans ce rechargement, la liste
+          // derrière le formulaire resterait celle d'avant.
+          return corps?.ok ? this.chargerConfig() : undefined
+        })
+
+        return true
+
       case EVENTS.RESULTS.GET:
         void this.appel(`/results/${charge as string}`).then(
           ({ statut, corps }) =>

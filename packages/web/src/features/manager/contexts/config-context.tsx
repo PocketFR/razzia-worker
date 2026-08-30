@@ -5,6 +5,7 @@ const ConfigContext = createContext<ManagerConfig>({
   quizz: [],
   results: [],
   spotifyClientId: null,
+  iaManquants: [],
 })
 
 interface Props {

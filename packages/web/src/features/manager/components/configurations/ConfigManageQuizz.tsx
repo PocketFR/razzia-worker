@@ -7,8 +7,9 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useConfig } from "@razzia/web/features/manager/contexts/config-context"
 import { useNavigate } from "@tanstack/react-router"
-import { Download, SquarePen, Trash2, Upload } from "lucide-react"
-import { type ChangeEvent, useCallback, useRef } from "react"
+import ConfigCreateQuizzIa from "@razzia/web/features/manager/components/configurations/ConfigCreateQuizzIa"
+import { Download, Sparkles, SquarePen, Trash2, Upload } from "lucide-react"
+import { type ChangeEvent, useCallback, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
@@ -27,12 +28,13 @@ const downloadJson = (data: unknown, filename: string) => {
 }
 
 const ConfigManageQuizz = () => {
-  const { quizz } = useConfig()
+  const { quizz, iaManquants } = useConfig()
   const { socket } = useSocket()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { t } = useTranslation()
   const pendingExportId = useRef<string | null>(null)
+  const [creationIa, setCreationIa] = useState(false)
 
   useEvent(EVENTS.QUIZZ.ERROR, (message) => {
     toast.error(t(message))
@@ -84,14 +86,38 @@ const ConfigManageQuizz = () => {
     e.target.value = ""
   }
 
+  // Le formulaire PREND LA PLACE de la liste plutôt que de s'ouvrir en
+  // superposition : la génération dure une minute, et un dialogue qu'on
+  // referme par mégarde emporterait l'aperçu avec lui.
+  if (creationIa) {
+    return <ConfigCreateQuizzIa onClose={() => setCreationIa(false)} />
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-4 flex shrink-0 gap-2">
+      <div className="mb-4 flex shrink-0 flex-wrap gap-2">
         <Button
           className="flex-1"
           onClick={() => navigate({ to: "/manager/quizz" })}
         >
           {t("manager:quizz.create")}
+        </Button>
+        {/* Grisé quand la génération ne peut pas aboutir : la liste des clés
+            manquantes vient du serveur, qui l'établit avec les mêmes règles
+            que son refus — plutôt que de laisser remplir un formulaire pour
+            le rejeter à l'envoi. */}
+        <Button
+          className="flex-1 disabled:cursor-default disabled:opacity-40"
+          disabled={iaManquants.length > 0}
+          onClick={() => setCreationIa(true)}
+          title={
+            iaManquants.length
+              ? t("manager:ia.unavailable", { cles: iaManquants.join(", ") })
+              : undefined
+          }
+        >
+          <Sparkles className="mr-2 inline size-4" />
+          {t("manager:ia.create")}
         </Button>
         <Button
           className="bg-accent text-accent-foreground aspect-square px-3"

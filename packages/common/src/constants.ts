@@ -59,6 +59,8 @@ export const EVENTS = {
     UPDATE_SUCCESS: "quizz:updateSuccess",
     DELETE: "quizz:delete",
     ERROR: "quizz:error",
+    GENERATE: "quizz:generate",
+    GENERATED: "quizz:generated",
   },
   /* Clés API. Comme le reste, l'événement passe par le shim client, qui
      l'aiguille vers /api — les composants n'ont pas à connaître le jeton

@@ -6,4 +6,46 @@ export interface ManagerConfig {
   spotifyClientId: string | null
   quizz: QuizzMeta[]
   results: GameResultMeta[]
+  /* Les clés API qui manquent à la génération par IA, par leur nom seul. Vide
+     quand elle est possible. Sert à griser le bouton plutôt qu'à faire
+     échouer un formulaire déjà rempli. */
+  iaManquants: string[]
+}
+
+/* Le compte rendu d'une génération par IA.
+
+   Il est STRUCTURÉ et non rédigé côté serveur : quizia parle français, et
+   l'application se traduit en six langues. Le serveur renvoie donc les
+   nombres, l'interface écrit la phrase. `message` reste là pour les échecs,
+   qui sont trop variés pour être énumérés — et pour la page autonome /ia,
+   qui n'a pas de traductions. */
+export interface RapportGeneration {
+  retenues: number
+  sonores: number
+  difficulte: string
+  tokens: number
+  /** Les artistes demandés pour lesquels aucun morceau n'a été trouvé. */
+  absents: string[]
+  /** Questions écartées à l'enregistrement, faute d'être valides. */
+  rejets: number
+}
+
+/* Une question telle que l'IA la rend, avant enregistrement. Ces noms courts
+   sont ceux du format d'échange de quizia, pas ceux du quiz enregistré. */
+export interface QuestionGeneree {
+  q: string
+  a: string[]
+  s: number
+  artiste?: string
+  titre?: string
+  start?: number
+}
+
+export interface ResultatGeneration {
+  ok: boolean
+  message: string
+  rapport?: RapportGeneration
+  /* Présentes même en cas d'échec d'ENREGISTREMENT : la génération a coûté
+     des jetons, les perdre en silence serait le pire des deux maux. */
+  questions?: QuestionGeneree[]
 }

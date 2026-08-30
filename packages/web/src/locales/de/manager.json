@@ -1,5 +1,29 @@
 {
   "configurationsTitle": "Konfigurationen",
+  "ia": {
+    "absent": "Kein Titel gefunden für: {{noms}}.",
+    "back": "Zurück zur Liste",
+    "create": "Mit KI erstellen",
+    "credit": "Allgemeinwissensfragen: Open Trivia Database, CC BY-SA 4.0",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Ein Blind Test mit 15 Fragen zum Deutschrock der 80er, für erfahrene Spieler.",
+    "generate": "Generieren",
+    "generating": "Aufteilung, Quellen, dann Formulierung…",
+    "level": {
+      "expert": "Experte",
+      "facile": "leicht",
+      "moyen": "mittel"
+    },
+    "rejected_one": "{{count}} Frage beim Speichern verworfen.",
+    "rejected_other": "{{count}} Fragen beim Speichern verworfen.",
+    "subject": "Quiztitel",
+    "subjectPlaceholder": "Blind Test: Deutschrock der 80er",
+    "subtitle": "Beschreibe das gewünschte Quiz: Die KI wählt die Titel, recherchiert die Fragen und formuliert sie. Rechne mit einer Minute.",
+    "summary_one": "{{count}} Frage — {{sonores}} mit Ton, Niveau {{niveau}}, {{tokens}} Tokens. Gespeichert.",
+    "summary_other": "{{count}} Fragen — {{sonores}} mit Ton, Niveau {{niveau}}, {{tokens}} Tokens. Gespeichert.",
+    "title": "Quiz mit KI erstellen",
+    "unavailable": "Fehlende API-Schlüssel: {{cles}}"
+  },
   "keys": {
     "clear": "Löschen",
     "cleared": "Gelöscht",
@@ -23,7 +47,7 @@
   },
   "passwordPlaceholder": "Passwort",
   "quizz": {
-    "create": "Quiz erstellen",
+    "create": "Manuell erstellen",
     "delete": "Quiz löschen",
     "deleteConfirm": "Möchtest du \"{{name}}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleted": "Quiz gelöscht",

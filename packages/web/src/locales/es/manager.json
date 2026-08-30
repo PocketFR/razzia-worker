@@ -1,5 +1,29 @@
 {
   "configurationsTitle": "Configuraciones",
+  "ia": {
+    "absent": "Sin canción para: {{noms}}.",
+    "back": "Volver a la lista",
+    "create": "Crear con IA",
+    "credit": "Preguntas de cultura general: Open Trivia Database, CC BY-SA 4.0",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Un blind test de 15 preguntas sobre el rock español de los 80, para jugadores avanzados.",
+    "generate": "Generar",
+    "generating": "Reparto, fuentes y luego redacción…",
+    "level": {
+      "expert": "experto",
+      "facile": "fácil",
+      "moyen": "medio"
+    },
+    "rejected_one": "{{count}} pregunta descartada al guardar.",
+    "rejected_other": "{{count}} preguntas descartadas al guardar.",
+    "subject": "Título del cuestionario",
+    "subjectPlaceholder": "Blind test de rock español de los 80",
+    "subtitle": "Describe el cuestionario que quieres: la IA elige las canciones, busca las preguntas y las redacta. Cuenta con un minuto.",
+    "summary_one": "{{count}} pregunta — {{sonores}} con audio, nivel {{niveau}}, {{tokens}} tokens. Guardado.",
+    "summary_other": "{{count}} preguntas — {{sonores}} con audio, nivel {{niveau}}, {{tokens}} tokens. Guardado.",
+    "title": "Crear un cuestionario con IA",
+    "unavailable": "Faltan claves de API: {{cles}}"
+  },
   "keys": {
     "clear": "Borrar",
     "cleared": "Borrado",
@@ -23,7 +47,7 @@
   },
   "passwordPlaceholder": "Contraseña",
   "quizz": {
-    "create": "Crear cuestionario",
+    "create": "Crear manualmente",
     "delete": "Eliminar cuestionario",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
     "deleted": "Cuestionario eliminado",

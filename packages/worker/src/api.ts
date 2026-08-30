@@ -21,6 +21,7 @@ import {
   lireCles,
   type NomDeCle,
 } from "./services/secrets"
+import { genererQuiz, manquePourGenerer } from "./quizia/core"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -129,6 +130,10 @@ export async function routerApi(
       results: await config.getResultsMeta(),
       // Le navigateur en a besoin pour le flux PKCE ; il n'a rien de secret.
       spotifyClientId: cles.spotifyId || null,
+      // De quoi griser le bouton « créer par IA » plutôt que de laisser
+      // remplir un formulaire qui serait refusé à l'envoi. On ne transmet que
+      // les NOMS des clés manquantes, jamais leurs valeurs.
+      iaManquants: manquePourGenerer(cles),
     })
   }
 
@@ -156,6 +161,18 @@ export async function routerApi(
       } catch {
         return erreur("errors:quizz.failedToDelete", 404)
       }
+    }
+
+    // Avant la sauvegarde ci-dessous, qui exige `!id` : aucune ambiguïté.
+    // La session vient d'être vérifiée plus haut, d'où la génération nue —
+    // la page autonome /ia, elle, demande le mot de passe faute de session.
+    if (methode === "POST" && id === "generate") {
+      const { titre, description } = (await request.json().catch(() => ({}))) as {
+        titre?: string
+        description?: string
+      }
+
+      return genererQuiz(env.DB, await lireCles(env), titre ?? "", description ?? "")
     }
 
     if ((methode === "POST" && !id) || (methode === "PUT" && id)) {

@@ -1,5 +1,29 @@
 {
   "configurationsTitle": "Configurazioni",
+  "ia": {
+    "absent": "Nessun brano per: {{noms}}.",
+    "back": "Torna all'elenco",
+    "create": "Crea con IA",
+    "credit": "Domande di cultura generale: Open Trivia Database, CC BY-SA 4.0",
+    "description": "Descrizione",
+    "descriptionPlaceholder": "Un blind test di 15 domande sul rock italiano degli anni 80, per giocatori esperti.",
+    "generate": "Genera",
+    "generating": "Ripartizione, fonti, poi scrittura…",
+    "level": {
+      "expert": "esperto",
+      "facile": "facile",
+      "moyen": "medio"
+    },
+    "rejected_one": "{{count}} domanda scartata al salvataggio.",
+    "rejected_other": "{{count}} domande scartate al salvataggio.",
+    "subject": "Titolo del quiz",
+    "subjectPlaceholder": "Blind test rock italiano anni 80",
+    "subtitle": "Descrivi il quiz che vuoi: l'IA sceglie i brani, cerca le domande e le scrive. Conta circa un minuto.",
+    "summary_one": "{{count}} domanda — {{sonores}} con audio, livello {{niveau}}, {{tokens}} token. Salvato.",
+    "summary_other": "{{count}} domande — {{sonores}} con audio, livello {{niveau}}, {{tokens}} token. Salvato.",
+    "title": "Crea un quiz con IA",
+    "unavailable": "Chiavi API mancanti: {{cles}}"
+  },
   "keys": {
     "clear": "Cancella",
     "cleared": "Cancellato",
@@ -23,7 +47,7 @@
   },
   "passwordPlaceholder": "Password",
   "quizz": {
-    "create": "Crea quiz",
+    "create": "Crea manualmente",
     "delete": "Elimina quiz",
     "deleteConfirm": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata.",
     "deleted": "Quiz eliminato",
