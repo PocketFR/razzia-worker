@@ -84,9 +84,12 @@ const GameWrapper = ({
 
               {/* La case est solidaire du bouton « Passer », comme la
                   surcouche qui la greffait dessus : hors partie il n'y a rien
-                  à enchaîner, et elle n'a donc pas lieu d'être affichée. */}
+                  à enchaîner, et elle n'a donc pas lieu d'être affichée.
+                  Pas de ml-auto ici : le justify-between du conteneur place
+                  déjà ce groupe à gauche quand le compteur est absent, et le
+                  forcer à droite collait le tout contre « Quitter ». */}
               {manager && next && (
-                <div className="ml-auto flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   {auto && (
                     <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-black">
                       <input

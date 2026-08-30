@@ -110,7 +110,7 @@ const ManagerGamePage = () => {
     setQuestionStates(null)
   }
 
-  const auto = useEnchainementAuto(gameId, status?.name)
+  const auto = useEnchainementAuto(gameId)
 
   useLecteurSpotify(config?.spotifyClientId ?? null)
 

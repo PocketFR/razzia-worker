@@ -1,34 +1,35 @@
 /*
  * Enchaînement automatique des questions.
  *
- * Reprend razzia-auto.js. Trois contorsions de la surcouche disparaissent :
- * elle interceptait le socket faute d'y avoir accès, repérait le bouton
- * « Passer » par la forme du compteur voisin — son libellé changeant avec la
- * langue — et réinsérait sa case à chaque rendu de React. Ici, tout est à
- * portée de main.
+ * Portage de razzia-auto.js, dont il faut reprendre la mécanique EXACTE.
  *
- * LA RÈGLE DU CLASSEMENT vaut d'être conservée telle quelle : il s'intercale
- * toutes les cinq questions ET systématiquement après la dernière. Sans ce
- * « et », un quiz de quatorze questions n'afficherait jamais de classement
- * final, le compte ne tombant pas juste.
+ * POURQUOI PAS UN useEffect, qui semblait naturel. La séquence des questions
+ * de classement enchaîne DEUX attentes : afficher le classement, puis passer
+ * à la question suivante. Or afficher le classement change le statut, ce qui
+ * relance l'effet et déclenche son nettoyage — lequel annulait la seconde
+ * attente. La partie se figeait alors sur le classement.
+ *
+ * Le minuteur vit donc dans une référence, hors du cycle de rendu, et n'est
+ * annulé que sur les deux événements qui l'invalident réellement : une
+ * nouvelle question — l'animateur a cliqué lui-même — et la fin de partie.
+ *
+ * LA RÈGLE DU CLASSEMENT est celle de l'amont : toutes les cinq questions ET
+ * systématiquement après la dernière. Sans ce « et », un quiz de quatorze
+ * questions n'afficherait jamais de classement final, le compte ne tombant
+ * pas juste.
  */
 
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
-import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
-import { useQuestionStore } from "@razzia/web/features/game/stores/question"
+import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const DELAI_MS = 10000
 const TOUS_LES = 5
 const CLE = "razzia_auto"
 
-export const useEnchainementAuto = (
-  gameId: string | null,
-  statut: string | undefined,
-) => {
+export const useEnchainementAuto = (gameId: string | null) => {
   const { socket } = useSocket()
-  const { questionStates } = useQuestionStore()
 
   const [actif, setActif] = useState(() => {
     try {
@@ -39,6 +40,14 @@ export const useEnchainementAuto = (
   })
 
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Les rappels différés lisent l'état par référence : capturé par valeur, un
+  // décochage pendant l'attente resterait invisible.
+  const actifRef = useRef(actif)
+  const partieRef = useRef(gameId)
+  const avancement = useRef<{ current: number; total: number } | null>(null)
+
+  actifRef.current = actif
+  partieRef.current = gameId
 
   const annuler = useCallback(() => {
     if (minuteur.current) {
@@ -47,56 +56,100 @@ export const useEnchainementAuto = (
     }
   }, [])
 
-  const basculer = useCallback((valeur: boolean) => {
-    setActif(valeur)
-
-    try {
-      localStorage.setItem(CLE, valeur ? "1" : "0")
-    } catch {
-      /* navigation privée : le réglage ne survivra pas au rechargement */
-    }
-  }, [])
-
-  // Décocher interrompt une attente en cours : l'animateur reprend la main
-  // immédiatement, sans avoir à deviner s'il reste une minuterie armée.
-  useEffect(() => {
-    if (!actif) {
-      annuler()
-    }
-  }, [actif, annuler])
-
-  useEffect(() => {
-    if (!actif || !gameId || statut !== STATUS.SHOW_RESPONSES) {
-      return
-    }
-
-    const planifier = (fn: () => void) => {
+  const planifier = useCallback(
+    (fn: () => void) => {
       annuler()
       minuteur.current = setTimeout(() => {
         minuteur.current = null
-        fn()
+
+        // L'état a pu changer pendant l'attente : décochage, fin de partie.
+        if (actifRef.current && partieRef.current) {
+          fn()
+        }
       }, DELAI_MS)
-    }
+    },
+    [annuler],
+  )
 
-    const suivante = () => socket.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId })
+  const basculer = useCallback(
+    (valeur: boolean) => {
+      setActif(valeur)
 
-    const index = questionStates?.current
-    const total = questionStates?.total
-    const derniere = Boolean(total && index === total)
+      try {
+        localStorage.setItem(CLE, valeur ? "1" : "0")
+      } catch {
+        /* navigation privée : le réglage ne survivra pas au rechargement */
+      }
 
-    if (index && (index % TOUS_LES === 0 || derniere)) {
-      planifier(() => {
-        socket.emit(EVENTS.MANAGER.SHOW_LEADERBOARD, { gameId })
+      // Décocher rend la main tout de suite, sans attendre la fin d'une
+      // temporisation déjà lancée.
+      if (!valeur) {
+        annuler()
+      }
+    },
+    [annuler],
+  )
+
+  useEvent(
+    EVENTS.GAME.UPDATE_QUESTION,
+    useCallback(
+      (etat) => {
+        avancement.current = etat
+        // Une nouvelle question rend caduque une attente en cours, par
+        // exemple si l'animateur a cliqué lui-même.
+        annuler()
+      },
+      [annuler],
+    ),
+  )
+
+  useEvent(
+    EVENTS.GAME.STATUS,
+    useCallback(
+      ({ name }) => {
+        if (name === STATUS.FINISHED) {
+          annuler()
+
+          return
+        }
+
+        if (name !== STATUS.SHOW_RESPONSES) {
+          return
+        }
+
+        if (!actifRef.current || !partieRef.current) {
+          return
+        }
+
+        const index = avancement.current?.current
+        const total = avancement.current?.total
+        const derniere = Boolean(total && index === total)
+
+        const suivante = () =>
+          socket.emit(EVENTS.MANAGER.NEXT_QUESTION, {
+            gameId: partieRef.current!,
+          })
+
+        if (index && (index % TOUS_LES === 0 || derniere)) {
+          planifier(() => {
+            socket.emit(EVENTS.MANAGER.SHOW_LEADERBOARD, {
+              gameId: partieRef.current!,
+            })
+            // La seconde attente est posée DEPUIS la première : c'est elle
+            // que le nettoyage d'un effet supprimait.
+            planifier(suivante)
+          })
+
+          return
+        }
+
         planifier(suivante)
-      })
-    } else {
-      planifier(suivante)
-    }
+      },
+      [annuler, planifier, socket],
+    ),
+  )
 
-    // Un changement de question annule une attente devenue caduque, par
-    // exemple si l'animateur a cliqué lui-même entre-temps.
-    return annuler
-  }, [actif, gameId, statut, questionStates, socket, annuler])
+  useEffect(() => annuler, [annuler])
 
   return { actif, basculer }
 }
