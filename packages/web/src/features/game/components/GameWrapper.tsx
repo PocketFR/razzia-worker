@@ -39,7 +39,17 @@ const GameWrapper = ({
   const [isDisabled, setIsDisabled] = useState(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
 
-  useEvent(EVENTS.GAME.UPDATE_QUESTION, ({ current, total }) => {
+  useEvent(EVENTS.GAME.UPDATE_QUESTION, (etat) => {
+    // Null efface le compteur : la salle est revenue en attente entre deux
+    // quiz, et l'avancement du précédent n'a plus cours.
+    if (!etat) {
+      setQuestionStates(null)
+
+      return
+    }
+
+    const { current, total } = etat
+
     setQuestionStates({
       current,
       total,

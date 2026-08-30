@@ -29,11 +29,14 @@ import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
+/* Noms techniques, identiques dans toutes les langues : ce sont ceux de la
+   documentation de Mistral et de Spotify, les traduire ne rendrait service à
+   personne — on ne les retrouverait plus dans leurs tableaux de bord. */
 const LIBELLES: Record<string, string> = {
-  MISTRAL_API_KEY: "Clé API Mistral",
-  MISTRAL_MODEL: "Modèle Mistral",
-  SPOTIFY_CLIENT_ID: "Identifiant client Spotify",
-  SPOTIFY_CLIENT_SECRET: "Secret client Spotify",
+  MISTRAL_API_KEY: "Mistral · API key",
+  MISTRAL_MODEL: "Mistral · model",
+  SPOTIFY_CLIENT_ID: "Spotify · client ID",
+  SPOTIFY_CLIENT_SECRET: "Spotify · client secret",
 }
 
 const ConfigApiKeys = () => {
@@ -43,6 +46,8 @@ const ConfigApiKeys = () => {
 
   const [cles, setCles] = useState<CleApi[]>([])
   const [saisies, setSaisies] = useState<Record<string, string>>({})
+  const [actuel, setActuel] = useState("")
+  const [nouveau, setNouveau] = useState("")
 
   useEffect(() => {
     socket.emit(EVENTS.SETTINGS.GET)
@@ -54,8 +59,22 @@ const ConfigApiKeys = () => {
   })
 
   useEvent(EVENTS.SETTINGS.ERROR, (erreur) => {
-    toast.error(String(erreur))
+    toast.error(t(String(erreur)))
   })
+
+  useEvent(EVENTS.SETTINGS.PASSWORD_OK, () => {
+    setActuel("")
+    setNouveau("")
+    toast.success(t("password.changed"))
+  })
+
+  const changerMotDePasse = () => {
+    if (!actuel || !nouveau) {
+      return
+    }
+
+    socket.emit(EVENTS.SETTINGS.PASSWORD, { actuel, nouveau })
+  }
 
   const enregistrer = () => {
     const aEnvoyer = Object.fromEntries(
@@ -138,6 +157,47 @@ const ConfigApiKeys = () => {
               </div>
             </div>
           ))}
+        </section>
+
+        {/* Le mot de passe ne se relit pas : il est stocké en empreinte. Le
+            changer exige donc l'actuel, ce qui protège aussi contre un écran
+            laissé ouvert. */}
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-xl font-bold">{t("password.title")}</h2>
+            <p className="text-sm opacity-70">{t("password.subtitle")}</p>
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">{t("password.current")}</span>
+            <Input
+              variant="sm"
+              type="password"
+              autoComplete="current-password"
+              value={actuel}
+              onChange={(e) => setActuel(e.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="font-semibold">{t("password.new")}</span>
+            <Input
+              variant="sm"
+              type="password"
+              autoComplete="new-password"
+              value={nouveau}
+              onChange={(e) => setNouveau(e.target.value)}
+            />
+          </label>
+
+          <Button
+            size="sm"
+            className="self-start disabled:cursor-default disabled:opacity-40"
+            disabled={!actuel || nouveau.length < 4}
+            onClick={changerMotDePasse}
+          >
+            {t("password.change")}
+          </Button>
         </section>
       </div>
 

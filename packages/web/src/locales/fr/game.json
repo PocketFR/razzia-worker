@@ -10,13 +10,13 @@
   "joinInstruction": "Rejoins la partie sur",
   "leaderboard": "Classement",
   "nextQuizz": {
-    "title": "Enchaîner un autre quiz",
-    "subtitle": "Même salle, même PIN — personne ne rescanne",
     "choose": "Choisir un quiz",
     "keepScores": "Conserver les scores",
     "keepScoresHint": "Le classement se cumule sur la soirée",
     "resetScores": "Remettre les scores à zéro",
-    "start": "Lancer"
+    "start": "Lancer",
+    "subtitle": "Même salle, même PIN — personne ne rescanne",
+    "title": "Enchaîner un autre quiz"
   },
   "pinLabel": "Code PIN",
   "playersJoined": "Joueurs connectés : ",

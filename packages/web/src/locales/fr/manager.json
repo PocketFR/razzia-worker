@@ -13,6 +13,14 @@
     "unset": "Non définie"
   },
   "logout": "Déconnexion",
+  "password": {
+    "change": "Changer",
+    "changed": "Mot de passe changé",
+    "current": "Mot de passe actuel",
+    "new": "Nouveau mot de passe",
+    "subtitle": "Stocké en empreinte, il ne peut pas être relu",
+    "title": "Mot de passe animateur"
+  },
   "passwordPlaceholder": "Mot de passe",
   "quizz": {
     "create": "Créer un quizz",
@@ -34,6 +42,7 @@
     "noAnswer": "Sans réponse",
     "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "paginationOf": " sur ",
+    "playerCount": "{{count}} joueur(s)",
     "stats": {
       "correctAnswers": "Bonnes réponses",
       "playersAnswered": "Joueurs ayant répondu"
@@ -46,7 +55,6 @@
       "player": "Joueur",
       "points": "Points"
     },
-    "playerCount": "{{count}} joueur(s)",
     "timeLimitSuffix": "s limite"
   },
   "spotify": {
@@ -59,9 +67,10 @@
     "title": "Spotify"
   },
   "tabs": {
+    "keys": "Clés API",
     "play": "Jouer",
     "quizz": "Quizz",
     "results": "Résultats",
-    "keys": "Clés API"
+    "settings": "Paramètres"
   }
 }

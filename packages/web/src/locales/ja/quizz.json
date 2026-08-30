@@ -7,26 +7,26 @@
   "question": {
     "addMediaHint": "質問に画像、動画、音声を追加できます",
     "config": {
+      "answerMode": "回答モード",
       "answerTime": "回答時間",
       "answerTimeHint": "プレイヤーが回答できる時間",
-      "noTimeLimit": "制限時間なし",
-      "noTimeLimitHint": "ポイントは回答順に付与されます。回答に制限時間はありません。",
-      "questionDisplay": "問題表示",
-      "questionDisplayHint": "回答が表示されるまでの時間",
-      "timings": "タイミング",
-      "answerMode": "回答モード",
-      "scoring": "スコア",
       "maxPoints": "最大ポイント",
       "maxPointsHint": "正解に対して付与される最大ポイント数",
+      "noTimeLimit": "制限時間なし",
+      "noTimeLimitHint": "ポイントは回答順に付与されます。回答に制限時間はありません。",
       "penalty": "ペナルティ",
       "penaltyHint": "不正解時に差し引かれるポイント（合計は0以下にはなりません）",
+      "questionDisplay": "問題表示",
+      "questionDisplayHint": "回答が表示されるまでの時間",
+      "scoring": "スコア",
       "scoringMode": "採点モード",
-      "scoringMode.strict": "厳格",
       "scoringMode.balanced": "バランス",
       "scoringMode.lenient": "寛大",
-      "scoringModeHint.strict": "すべての正解を選び、不正解を選ばない場合のみポイント獲得",
+      "scoringMode.strict": "厳格",
       "scoringModeHint.balanced": "部分点：正解数から不正解数を引いた割合",
-      "scoringModeHint.lenient": "正解ごとにポイント、不正解への罰則なし"
+      "scoringModeHint.lenient": "正解ごとにポイント、不正解への罰則なし",
+      "scoringModeHint.strict": "すべての正解を選び、不正解を選ばない場合のみポイント獲得",
+      "timings": "タイミング"
     },
     "deleteQuestion": "この質問を削除",
     "deleteQuestionConfirm": "この質問を削除してもよろしいですか？",
@@ -36,13 +36,30 @@
       "video": "動画"
     },
     "mediaUrlPlaceholder": "URLを入力...",
-    "placeholder": "質問を入力してください..."
+    "placeholder": "質問を入力してください...",
+    "spotify": {
+      "apply": "適用",
+      "listen": "再生",
+      "loading": "読み込み中…",
+      "noResult": "結果なし",
+      "none": "曲が選択されていません",
+      "noneHint": "下から曲を検索してください",
+      "premium": "Spotify Premium の接続が必要です",
+      "search": "別の曲を検索…",
+      "searchButton": "検索",
+      "start": "開始位置",
+      "startHint": "秒",
+      "stop": "停止",
+      "tooShort": "検索語が短すぎます",
+      "unavailable": "メタデータを取得できません",
+      "unchanged": "開始位置は変更されていません"
+    }
+  },
+  "questionType": {
+    "multi": "複数選択",
+    "single": "単一選択"
   },
   "quizzSaved": "クイズを保存しました",
   "quizzUpdated": "クイズを更新しました",
-  "questionType": {
-    "single": "単一選択",
-    "multi": "複数選択"
-  },
   "titleQuizzPlaceholder": "クイズのタイトル..."
 }

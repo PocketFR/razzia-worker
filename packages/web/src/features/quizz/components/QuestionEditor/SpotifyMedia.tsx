@@ -22,6 +22,14 @@
 import type { QuestionMedia } from "@razzia/common/types/game"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import {
+  activerAudio,
+  arreter,
+  enLecture,
+  jouer,
+} from "@razzia/web/features/spotify/lib/lecteur"
+import { Pause, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -64,6 +72,8 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
   const [resultats, setResultats] = useState<Piste[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
+  const [ecoute, setEcoute] = useState(false)
+  const clientId = useManagerStore((e) => e.config?.spotifyClientId) ?? null
 
   useEffect(() => {
     if (!id) {
@@ -137,9 +147,44 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
     }
   }
 
-  const lienEcoute = id
-    ? `https://open.spotify.com/track/${id}${depart ? `?t=${depart}` : ""}`
-    : null
+  /*
+   * Écoute par le SDK plutôt qu'un lien vers open.spotify.com.
+   *
+   * Le lien obligeait à quitter l'éditeur pour vérifier un morceau, et
+   * n'honorait pas le décalage de la même façon. Ici on entend exactement ce
+   * que les joueurs entendront, décalage compris, sans changer de page.
+   *
+   * Le clic sert d'activation audio : les navigateurs exigent un geste avant
+   * tout son, et c'est celui-là.
+   */
+  const basculerEcoute = async () => {
+    if (!clientId || !id) {
+      return
+    }
+
+    await activerAudio()
+
+    if (ecoute || enLecture()) {
+      await arreter(clientId)
+      setEcoute(false)
+
+      return
+    }
+
+    await jouer(clientId, id, depart)
+    setEcoute(true)
+  }
+
+  // Changer de morceau ou de décalage arrête l'écoute en cours : la laisser
+  // courir ferait entendre le morceau précédent.
+  useEffect(() => {
+    setEcoute(false)
+
+    if (clientId) {
+      void arreter(clientId)
+    }
+    // oxlint-disable-next-line exhaustive-deps
+  }, [id, depart])
 
   return (
     <div className="border-accent text-foreground bg-background w-full max-w-xl rounded-xl border p-3 text-left">
@@ -181,16 +226,19 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {lienEcoute && (
-            <a
-              href={lienEcoute}
-              target="_blank"
-              rel="noopener"
-              title={t("question.spotify.listen")}
-              className="border-accent flex size-9 items-center justify-center rounded-lg border"
+          {id && clientId && (
+            <Button
+              size="sm"
+              className="bg-accent text-foreground size-9 p-0"
+              title={t(ecoute ? "question.spotify.stop" : "question.spotify.listen")}
+              onClick={() => void basculerEcoute()}
             >
-              ▶
-            </a>
+              {ecoute ? (
+                <Pause className="size-4" />
+              ) : (
+                <Play className="size-4" />
+              )}
+            </Button>
           )}
 
           <Input

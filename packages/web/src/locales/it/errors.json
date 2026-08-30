@@ -6,18 +6,24 @@
   },
   "game": {
     "expired": "Partita terminata",
+    "failedToCreate": "Creazione della partita fallita",
     "kickedByManager": "Sei stato espulso dal gestore",
     "managerAlreadyConnected": "Gestore già connesso",
+    "managerCannotJoin": "Non puoi unirti alla tua stessa partita",
     "managerDisconnected": "Gestore disconnesso",
     "noPlayersConnected": "Nessun giocatore connesso",
-    "managerCannotJoin": "Non puoi unirti alla tua stessa partita",
     "notFound": "Partita non trovata",
-    "playerAlreadyConnected": "Giocatore già connesso"
+    "playerAlreadyConnected": "Giocatore già connesso",
+    "roundInProgress": "Una manche è già in corso"
   },
   "manager": {
     "failedToReadConfig": "Impossibile leggere la configurazione del gioco",
     "invalidPassword": "Password non valida",
-    "passwordNotConfigured": "La password del gestore non è configurata"
+    "masterKeyMissing": "Al server manca la chiave madre",
+    "passwordNotConfigured": "La password del gestore non è configurata",
+    "passwordTooShort": "Password troppo corta",
+    "unauthorized": "Non autorizzato",
+    "unknownKey": "Chiave sconosciuta"
   },
   "notFound": {
     "back": "Torna alla home",
@@ -36,6 +42,9 @@
     "subjectEmpty": "Il soggetto non può essere vuoto",
     "tooFewAnswers": "Una domanda deve avere almeno 2 risposte",
     "tooManyAnswers": "Una domanda non può avere più di 4 risposte"
+  },
+  "results": {
+    "notFound": "Risultato non trovato"
   },
   "route": {
     "back": "Torna alla home",

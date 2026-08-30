@@ -94,7 +94,7 @@ export const useEnchainementAuto = (gameId: string | null) => {
     EVENTS.GAME.UPDATE_QUESTION,
     useCallback(
       (etat) => {
-        avancement.current = etat
+        avancement.current = etat ?? null
         // Une nouvelle question rend caduque une attente en cours, par
         // exemple si l'animateur a cliqué lui-même.
         annuler()

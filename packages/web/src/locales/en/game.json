@@ -10,13 +10,13 @@
   "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",
   "nextQuizz": {
-    "title": "Play another quiz",
-    "subtitle": "Same room, same PIN — nobody rescans",
     "choose": "Choose a quiz",
     "keepScores": "Keep scores",
     "keepScoresHint": "Ranking carries over across the evening",
     "resetScores": "Reset scores",
-    "start": "Start"
+    "start": "Start",
+    "subtitle": "Same room, same PIN — nobody rescans",
+    "title": "Play another quiz"
   },
   "pinLabel": "PIN Code",
   "playersJoined": "Players Joined: ",

@@ -21,6 +21,7 @@
     "invalidPassword": "Invalid password",
     "masterKeyMissing": "Server is missing its master key",
     "passwordNotConfigured": "Manager password is not configured",
+    "passwordTooShort": "Password too short",
     "unauthorized": "Not authorised",
     "unknownKey": "Unknown key"
   },

@@ -13,6 +13,14 @@
     "unset": "Not set"
   },
   "logout": "Logout",
+  "password": {
+    "change": "Change",
+    "changed": "Password changed",
+    "current": "Current password",
+    "new": "New password",
+    "subtitle": "Stored as a hash, so it cannot be read back",
+    "title": "Manager password"
+  },
   "passwordPlaceholder": "Password",
   "quizz": {
     "create": "Create Quizz",
@@ -34,6 +42,7 @@
     "noAnswer": "No answer",
     "none": "No results yet, finish a game to see reports here",
     "paginationOf": " of ",
+    "playerCount": "{{count}} player(s)",
     "stats": {
       "correctAnswers": "Correct answers",
       "playersAnswered": "Players answered"
@@ -46,7 +55,6 @@
       "player": "Player",
       "points": "Points"
     },
-    "playerCount": "{{count}} player(s)",
     "timeLimitSuffix": "s time limit"
   },
   "spotify": {
@@ -59,9 +67,10 @@
     "title": "Spotify"
   },
   "tabs": {
+    "keys": "API keys",
     "play": "Play",
     "quizz": "Quizz",
     "results": "Results",
-    "keys": "API keys"
+    "settings": "Settings"
   }
 }

@@ -6,18 +6,24 @@
   },
   "game": {
     "expired": "Spiel abgelaufen",
+    "failedToCreate": "Spiel konnte nicht erstellt werden",
     "kickedByManager": "Du wurdest vom Manager entfernt",
     "managerAlreadyConnected": "Manager bereits verbunden",
+    "managerCannotJoin": "Du kannst deinem eigenen Spiel nicht beitreten",
     "managerDisconnected": "Manager getrennt",
     "noPlayersConnected": "Keine Spieler verbunden",
-    "managerCannotJoin": "Du kannst deinem eigenen Spiel nicht beitreten",
     "notFound": "Spiel nicht gefunden",
-    "playerAlreadyConnected": "Spieler bereits verbunden"
+    "playerAlreadyConnected": "Spieler bereits verbunden",
+    "roundInProgress": "Eine Runde läuft bereits"
   },
   "manager": {
     "failedToReadConfig": "Spielkonfiguration konnte nicht gelesen werden",
     "invalidPassword": "Ungültiges Passwort",
-    "passwordNotConfigured": "Manager-Passwort ist nicht konfiguriert"
+    "masterKeyMissing": "Dem Server fehlt sein Hauptschlüssel",
+    "passwordNotConfigured": "Manager-Passwort ist nicht konfiguriert",
+    "passwordTooShort": "Passwort zu kurz",
+    "unauthorized": "Nicht berechtigt",
+    "unknownKey": "Unbekannter Schlüssel"
   },
   "notFound": {
     "back": "Zurück zur Startseite",
@@ -36,6 +42,9 @@
     "subjectEmpty": "Das Thema darf nicht leer sein",
     "tooFewAnswers": "Eine Frage muss mindestens 2 Antworten haben",
     "tooManyAnswers": "Eine Frage darf nicht mehr als 4 Antworten haben"
+  },
+  "results": {
+    "notFound": "Ergebnis nicht gefunden"
   },
   "route": {
     "back": "Zurück zur Startseite",

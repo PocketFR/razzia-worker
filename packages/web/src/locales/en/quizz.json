@@ -7,26 +7,26 @@
   "question": {
     "addMediaHint": "Add an image, video or audio to your question",
     "config": {
+      "answerMode": "Answer mode",
       "answerTime": "Answer time",
       "answerTimeHint": "Time players have to answer",
-      "noTimeLimit": "No time limit",
-      "noTimeLimitHint": "Points are awarded based on answer order. There is no time limit to answer.",
-      "questionDisplay": "Question display",
-      "questionDisplayHint": "Duration before answers appear",
-      "timings": "Timings",
-      "answerMode": "Answer mode",
-      "scoring": "Scoring",
       "maxPoints": "Max points",
       "maxPointsHint": "Maximum points awarded for a correct answer",
+      "noTimeLimit": "No time limit",
+      "noTimeLimitHint": "Points are awarded based on answer order. There is no time limit to answer.",
       "penalty": "Penalty",
       "penaltyHint": "Points deducted for a wrong answer (total cannot go below 0)",
+      "questionDisplay": "Question display",
+      "questionDisplayHint": "Duration before answers appear",
+      "scoring": "Scoring",
       "scoringMode": "Scoring mode",
-      "scoringMode.strict": "Strict",
       "scoringMode.balanced": "Balanced",
       "scoringMode.lenient": "Lenient",
-      "scoringModeHint.strict": "Full points only if all correct answers are selected and no wrong ones",
+      "scoringMode.strict": "Strict",
       "scoringModeHint.balanced": "Partial points: correct selections minus wrong ones",
-      "scoringModeHint.lenient": "Points per correct answer, no penalty for wrong ones"
+      "scoringModeHint.lenient": "Points per correct answer, no penalty for wrong ones",
+      "scoringModeHint.strict": "Full points only if all correct answers are selected and no wrong ones",
+      "timings": "Timings"
     },
     "deleteQuestion": "Delete question",
     "deleteQuestionConfirm": "Are you sure you want to delete this question?",
@@ -39,7 +39,7 @@
     "placeholder": "Start typing your question...",
     "spotify": {
       "apply": "Apply",
-      "listen": "Listen on Spotify",
+      "listen": "Listen",
       "loading": "Loading…",
       "noResult": "No result",
       "none": "No track selected",
@@ -49,14 +49,15 @@
       "searchButton": "Search",
       "start": "Start at",
       "startHint": "seconds",
+      "stop": "Stop",
       "tooShort": "Query too short",
       "unavailable": "metadata unavailable",
       "unchanged": "Offset unchanged"
     }
   },
   "questionType": {
-    "single": "Single choice",
-    "multi": "Multiple choice"
+    "multi": "Multiple choice",
+    "single": "Single choice"
   },
   "quizzSaved": "Quizz saved successfully",
   "quizzUpdated": "Quizz updated successfully",

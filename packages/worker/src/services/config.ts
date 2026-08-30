@@ -100,6 +100,31 @@ export const verifierAcces = async (
   return "ok"
 }
 
+/**
+ * Change le mot de passe animateur.
+ *
+ * Il est stocké en empreinte à clé, jamais en clair : la même fonction que
+ * pour la conversion des valeurs héritées. Rien ne permet donc de relire
+ * l'ancien, d'où la vérification préalable par verifierAcces côté appelant.
+ */
+export const changerMotDePasse = async (
+  db: D1Database,
+  maitresse: string,
+  nouveau: string,
+): Promise<void> => {
+  const empreinte = await hacherMotDePasse(maitresse, nouveau)
+
+  await db
+    .prepare(
+      `INSERT INTO settings (key, value, encrypted, updated_at)
+       VALUES ('managerPassword', ?, 0, ?)
+       ON CONFLICT(key) DO UPDATE SET
+         value = excluded.value, updated_at = excluded.updated_at`,
+    )
+    .bind(empreinte, Date.now())
+    .run()
+}
+
 export const createConfigService = (db: D1Database): ConfigService => ({
   verifierAcces: (maitresse, saisi) => verifierAcces(db, maitresse, saisi),
 

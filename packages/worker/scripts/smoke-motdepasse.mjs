@@ -86,5 +86,50 @@ verifier(
   `reçu ${generationAdmise}`,
 )
 
+// ── changement depuis l'interface ─────────────────────────────────────────
+console.log("— changement de mot de passe")
+
+const jeton = (await connexion(motDePasse)).corps.token
+const entetes = {
+  authorization: `Bearer ${jeton}`,
+  "content-type": "application/json",
+}
+
+const changer = (actuel, nouveau) =>
+  fetch(`${base}/api/manager/password`, {
+    method: "PUT",
+    headers: entetes,
+    body: JSON.stringify({ actuel, nouveau }),
+  }).then(async (r) => ({ statut: r.status, corps: await r.json() }))
+
+const mauvaisActuel = await changer("PasLeBon", "NouveauMotDePasse")
+verifier("l'ancien mot de passe est exigé", mauvaisActuel.statut === 401)
+
+const tropCourt = await changer(motDePasse, "abc")
+verifier("un mot de passe trop court est refusé", tropCourt.statut === 400)
+
+const change = await changer(motDePasse, "NouveauMotDePasse")
+verifier("changement accepté", change.statut === 200)
+
+verifier(
+  "l'ancien ne fonctionne plus",
+  (await connexion(motDePasse)).statut === 401,
+)
+verifier(
+  "le nouveau fonctionne",
+  (await connexion("NouveauMotDePasse")).statut === 200,
+)
+
+// On remet l'ancien pour ne pas gêner les autres suites.
+await fetch(`${base}/api/manager/password`, {
+  method: "PUT",
+  headers: {
+    authorization: `Bearer ${(await connexion("NouveauMotDePasse")).corps.token}`,
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({ actuel: "NouveauMotDePasse", nouveau: motDePasse }),
+})
+verifier("remise en état", (await connexion(motDePasse)).statut === 200)
+
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

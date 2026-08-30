@@ -68,6 +68,8 @@ export const EVENTS = {
     DATA: "settings:data",
     SAVE: "settings:save",
     ERROR: "settings:error",
+    PASSWORD: "settings:password",
+    PASSWORD_OK: "settings:passwordOk",
   },
   RESULTS: {
     GET: "results:get",

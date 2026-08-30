@@ -44,7 +44,10 @@ export interface ServerToClientEvents {
   [EVENTS.GAME.AUDIO_CUE]: (_data: { id: string; depart: number }) => void
   [EVENTS.GAME.COOLDOWN]: (_count: number) => void
   [EVENTS.GAME.RESET]: (_message: string) => void
-  [EVENTS.GAME.UPDATE_QUESTION]: (_data: {
+  /* Null remet le compteur à néant : c'est ce qui se passe quand la salle
+     revient en attente entre deux quiz, l'avancement du précédent n'ayant
+     plus aucun sens. */
+  [EVENTS.GAME.UPDATE_QUESTION]: (_data: null | {
     current: number
     total: number
   }) => void
@@ -86,6 +89,7 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
   [EVENTS.SETTINGS.DATA]: (_data: { keys: CleApi[] }) => void
   [EVENTS.SETTINGS.ERROR]: (_message: string) => void
+  [EVENTS.SETTINGS.PASSWORD_OK]: () => void
 
   // Quizz events
   [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: { id: string }) => void
@@ -130,6 +134,10 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.LOGOUT]: () => void
   [EVENTS.SETTINGS.GET]: () => void
   [EVENTS.SETTINGS.SAVE]: (_valeurs: Record<string, string>) => void
+  [EVENTS.SETTINGS.PASSWORD]: (_data: {
+    actuel: string
+    nouveau: string
+  }) => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void

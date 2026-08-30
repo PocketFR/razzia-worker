@@ -284,6 +284,18 @@ export class RazziaSocket {
 
         return true
 
+      case EVENTS.SETTINGS.PASSWORD:
+        void this.appel("/manager/password", {
+          method: "PUT",
+          body: JSON.stringify(charge),
+        }).then(({ statut, corps }) =>
+          statut === 200
+            ? this.local(EVENTS.SETTINGS.PASSWORD_OK)
+            : this.local(EVENTS.SETTINGS.ERROR, corps.error),
+        )
+
+        return true
+
       case EVENTS.RESULTS.GET:
         void this.appel(`/results/${charge as string}`).then(
           ({ statut, corps }) =>

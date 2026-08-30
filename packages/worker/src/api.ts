@@ -13,7 +13,7 @@
  * a aucune raison d'inventer un vocabulaire parallèle.
  */
 
-import { createConfigService } from "./services/config"
+import { changerMotDePasse, createConfigService } from "./services/config"
 import {
   CLES_CONNUES,
   ecrireCle,
@@ -204,6 +204,28 @@ export async function routerApi(
         return erreur("errors:results.notFound", 404)
       }
     }
+  }
+
+  // --- mot de passe animateur ----------------------------------------------
+  // L'actuel est exigé même si la session est valide : un écran laissé
+  // ouvert ne doit pas suffire à verrouiller quelqu'un hors de chez lui.
+  if (section === "manager" && reste[0] === "password" && methode === "PUT") {
+    const { actuel, nouveau } = (await request.json().catch(() => ({}))) as {
+      actuel?: string
+      nouveau?: string
+    }
+
+    if (!nouveau || nouveau.length < 4) {
+      return erreur("errors:manager.passwordTooShort", 400)
+    }
+
+    if ((await config.verifierAcces(env.RAZZIA_MASTER_KEY, actuel ?? "")) !== "ok") {
+      return erreur("errors:manager.invalidPassword", 401)
+    }
+
+    await changerMotDePasse(env.DB, env.RAZZIA_MASTER_KEY, nouveau)
+
+    return json({ ok: true })
   }
 
   // --- clés API -----------------------------------------------------------

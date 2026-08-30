@@ -123,6 +123,13 @@ const ManagerGamePage = () => {
 
   const auto = useEnchainementAuto(gameId)
 
+  // La case ne sert qu'une fois la manche lancée : dans la salle d'attente
+  // comme sur le podium, il n'y a rien à enchaîner.
+  const autoUtile =
+    status !== null &&
+    status.name !== STATUS.SHOW_ROOM &&
+    status.name !== STATUS.FINISHED
+
   useLecteurSpotify(config?.spotifyClientId ?? null)
 
   const CurrentComponent =
@@ -138,7 +145,7 @@ const ManagerGamePage = () => {
     <GameWrapper
       statusName={status.name}
       onNext={handleSkip}
-      auto={auto}
+      auto={autoUtile ? auto : undefined}
       onBack={status.name === STATUS.SHOW_ROOM ? handleBack : undefined}
       manager
     >

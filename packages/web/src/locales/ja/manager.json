@@ -1,6 +1,26 @@
 {
   "configurationsTitle": "設定",
+  "keys": {
+    "clear": "消去",
+    "cleared": "消去しました",
+    "fromBinding": "デプロイ設定から取得",
+    "fromDatabase": "{{date}} にここで設定",
+    "leaveEmpty": "空のままにすると現在の値を保持します",
+    "save": "保存",
+    "saved": "保存しました",
+    "subtitle": "ここで変更できます。再デプロイは不要です",
+    "title": "API キー",
+    "unset": "未設定"
+  },
   "logout": "ログアウト",
+  "password": {
+    "change": "変更",
+    "changed": "パスワードを変更しました",
+    "current": "現在のパスワード",
+    "new": "新しいパスワード",
+    "subtitle": "ハッシュとして保存され、読み出すことはできません",
+    "title": "ホストのパスワード"
+  },
   "passwordPlaceholder": "パスワード",
   "quizz": {
     "create": "クイズを作成",
@@ -22,6 +42,7 @@
     "noAnswer": "未回答",
     "none": "まだ結果はありません。ゲームを終了するとここにレポートが表示されます",
     "paginationOf": " / ",
+    "playerCount": "{{count}}人",
     "stats": {
       "correctAnswers": "正解数",
       "playersAnswered": "回答したプレイヤー数"
@@ -34,12 +55,21 @@
       "player": "プレイヤー",
       "points": "ポイント"
     },
-    "playerCount": "{{count}}人",
     "timeLimitSuffix": "秒制限"
+  },
+  "spotify": {
+    "connect": "Spotify に接続",
+    "connected": "接続済み — プレーヤーは準備完了です",
+    "disconnect": "Spotify を切断",
+    "disconnected": "未接続 — ブラインドテストは無音になります",
+    "httpsRequired": "Spotify への接続には HTTPS が必要です",
+    "noClientId": "先に Spotify クライアント ID を設定してください",
+    "title": "Spotify"
   },
   "tabs": {
     "play": "プレイ",
     "quizz": "クイズ",
-    "results": "結果"
+    "results": "結果",
+    "settings": "設定"
   }
 }

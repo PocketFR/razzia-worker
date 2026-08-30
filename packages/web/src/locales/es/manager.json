@@ -1,6 +1,26 @@
 {
   "configurationsTitle": "Configuraciones",
+  "keys": {
+    "clear": "Borrar",
+    "cleared": "Borrado",
+    "fromBinding": "Procedente de la configuración de despliegue",
+    "fromDatabase": "Introducida aquí el {{date}}",
+    "leaveEmpty": "Dejar vacío para conservar el valor actual",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "subtitle": "Modificables aquí, sin redesplegar",
+    "title": "Claves API",
+    "unset": "Sin definir"
+  },
   "logout": "Cerrar sesión",
+  "password": {
+    "change": "Cambiar",
+    "changed": "Contraseña cambiada",
+    "current": "Contraseña actual",
+    "new": "Nueva contraseña",
+    "subtitle": "Se guarda como huella y no puede volver a leerse",
+    "title": "Contraseña del anfitrión"
+  },
   "passwordPlaceholder": "Contraseña",
   "quizz": {
     "create": "Crear cuestionario",
@@ -22,6 +42,7 @@
     "noAnswer": "Sin respuesta",
     "none": "Aún no hay resultados, termina una partida para ver los informes aquí",
     "paginationOf": " de ",
+    "playerCount": "{{count}} jugador(es)",
     "stats": {
       "correctAnswers": "Respuestas correctas",
       "playersAnswered": "Jugadores que respondieron"
@@ -34,12 +55,21 @@
       "player": "Jugador",
       "points": "Puntos"
     },
-    "playerCount": "{{count}} jugador(es)",
     "timeLimitSuffix": "s de tiempo límite"
+  },
+  "spotify": {
+    "connect": "Conectar Spotify",
+    "connected": "Conectado — el reproductor está listo",
+    "disconnect": "Desconectar Spotify",
+    "disconnected": "Sin conectar — el blind test quedará mudo",
+    "httpsRequired": "La conexión con Spotify requiere HTTPS",
+    "noClientId": "Introduce primero el ID de cliente de Spotify",
+    "title": "Spotify"
   },
   "tabs": {
     "play": "Jugar",
     "quizz": "Cuestionario",
-    "results": "Resultados"
+    "results": "Resultados",
+    "settings": "Ajustes"
   }
 }

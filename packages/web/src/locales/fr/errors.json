@@ -21,6 +21,7 @@
     "invalidPassword": "Mot de passe invalide",
     "masterKeyMissing": "Le serveur n'a pas de clé maîtresse",
     "passwordNotConfigured": "Mot de passe manager non configuré",
+    "passwordTooShort": "Mot de passe trop court",
     "unauthorized": "Non autorisé",
     "unknownKey": "Clé inconnue"
   },

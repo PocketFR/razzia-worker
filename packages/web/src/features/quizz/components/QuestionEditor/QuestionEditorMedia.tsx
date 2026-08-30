@@ -103,6 +103,22 @@ const QuestionEditorMedia = () => {
                 <p>{t("quizz:question.media.audio")}</p>
               </div>
             </Button>
+            {/* Raccourci vers le cadre Spotify : sans lui il fallait taper
+                « spotify: » à la main dans le champ d'URL pour faire
+                apparaître la recherche, ce que rien n'indiquait. */}
+            <Button
+              onClick={() =>
+                updateQuestion(currentIndex, {
+                  media: { type: "audio", url: "spotify:" },
+                })
+              }
+              className="bg-accent text-accent-foreground hover:bg-accent transition-colors"
+            >
+              <div className="flex items-center gap-1.5">
+                <img src="/spotify.svg" alt="" className="h-6 w-auto" />
+                <p>Spotify</p>
+              </div>
+            </Button>
           </div>
         </Card>
       )}

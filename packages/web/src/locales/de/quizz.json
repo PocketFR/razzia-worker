@@ -7,26 +7,26 @@
   "question": {
     "addMediaHint": "Füge ein Bild, Video oder Audio zu deiner Frage hinzu",
     "config": {
+      "answerMode": "Antwortmodus",
       "answerTime": "Antwortzeit",
       "answerTimeHint": "Zeit, die Spieler zum Antworten haben",
-      "noTimeLimit": "Kein Zeitlimit",
-      "noTimeLimitHint": "Punkte werden nach Antwortreihenfolge vergeben. Es gibt kein Zeitlimit zum Antworten.",
-      "questionDisplay": "Frageanzeige",
-      "questionDisplayHint": "Dauer bevor Antworten erscheinen",
-      "timings": "Zeiten",
-      "answerMode": "Antwortmodus",
-      "scoring": "Bewertung",
       "maxPoints": "Max. Punkte",
       "maxPointsHint": "Maximale Punkte für eine richtige Antwort",
+      "noTimeLimit": "Kein Zeitlimit",
+      "noTimeLimitHint": "Punkte werden nach Antwortreihenfolge vergeben. Es gibt kein Zeitlimit zum Antworten.",
       "penalty": "Strafe",
       "penaltyHint": "Abgezogene Punkte bei einer falschen Antwort (Gesamtpunktzahl kann nicht unter 0 fallen)",
+      "questionDisplay": "Frageanzeige",
+      "questionDisplayHint": "Dauer bevor Antworten erscheinen",
+      "scoring": "Bewertung",
       "scoringMode": "Bewertungsmodus",
-      "scoringMode.strict": "Streng",
       "scoringMode.balanced": "Ausgewogen",
       "scoringMode.lenient": "Nachsichtig",
-      "scoringModeHint.strict": "Punkte nur wenn alle richtigen Antworten gewählt und keine falschen",
+      "scoringMode.strict": "Streng",
       "scoringModeHint.balanced": "Teilpunkte: richtige Auswahlen minus falsche",
-      "scoringModeHint.lenient": "Punkte pro richtiger Antwort, keine Strafe für falsche"
+      "scoringModeHint.lenient": "Punkte pro richtiger Antwort, keine Strafe für falsche",
+      "scoringModeHint.strict": "Punkte nur wenn alle richtigen Antworten gewählt und keine falschen",
+      "timings": "Zeiten"
     },
     "deleteQuestion": "Frage löschen",
     "deleteQuestionConfirm": "Möchtest du diese Frage wirklich löschen?",
@@ -36,13 +36,30 @@
       "video": "Video"
     },
     "mediaUrlPlaceholder": "URL eingeben...",
-    "placeholder": "Beginne deine Frage zu tippen..."
+    "placeholder": "Beginne deine Frage zu tippen...",
+    "spotify": {
+      "apply": "Übernehmen",
+      "listen": "Anhören",
+      "loading": "Wird geladen…",
+      "noResult": "Kein Ergebnis",
+      "none": "Kein Titel ausgewählt",
+      "noneHint": "Suche unten nach einem Titel",
+      "premium": "Erfordert eine Spotify-Premium-Verbindung",
+      "search": "Anderen Titel suchen…",
+      "searchButton": "Suchen",
+      "start": "Start bei",
+      "startHint": "Sekunden",
+      "stop": "Anhalten",
+      "tooShort": "Suchbegriff zu kurz",
+      "unavailable": "Metadaten nicht verfügbar",
+      "unchanged": "Versatz unverändert"
+    }
+  },
+  "questionType": {
+    "multi": "Mehrfachauswahl",
+    "single": "Einzelauswahl"
   },
   "quizzSaved": "Quiz erfolgreich gespeichert",
   "quizzUpdated": "Quiz erfolgreich aktualisiert",
-  "questionType": {
-    "single": "Einzelauswahl",
-    "multi": "Mehrfachauswahl"
-  },
   "titleQuizzPlaceholder": "Quiz-Titel..."
 }

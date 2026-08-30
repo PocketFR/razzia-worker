@@ -1,6 +1,26 @@
 {
   "configurationsTitle": "Konfigurationen",
+  "keys": {
+    "clear": "Löschen",
+    "cleared": "Gelöscht",
+    "fromBinding": "Aus der Deployment-Konfiguration",
+    "fromDatabase": "Hier eingegeben am {{date}}",
+    "leaveEmpty": "Leer lassen, um den aktuellen Wert zu behalten",
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "subtitle": "Hier änderbar, ohne erneutes Deployment",
+    "title": "API-Schlüssel",
+    "unset": "Nicht gesetzt"
+  },
   "logout": "Abmelden",
+  "password": {
+    "change": "Ändern",
+    "changed": "Passwort geändert",
+    "current": "Aktuelles Passwort",
+    "new": "Neues Passwort",
+    "subtitle": "Es wird als Prüfsumme gespeichert und lässt sich nicht auslesen",
+    "title": "Moderator-Passwort"
+  },
   "passwordPlaceholder": "Passwort",
   "quizz": {
     "create": "Quiz erstellen",
@@ -22,6 +42,7 @@
     "noAnswer": "Keine Antwort",
     "none": "Noch keine Ergebnisse, beende ein Spiel, um Berichte hier zu sehen",
     "paginationOf": " von ",
+    "playerCount": "{{count}} Spieler",
     "stats": {
       "correctAnswers": "Richtige Antworten",
       "playersAnswered": "Spieler haben geantwortet"
@@ -34,12 +55,21 @@
       "player": "Spieler",
       "points": "Punkte"
     },
-    "playerCount": "{{count}} Spieler",
     "timeLimitSuffix": "s Zeitlimit"
+  },
+  "spotify": {
+    "connect": "Spotify verbinden",
+    "connected": "Verbunden — der Player ist bereit",
+    "disconnect": "Spotify trennen",
+    "disconnected": "Nicht verbunden — das Blind Test bleibt stumm",
+    "httpsRequired": "Die Spotify-Verbindung erfordert HTTPS",
+    "noClientId": "Zuerst die Spotify-Client-ID eintragen",
+    "title": "Spotify"
   },
   "tabs": {
     "play": "Spielen",
     "quizz": "Quiz",
-    "results": "Ergebnisse"
+    "results": "Ergebnisse",
+    "settings": "Einstellungen"
   }
 }

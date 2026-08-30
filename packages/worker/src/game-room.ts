@@ -781,6 +781,10 @@ export class GameRoom implements DurableObject {
       this.versJoueur(joueur.clientId, EVENTS.GAME.STATUS, attente)
     }
 
+    // L'avancement du quiz précédent n'a plus de sens : sans cette remise à
+    // néant, le compteur du quiz terminé restait affiché sur la salle
+    // d'attente de la manche suivante.
+    this.diffuser(EVENTS.GAME.UPDATE_QUESTION, null)
     this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
     this.ecrire(etat)
   }
