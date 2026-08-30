@@ -32,9 +32,14 @@ export interface ServerToClientEvents {
   connect: () => void
 
   // Game events
+  /* seq croît strictement à chaque statut émis. Il sert au client à écarter
+     ce qui est déjà dépassé : une connexion qui se débloque délivre d'un
+     coup tout ce qu'elle retenait, et rejouer ces écrans les uns après les
+     autres donnait une cascade illisible. */
   [EVENTS.GAME.STATUS]: (_data: {
     name: Status
     data: StatusDataMap[Status]
+    seq?: number
   }) => void
   [EVENTS.GAME.SUCCESS_ROOM]: (_data: string) => void
   [EVENTS.GAME.SUCCESS_JOIN]: (_gameId: string) => void

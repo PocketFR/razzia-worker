@@ -414,6 +414,63 @@ verifier(
 )
 
 
+// ── rattrapage d'une alarme en retard ────────────────────────────────────
+// L'alarme est le SEUL moteur de la manche, et la documentation prévient
+// qu'elle peut être servie avec jusqu'à une minute de retard. Une partie
+// figée sur son écran, animateur compris, était alors sans recours. On
+// simule ici le retard en n'ayant AUCUNE activité pendant la phase, puis en
+// vérifiant que la première sollicitation débloque tout.
+console.log("— rattrapage")
+
+const { id: quizzRattrap } = await fetch(`${base}/api/quizz`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({
+    subject: "Rattrapage",
+    questions: [question("Une ?"), question("Deux ?")],
+  }),
+}).then((r) => r.json())
+
+const partie5 = await fetch(`${base}/api/game`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({ quizzId: quizzRattrap, clientId: "anim5" }),
+}).then((r) => r.json())
+
+const anim5 = await connecter(partie5.gameId, "anim5", "manager")
+const fred = await connecter(partie5.gameId, "fred", "player")
+fred.envoyer("player:login", { data: { username: "Fred" } })
+await new Promise((r) => setTimeout(r, 300))
+
+anim5.envoyer("manager:startGame", { gameId: partie5.gameId })
+const ouverture = await anim5.statut("SELECT_ANSWER")
+verifier("la question s'ouvre", ouverture !== undefined)
+
+// Les statuts doivent porter un numéro d'ordre, sans quoi le client ne peut
+// pas écarter ce qui est dépassé.
+verifier(
+  "les statuts sont numérotés",
+  typeof ouverture?.d?.seq === "number" && ouverture.d.seq > 0,
+  String(ouverture?.d?.seq),
+)
+
+// En local l'alarme part à l'heure : on ne peut pas simuler son retard d'ici.
+// Ce qui SE vérifie, c'est qu'un client reconnecté après coup retrouve la
+// phase réellement en cours, et non celle qu'il avait quittée. Le rattrapage
+// proprement dit est éprouvé par test-rattrapage, hors du serveur.
+await new Promise((r) => setTimeout(r, 5000))
+const anim5bis = await connecter(partie5.gameId, "anim5", "manager")
+const repriseTardive = await anim5bis.attendre(
+  (t) => t.e === "manager:successReconnect",
+)
+
+verifier(
+  "le reconnecté retrouve la phase réelle, pas celle qu'il a quittée",
+  repriseTardive?.d?.status?.name !== "SELECT_ANSWER",
+  String(repriseTardive?.d?.status?.name),
+)
+
+
 // ── question sans limite de temps ─────────────────────────────────────────
 // C'est le cas le plus favorable à l'hibernation : aucune alarme n'est armée,
 // l'objet peut dormir jusqu'à ce que quelqu'un parle. On vérifie donc à la

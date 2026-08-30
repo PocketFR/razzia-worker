@@ -70,6 +70,8 @@ interface EtatPartie {
   managerClientId: string
   players: Player[]
   manche: Manche
+  /* Numéro d'ordre des statuts, strictement croissant. */
+  seq: number
   /* Échéance de suppression, armée quand la dernière socket se ferme et
      désarmée dès qu'une connexion revient. Null tant que quelqu'un est là. */
   finDeGrace: number | null
@@ -189,6 +191,7 @@ export class GameRoom implements DurableObject {
       managerClientId: ligne.managerClientId,
       players: [],
       manche: mancheNeuve(),
+      seq: 0,
       finDeGrace: null,
       dernierStatut: null,
       statutAnimateur: null,
@@ -216,6 +219,13 @@ export class GameRoom implements DurableObject {
 
     if (!etat) {
       return new Response("Game not found", { status: 404 })
+    }
+
+    // Une reconnexion est souvent le premier signe de vie après un blocage :
+    // c'est l'occasion de rattraper une alarme en retard, avant même de
+    // décrire l'état au nouveau venu.
+    if (this.rattraper(etat)) {
+      this.ecrire(etat)
     }
 
     // Le rôle annoncé ne fait pas foi : seul le clientId enregistré à la
@@ -352,17 +362,25 @@ export class GameRoom implements DurableObject {
         etat.dernierStatut = { name, data }
         etat.statutAnimateur = null
         etat.statutsJoueurs = {}
-        this.diffuser(EVENTS.GAME.STATUS, { name, data })
+        this.diffuser(EVENTS.GAME.STATUS, { name, data, seq: ++etat.seq })
       },
 
       statutAnimateur: (name, data) => {
         etat.statutAnimateur = { name, data }
-        this.versAnimateur(etat, EVENTS.GAME.STATUS, { name, data })
+        this.versAnimateur(etat, EVENTS.GAME.STATUS, {
+          name,
+          data,
+          seq: ++etat.seq,
+        })
       },
 
       statutJoueur: (clientId, name, data) => {
         etat.statutsJoueurs[clientId] = { name, data }
-        this.versJoueur(clientId, EVENTS.GAME.STATUS, { name, data })
+        this.versJoueur(clientId, EVENTS.GAME.STATUS, {
+          name,
+          data,
+          seq: ++etat.seq,
+        })
       },
 
       // La machine à états pose finDePhase dans l'état avant d'appeler ces
@@ -387,9 +405,16 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    // L'état n'est PAS lu ici : les gestionnaires qui interrogent D1 doivent
-    // le relire après leurs attentes, sinon ils réécriraient une copie
-    // périmée par-dessus ce que d'autres messages ont enregistré.
+    // L'état n'est PAS lu ici pour être transmis : les gestionnaires qui
+    // interrogent D1 doivent le relire après leurs attentes, sinon ils
+    // réécriraient une copie périmée par-dessus ce que d'autres messages ont
+    // enregistré. Il l'est en revanche pour rattraper un retard d'alarme,
+    // ce qui reste synchrone.
+    const enRetard = this.lire()
+
+    if (enRetard && this.rattraper(enRetard)) {
+      this.ecrire(enRetard)
+    }
 
     let trame: { e: string; d?: unknown }
 
@@ -529,6 +554,34 @@ export class GameRoom implements DurableObject {
    * Un setTimeout empêcherait l'hibernation, et rien ne permettrait de le
    * recréer au réveil. Toute la cadence du jeu passe donc par ce point.
    */
+  /**
+   * Rattrape les phases dont l'échéance est passée. Rend true si ça a bougé.
+   *
+   * L'ALARME EST LE SEUL MOTEUR DE LA MANCHE, et la documentation prévient
+   * qu'elle peut être servie avec jusqu'à une minute de retard. J'avais
+   * protégé l'AFFICHAGE de ce retard — le décompte vient du client — mais
+   * pas la PROGRESSION : une alarme tardive figeait la partie sur son écran,
+   * animateur compris, sans que rien ne vienne la débloquer.
+   *
+   * Toute activité déclenche donc ce rattrapage. La borne évite qu'un état
+   * incohérent ne fasse tourner la boucle indéfiniment : ce serait pire que
+   * le blocage qu'elle répare.
+   */
+  private rattraper(etat: EtatPartie): boolean {
+    let bouge = false
+
+    for (let garde = 0; garde < 12; garde++) {
+      if (!etat.manche.finDePhase || Date.now() < etat.manche.finDePhase) {
+        break
+      }
+
+      avancer(this.contexte(etat), this.emetteur(etat))
+      bouge = true
+    }
+
+    return bouge
+  }
+
   async alarm() {
     const etat = this.lire()
 
@@ -536,20 +589,15 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    const maintenant = Date.now()
-
     // La grâce l'emporte : si elle est échue, il n'y a plus personne pour
     // regarder la question suivante de toute façon.
-    if (etat.finDeGrace && maintenant >= etat.finDeGrace) {
+    if (etat.finDeGrace && Date.now() >= etat.finDeGrace) {
       await this.supprimer(etat)
 
       return
     }
 
-    if (etat.manche.finDePhase && maintenant >= etat.manche.finDePhase) {
-      avancer(this.contexte(etat), this.emetteur(etat))
-    }
-
+    this.rattraper(etat)
     this.ecrire(etat)
   }
 

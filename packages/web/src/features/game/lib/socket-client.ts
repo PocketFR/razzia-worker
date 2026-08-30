@@ -55,6 +55,9 @@ export class RazziaSocket {
      dans la foulée — manager:reconnect en tête, qui se perdait, laissant
      l'animateur devant une page morte après un rechargement. */
   private enAttente: string[] = []
+  /* Dernier numéro de statut appliqué. Remis à zéro à chaque ouverture : le
+     serveur rejoue alors l'écran courant, dont le numéro est antérieur. */
+  private dernierSeq = 0
 
   configurer(clientId: string) {
     this.clientId = clientId
@@ -457,6 +460,7 @@ export class RazziaSocket {
     ws.addEventListener("open", () => {
       this.connected = true
       this.tentatives = 0
+      this.dernierSeq = 0
 
       const differes = this.enAttente
       this.enAttente = []
@@ -482,6 +486,27 @@ export class RazziaSocket {
         decalage = ((trame.d as { now: number }).now ?? Date.now()) - Date.now()
 
         return
+      }
+
+      /*
+       * Statuts dépassés, écartés.
+       *
+       * Une connexion qui se débloque délivre d'un coup tout ce qu'elle
+       * retenait. Rejouer ces écrans les uns après les autres donnait une
+       * cascade illisible — questions, résultats et classements défilant en
+       * une seconde. Seul le dernier compte : les autres décrivent un passé
+       * que personne n'a besoin de revoir.
+       */
+      if (trame.e === EVENTS.GAME.STATUS) {
+        const seq = (trame.d as { seq?: number })?.seq
+
+        if (typeof seq === "number") {
+          if (seq <= this.dernierSeq) {
+            return
+          }
+
+          this.dernierSeq = seq
+        }
       }
 
       this.local(trame.e, trame.d)
