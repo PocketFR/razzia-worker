@@ -4,6 +4,11 @@
     "usernameTooLong": "Le pseudo ne peut pas dépasser 20 caractères",
     "usernameTooShort": "Le pseudo doit faire au moins 4 caractères"
   },
+  "branding": {
+    "badType": "Format d'image non accepté",
+    "invalid": "Apparence invalide",
+    "tooLarge": "Image trop lourde"
+  },
   "game": {
     "expired": "La partie a expiré",
     "failedToCreate": "La création de la partie a échoué",

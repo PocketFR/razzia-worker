@@ -323,6 +323,41 @@ export class RazziaSocket {
 
         return true
 
+      case EVENTS.BRANDING.GET:
+        void this.appel("/branding").then(({ statut, corps }) =>
+          statut === 200
+            ? this.local(EVENTS.BRANDING.DATA, corps)
+            : this.local(EVENTS.BRANDING.ERROR, corps.error),
+        )
+
+        return true
+
+      case EVENTS.BRANDING.SAVE:
+        void this.brandingEcrit("/branding", "PUT", { theme: charge })
+
+        return true
+
+      case EVENTS.BRANDING.UPLOAD: {
+        const { nom, ...image } = charge as { nom: string }
+
+        void this.brandingEcrit(`/branding/image/${nom}`, "PUT", image)
+
+        return true
+      }
+
+      case EVENTS.BRANDING.RESET:
+        void this.brandingEcrit("/branding", "PUT", { theme: null })
+
+        return true
+
+      case EVENTS.BRANDING.CLEAR:
+        void this.brandingEcrit(
+          `/branding/image/${charge as string}`,
+          "DELETE",
+        )
+
+        return true
+
       case EVENTS.RESULTS.GET:
         void this.appel(`/results/${charge as string}`).then(
           ({ statut, corps }) =>
@@ -369,6 +404,38 @@ export class RazziaSocket {
         }
 
         return false
+    }
+  }
+
+  /*
+   * Les trois écritures de branding suivent le même déroulé : écrire, dire au
+   * formulaire que c'est fait, puis RELIRE. La relecture n'est pas une
+   * précaution de principe — c'est elle qui rapporte la nouvelle date de
+   * modification, dont dépend l'adresse versionnée de l'image ; sans elle
+   * l'aperçu resterait sur la version précédente, servie depuis le cache.
+   */
+  private async brandingEcrit(
+    chemin: string,
+    method: "PUT" | "DELETE",
+    corpsEnvoye?: unknown,
+  ) {
+    const { statut, corps } = await this.appel(chemin, {
+      method,
+      ...(corpsEnvoye ? { body: JSON.stringify(corpsEnvoye) } : {}),
+    })
+
+    if (statut !== 200) {
+      this.local(EVENTS.BRANDING.ERROR, corps.error)
+
+      return
+    }
+
+    this.local(EVENTS.BRANDING.SAVED)
+
+    const relu = await this.appel("/branding")
+
+    if (relu.statut === 200) {
+      this.local(EVENTS.BRANDING.DATA, relu.corps)
     }
   }
 

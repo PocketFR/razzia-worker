@@ -4,6 +4,11 @@
     "usernameTooLong": "Der Benutzername darf nicht mehr als 20 Zeichen haben",
     "usernameTooShort": "Der Benutzername muss mindestens 4 Zeichen haben"
   },
+  "branding": {
+    "badType": "Nicht unterstütztes Bildformat",
+    "invalid": "Ungültiges Erscheinungsbild",
+    "tooLarge": "Bild zu groß"
+  },
   "game": {
     "expired": "Spiel abgelaufen",
     "failedToCreate": "Spiel konnte nicht erstellt werden",

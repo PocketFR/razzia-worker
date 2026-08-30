@@ -7,15 +7,24 @@
   // La SPA renvoie index.html pour tout chemin inconnu, donc sans cette liste
   // /ws et /ia n'atteindraient JAMAIS le Worker : les assets répondraient avant.
   //
-  // Le branding vit dans packages/web/public/branding : le frontend va
-  // chercher /branding/theme.json au démarrage, et il n'y a plus de dossier
-  // config monté pour le servir. Remplacer ces fichiers et redéployer suffit
-  // à changer l'apparence.
+  // Le branding livré vit dans packages/web/public/branding, et sert de
+  // repli : le frontend va chercher /branding/theme.json au démarrage, et le
+  // Worker répond à partir de la base dès que l'écran de branding a servi.
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/ws", "/api/*", "/ia", "/ia/*"]
+    "run_worker_first": [
+      "/ws",
+      "/api/*",
+      "/ia",
+      "/ia/*",
+      // Ces deux-là ONT un équivalent statique, et c'est le piège : sans
+      // cette ligne les assets répondraient d'abord, et le branding
+      // enregistré en base ne serait jamais servi.
+      "/branding/theme.json",
+      "/branding/asset/*"
+    ]
   },
 
   "durable_objects": {

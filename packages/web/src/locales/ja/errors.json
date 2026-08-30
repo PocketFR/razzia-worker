@@ -4,6 +4,11 @@
     "usernameTooLong": "ユーザー名は20文字以内にしてください",
     "usernameTooShort": "ユーザー名は4文字以上にしてください"
   },
+  "branding": {
+    "badType": "対応していない画像形式です",
+    "invalid": "外観の設定が不正です",
+    "tooLarge": "画像が大きすぎます"
+  },
   "game": {
     "expired": "ゲームの有効期限が切れました",
     "failedToCreate": "ゲームを作成できませんでした",

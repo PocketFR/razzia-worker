@@ -1,4 +1,33 @@
 {
+  "branding": {
+    "answerColors": "Answer colours",
+    "appName": "App name",
+    "clear": "Back to the original image",
+    "color": {
+      "primary": "Primary",
+      "secondary": "Secondary"
+    },
+    "colors": "Colours",
+    "fontFamily": "Font",
+    "fontUrl": "Font URL (optional)",
+    "fromAddress": "No file: the address below is used",
+    "identity": "Identity",
+    "image": {
+      "background": "Background",
+      "favicon": "Tab icon",
+      "logo": "Logo"
+    },
+    "images": "Images",
+    "imagesHint": "{{max}} per image at most. Above that, give an address instead of a file.",
+    "reloadHint": "Changes apply on the next page load.",
+    "reset": "Reset",
+    "save": "Save appearance",
+    "saved": "Appearance saved",
+    "subtitle": "Name, font and colours of the app, on every screen.",
+    "tooLarge": "Image too large: {{max}} at most.",
+    "upload": "Upload an image",
+    "uploaded": "Uploaded — {{taille}}, on {{date}}"
+  },
   "configurationsTitle": "Configurations",
   "ia": {
     "absent": "No track found for: {{noms}}.",
@@ -91,6 +120,7 @@
     "title": "Spotify"
   },
   "tabs": {
+    "branding": "Branding",
     "keys": "API keys",
     "play": "Play",
     "quizz": "Quizz",

@@ -1,4 +1,33 @@
 {
+  "branding": {
+    "answerColors": "回答の色",
+    "appName": "アプリ名",
+    "clear": "元の画像に戻す",
+    "color": {
+      "primary": "メイン",
+      "secondary": "サブ"
+    },
+    "colors": "色",
+    "fontFamily": "フォント",
+    "fontUrl": "フォントのURL（任意）",
+    "fromAddress": "ファイルなし：下のURLを使用します",
+    "identity": "アイデンティティ",
+    "image": {
+      "background": "背景",
+      "favicon": "タブアイコン",
+      "logo": "ロゴ"
+    },
+    "images": "画像",
+    "imagesHint": "1枚あたり最大{{max}}。それ以上はファイルではなくURLを指定してください。",
+    "reloadHint": "変更は次回のページ読み込みで反映されます。",
+    "reset": "リセット",
+    "save": "外観を保存",
+    "saved": "外観を保存しました",
+    "subtitle": "アプリの名前、フォント、色。すべての画面に適用されます。",
+    "tooLarge": "画像が大きすぎます：最大{{max}}。",
+    "upload": "画像をアップロード",
+    "uploaded": "アップロード済み — {{taille}}、{{date}}"
+  },
   "configurationsTitle": "設定",
   "ia": {
     "absent": "曲が見つかりませんでした：{{noms}}",
@@ -89,6 +118,7 @@
     "title": "Spotify"
   },
   "tabs": {
+    "branding": "外観",
     "play": "プレイ",
     "quizz": "クイズ",
     "results": "結果",

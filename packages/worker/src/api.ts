@@ -22,6 +22,17 @@ import {
   type NomDeCle,
 } from "./services/secrets"
 import { genererQuiz, manquePourGenerer } from "./quizia/core"
+import {
+  effacerImage,
+  ecrireImage,
+  ecrireTheme,
+  estImage,
+  etatDesImages,
+  lireTheme,
+  MIMES,
+  TAILLE_MAX,
+  type Theme,
+} from "./services/branding"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -197,6 +208,94 @@ export async function routerApi(
             : "errors:quizz.failedToUpdate"
 
         return erreur(e instanceof Error ? e.message : defaut, 400)
+      }
+    }
+  }
+
+  // --- branding -------------------------------------------------------------
+  // Les images voyagent en base64 dans du JSON, et non en corps binaire : tout
+  // le reste de l'interface passe par le même aiguillage d'événements, qui ne
+  // sait envoyer que du JSON. Le surcoût d'encodage est de 33 % sur une image
+  // téléversée une fois de temps en temps — le prix d'un chemin unique.
+  if (section === "branding") {
+    const cible = reste[0]
+
+    if (methode === "GET" && !cible) {
+      // Le thème EFFECTIF, pas seulement celui de la base : sans quoi l'écran
+      // s'ouvrirait vide sur une installation dont le branding vient des
+      // fichiers du build, et l'enregistrer effacerait ce qui s'y trouvait.
+      let theme = await lireTheme(env.DB)
+
+      if (!theme) {
+        theme = await env.ASSETS.fetch(
+          new URL("/branding/theme.json", url).toString(),
+        )
+          .then((r) => (r.ok ? (r.json() as Promise<Theme>) : null))
+          .catch(() => null)
+      }
+
+      return json({ theme, images: await etatDesImages(env.DB), max: TAILLE_MAX })
+    }
+
+    if (methode === "PUT" && !cible) {
+      const corps = (await request.json().catch(() => null)) as {
+        theme?: Theme | null
+      } | null
+
+      // `theme: null` EST une valeur, et pas l'absence de valeur : elle
+      // demande le retour à l'apparence livrée. D'où le test de présence de
+      // la clé plutôt qu'un test de vérité, qui confondrait les deux.
+      if (!corps || !("theme" in corps)) {
+        return erreur("errors:branding.invalid", 400)
+      }
+
+      await ecrireTheme(env.DB, corps.theme ?? null)
+
+      return json({ ok: true })
+    }
+
+    if (cible === "image" && estImage(reste[1] ?? "")) {
+      const nom = reste[1] as Parameters<typeof ecrireImage>[1]
+
+      if (methode === "DELETE") {
+        await effacerImage(env.DB, nom)
+
+        return json({ ok: true })
+      }
+
+      if (methode === "PUT") {
+        const corps = (await request.json().catch(() => null)) as {
+          mime?: string
+          base64?: string
+        } | null
+
+        if (!corps?.base64 || !corps.mime || !MIMES.has(corps.mime)) {
+          return erreur("errors:branding.badType", 400)
+        }
+
+        let octets: Uint8Array
+
+        try {
+          octets = Uint8Array.from(atob(corps.base64), (c) => c.charCodeAt(0))
+        } catch {
+          return erreur("errors:branding.invalid", 400)
+        }
+
+        // Le contrôle de taille est ici et non seulement dans le navigateur :
+        // c'est D1 qui refuserait la ligne, et son erreur ne dirait rien à
+        // l'animateur.
+        if (octets.byteLength > TAILLE_MAX) {
+          return erreur("errors:branding.tooLarge", 413)
+        }
+
+        await ecrireImage(
+          env.DB,
+          nom,
+          corps.mime,
+          octets.buffer as ArrayBuffer,
+        )
+
+        return json({ ok: true })
       }
     }
   }

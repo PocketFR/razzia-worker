@@ -56,3 +56,18 @@ CREATE TABLE IF NOT EXISTS games (
   manager_client_id TEXT    NOT NULL,
   created_at        INTEGER NOT NULL
 );
+
+-- Le branding modifiable depuis l'interface : logo, favicon, fond.
+--
+-- En BLOB et non en base64 : D1 plafonne une ligne à 2 Mo, et l'encodage
+-- base64 gonflerait de 33 % un fond d'écran qui frôle déjà la limite.
+--
+-- Les couleurs, le nom et la police n'ont pas leur place ici : ils tiennent en
+-- un JSON, rangé dans `settings` sous la clé brandingTheme. Ce qui vaut une
+-- table à part, c'est le binaire — et lui seul.
+CREATE TABLE IF NOT EXISTS branding (
+  name       TEXT    PRIMARY KEY,
+  mime       TEXT    NOT NULL,
+  bytes      BLOB    NOT NULL,
+  updated_at INTEGER NOT NULL
+);

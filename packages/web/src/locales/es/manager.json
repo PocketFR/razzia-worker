@@ -1,4 +1,33 @@
 {
+  "branding": {
+    "answerColors": "Colores de las respuestas",
+    "appName": "Nombre de la aplicación",
+    "clear": "Volver a la imagen original",
+    "color": {
+      "primary": "Principal",
+      "secondary": "Secundario"
+    },
+    "colors": "Colores",
+    "fontFamily": "Tipografía",
+    "fontUrl": "Dirección de la tipografía (opcional)",
+    "fromAddress": "Sin archivo: se usa la dirección de abajo",
+    "identity": "Identidad",
+    "image": {
+      "background": "Fondo",
+      "favicon": "Icono de pestaña",
+      "logo": "Logotipo"
+    },
+    "images": "Imágenes",
+    "imagesHint": "{{max}} como máximo por imagen. Por encima, indica una dirección en lugar de un archivo.",
+    "reloadHint": "Los cambios se aplican al cargar la página de nuevo.",
+    "reset": "Restablecer",
+    "save": "Guardar apariencia",
+    "saved": "Apariencia guardada",
+    "subtitle": "Nombre, tipografía y colores de la aplicación, en todas las pantallas.",
+    "tooLarge": "Imagen demasiado pesada: {{max}} como máximo.",
+    "upload": "Subir una imagen",
+    "uploaded": "Subida — {{taille}}, el {{date}}"
+  },
   "configurationsTitle": "Configuraciones",
   "ia": {
     "absent": "Sin canción para: {{noms}}.",
@@ -91,6 +120,7 @@
     "title": "Spotify"
   },
   "tabs": {
+    "branding": "Apariencia",
     "play": "Jugar",
     "quizz": "Cuestionario",
     "results": "Resultados",

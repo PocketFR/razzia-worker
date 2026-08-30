@@ -7,6 +7,8 @@ import type {
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
 import type {
+  BrandingData,
+  BrandingTheme,
   ManagerConfig,
   ResultatGeneration,
 } from "@razzia/common/types/manager"
@@ -83,6 +85,9 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.CONFIG]: (_config: ManagerConfig) => void
   [EVENTS.QUIZZ.DATA]: (_quizz: QuizzWithId) => void
   [EVENTS.QUIZZ.GENERATED]: (_resultat: ResultatGeneration) => void
+  [EVENTS.BRANDING.DATA]: (_data: BrandingData) => void
+  [EVENTS.BRANDING.SAVED]: () => void
+  [EVENTS.BRANDING.ERROR]: (_message: string) => void
   [EVENTS.MANAGER.GAME_CREATED]: (_data: {
     gameId: string
     inviteCode: string
@@ -157,6 +162,17 @@ export interface ClientToServerEvents {
     titre: string
     description: string
   }) => void
+
+  // Branding
+  [EVENTS.BRANDING.GET]: () => void
+  [EVENTS.BRANDING.SAVE]: (_theme: BrandingTheme) => void
+  [EVENTS.BRANDING.UPLOAD]: (_image: {
+    nom: string
+    mime: string
+    base64: string
+  }) => void
+  [EVENTS.BRANDING.CLEAR]: (_nom: string) => void
+  [EVENTS.BRANDING.RESET]: () => void
 
   // Player actions
   [EVENTS.PLAYER.CHECK_PIN]: (_inviteCode: string) => void

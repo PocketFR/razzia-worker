@@ -4,6 +4,11 @@
     "usernameTooLong": "El nombre de usuario no puede superar los 20 caracteres",
     "usernameTooShort": "El nombre de usuario no puede tener menos de 4 caracteres"
   },
+  "branding": {
+    "badType": "Formato de imagen no admitido",
+    "invalid": "Apariencia no válida",
+    "tooLarge": "Imagen demasiado pesada"
+  },
   "game": {
     "expired": "Partida expirada",
     "failedToCreate": "No se pudo crear la partida",

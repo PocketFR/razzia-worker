@@ -62,6 +62,18 @@ export const EVENTS = {
     GENERATE: "quizz:generate",
     GENERATED: "quizz:generated",
   },
+  /* Branding : couleurs, nom, police et les trois images. Même aiguillage
+     que les clés API — l'événement part vers /api par le shim client. */
+  BRANDING: {
+    GET: "branding:get",
+    DATA: "branding:data",
+    SAVE: "branding:save",
+    UPLOAD: "branding:upload",
+    RESET: "branding:reset",
+    CLEAR: "branding:clear",
+    SAVED: "branding:saved",
+    ERROR: "branding:error",
+  },
   /* Clés API. Comme le reste, l'événement passe par le shim client, qui
      l'aiguille vers /api — les composants n'ont pas à connaître le jeton
      de session ni la forme du transport. */

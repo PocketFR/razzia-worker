@@ -49,3 +49,32 @@ export interface ResultatGeneration {
      des jetons, les perdre en silence serait le pire des deux maux. */
   questions?: QuestionGeneree[]
 }
+
+/* Le branding modifiable depuis l'écran de configuration.
+
+   Les trois adresses d'images sont facultatives et acceptent une URL externe :
+   c'est la seule voie pour une image trop lourde pour la base. Une image
+   téléversée l'emporte sur l'adresse. */
+export interface BrandingTheme {
+  appName?: string
+  colors?: Record<string, string>
+  answerColors?: string[]
+  font?: { family: string; url?: string }
+  logo?: string
+  favicon?: string
+  background?: string
+}
+
+export interface BrandingImage {
+  nom: string
+  mime: string
+  taille: number
+  modifiee: number
+}
+
+export interface BrandingData {
+  theme: BrandingTheme | null
+  images: BrandingImage[]
+  /** Le plafond par image, en octets, tel que le serveur l'applique. */
+  max: number
+}

@@ -33,6 +33,7 @@
  */
 
 import { routerApi } from "./api"
+import { estImage, lireImage, themePublic } from "./services/branding"
 import { routerQuizia } from "./quizia"
 
 export { GameRoom } from "./game-room"
@@ -107,12 +108,78 @@ export default {
       return routerQuizia(request, env, url)
     }
 
-    // Inatteignable en pratique : run_worker_first ne dirige ici que /ws et
-    // /ia/*. Le repli existe pour le développement local et les erreurs de
-    // configuration, qui autrement se manifesteraient par une page blanche.
+    if (url.pathname.startsWith("/branding/")) {
+      return routerBranding(request, env, url)
+    }
+
+    // Inatteignable en pratique : run_worker_first ne dirige ici que /ws,
+    // /api/*, /ia/* et /branding/*. Le repli existe pour le développement
+    // local et les erreurs de configuration, qui autrement se manifesteraient
+    // par une page blanche.
     return env.ASSETS.fetch(request)
   },
 } satisfies ExportedHandler<Env>
+
+/*
+ * Le branding servi au navigateur, avant toute authentification : les joueurs
+ * voient l'écran d'accueil sans se connecter à quoi que ce soit.
+ *
+ * Rien de confidentiel n'y passe — un logo et des couleurs sont publics par
+ * construction, ils s'affichent sur l'écran de la soirée.
+ */
+async function routerBranding(
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response("Method not allowed", { status: 405 })
+  }
+
+  if (url.pathname === "/branding/theme.json") {
+    const theme = await themePublic(env)
+
+    // Rien en base : on laisse passer le fichier livré avec l'application.
+    // Servir un thème vide effacerait le branding du build, ce qui n'est pas
+    // du tout la même chose que « ne rien avoir personnalisé ».
+    if (!theme) {
+      return env.ASSETS.fetch(request)
+    }
+
+    return new Response(JSON.stringify(theme), {
+      headers: {
+        "content-type": "application/json",
+        // Court : ce fichier est lu à chaque démarrage de l'application, et
+        // un changement de couleur doit se voir tout de suite. Ce sont les
+        // images, versionnées, qui portent le cache long.
+        "cache-control": "public, max-age=60",
+      },
+    })
+  }
+
+  const nom = url.pathname.slice("/branding/asset/".length)
+
+  if (url.pathname.startsWith("/branding/asset/") && estImage(nom)) {
+    const image = await lireImage(env.DB, nom)
+
+    if (!image) {
+      return new Response("Not found", { status: 404 })
+    }
+
+    return new Response(image.octets, {
+      headers: {
+        "content-type": image.mime,
+        // Immuable sans réserve : l'adresse porte ?v=<date de modification>,
+        // donc une image remplacée change d'adresse et n'est jamais servie
+        // depuis le cache d'une version précédente.
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    })
+  }
+
+  // Les fichiers d'origine de packages/web/public/branding.
+  return env.ASSETS.fetch(request)
+}
 
 /** Aiguille la WebSocket vers l'objet de la partie visée. */
 function routerVersLaPartie(
