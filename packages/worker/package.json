@@ -7,7 +7,8 @@
     "deploy": "wrangler deploy",
     "db:schema": "wrangler d1 execute razzia --file schema.sql",
     "db:schema:local": "wrangler d1 execute razzia --local --file schema.sql",
-    "test": "tsx scripts/test-quizia.ts"
+    "test": "tsx scripts/test-quizia.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@razzia/common": "workspace:*",

@@ -18,14 +18,24 @@ import { v7 as uuid } from "uuid"
  * l'amont : les composants ne voient aucune différence, et c'est voulu — le
  * découpage HTTP/WebSocket est confiné au shim.
  */
+/* Les trois événements de cycle de vie ne viennent pas du serveur : ils sont
+   fabriqués par le shim. Les déclarer évite de les faire passer en force. */
+interface EvenementsVie {
+  connect: () => void
+  disconnect: () => void
+  connect_error: (_err: Error) => void
+}
+
+type EvenementsEntrants = ServerToClientEvents & EvenementsVie
+
 type TypedSocket = {
-  on: <E extends keyof ServerToClientEvents>(
+  on: <E extends keyof EvenementsEntrants>(
     _e: E,
-    _fn: ServerToClientEvents[E],
+    _fn: EvenementsEntrants[E],
   ) => void
-  off: <E extends keyof ServerToClientEvents>(
+  off: <E extends keyof EvenementsEntrants>(
     _e: E,
-    _fn: ServerToClientEvents[E],
+    _fn: EvenementsEntrants[E],
   ) => void
   emit: <E extends keyof ClientToServerEvents>(
     _e: E,
@@ -88,14 +98,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(() => socketClient.connected)
 
   useEffect(() => {
-    // oxlint-disable-next-line no-explicit-any
-    socketClient.on("connect" as any, (() => setIsConnected(true)) as any)
-    // oxlint-disable-next-line no-explicit-any
-    socketClient.on("disconnect" as any, (() => setIsConnected(false)) as any)
-    socketClient.on("connect_error", ((err: Error) => {
+    socketClient.on("connect", () => setIsConnected(true))
+    socketClient.on("disconnect", () => setIsConnected(false))
+    socketClient.on("connect_error", (err) => {
       console.error("Connection error:", err.message)
-      // oxlint-disable-next-line no-explicit-any
-    }) as any)
+    })
 
     /*
      * RATTRAPAGE INDISPENSABLE, et c'est un piège d'ordonnancement de React.
@@ -150,9 +157,9 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useSocket = () => useContext(SocketContext)
 
-export const useEvent = <E extends keyof ServerToClientEvents>(
+export const useEvent = <E extends keyof EvenementsEntrants>(
   event: E,
-  callback: ServerToClientEvents[E],
+  callback: EvenementsEntrants[E],
 ) => {
   const { socket } = useSocket()
 

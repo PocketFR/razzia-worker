@@ -5,7 +5,8 @@
     "dev": "vite",
     "build": "vite build",
     "start": "vite preview",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b --force"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -23,6 +23,7 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import BoutonSpotify from "@razzia/web/features/spotify/components/BoutonSpotify"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
@@ -37,6 +38,7 @@ const LIBELLES: Record<string, string> = {
 
 const ConfigApiKeys = () => {
   const { socket } = useSocket()
+  const { config } = useManagerStore()
   const { t } = useTranslation("manager")
 
   const [cles, setCles] = useState<CleApi[]>([])
@@ -91,7 +93,7 @@ const ConfigApiKeys = () => {
     // du cadre quand les quatre champs étaient dépliés.
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="min-h-0 flex-1 space-y-6 overflow-auto p-0.5">
-        <BoutonSpotify />
+        <BoutonSpotify clientId={config?.spotifyClientId ?? null} />
 
         <section className="flex flex-col gap-4">
           <div>
