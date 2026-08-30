@@ -64,7 +64,6 @@
  * réponses — est inchangé.
  */
 
-import { verifierAcces } from "../services/config"
 
 export interface Cles {
   mistralKey: string
@@ -150,24 +149,6 @@ async function parLots<T, R>(
     resultats.push(...(await Promise.all(lot.map(fn))))
   }
   return resultats
-}
-
-// ----------------------------------------------------------- authentification
-
-// La vérification est déléguée : le mot de passe est désormais une empreinte
-// à clé, et le comparer ici demanderait de dupliquer la logique — donc de
-// risquer qu'une des deux copies dérive de l'autre.
-async function accesAccorde(
-  db: D1Database,
-  maitresse: string,
-  saisi: string,
-): Promise<boolean> {
-  try {
-    return (await verifierAcces(db, maitresse, saisi)) === "ok"
-  } catch (e) {
-    console.error(`! vérification impossible: ${(e as Error).message}`)
-    return false
-  }
 }
 
 // -------------------------------------------------------------------- Spotify
@@ -1173,91 +1154,6 @@ async function construire(cles: Cles, titre: string, description: string) {
   return { questions, pistes, rapport }
 }
 
-// ----------------------------------------------------------------------- page
-
-const PAGE = `<!doctype html><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>razzia — quiz par IA</title>
-<style>
-body{font:16px system-ui;margin:0;display:grid;place-items:center;
-min-height:100vh;background:#111;color:#eee}
-form{display:grid;gap:12px;width:min(560px,94vw);padding:20px}
-input,textarea,button{font:inherit;padding:12px;border-radius:8px;
-border:1px solid #444;background:#1c1c1c;color:#eee;width:100%;
-box-sizing:border-box}
-textarea{min-height:110px;resize:vertical}
-button{background:#2d6cdf;border:0;font-weight:600;cursor:pointer}
-button:disabled{opacity:.5;cursor:default}
-label{font-size:13px;opacity:.6}
-h1{font-size:19px;font-weight:600;margin:0}
-p{opacity:.6;font-size:14px;margin:4px 0;min-height:1.2em}
-.ok{color:#4c8;opacity:1}.ko{color:#e66;opacity:1}
-#apercu{display:none;background:#161616;border:1px solid #333;border-radius:8px;
-padding:12px;font-size:14px;max-height:360px;overflow:auto}
-#apercu ol{margin:0;padding-left:20px}
-#apercu li{margin-bottom:8px}
-#apercu .rep{opacity:.55;font-size:13px}
-#apercu .air{color:#7ab;opacity:.85;font-size:13px}
-.credit{font-size:12px;opacity:.4;text-align:center}
-</style>
-<form id=form>
-<h1>Créer un quiz par IA</h1>
-<label>Titre du quiz</label>
-<input name=titre id=titre placeholder="Blind Test Rock français 80s" autofocus>
-<label>Description</label>
-<textarea name=description id=description
-placeholder="Un blind test de 15 questions sur le rock français des années 80, pour des joueurs avancés."></textarea>
-<label>Mot de passe manager</label>
-<input name=motdepasse id=motdepasse type=password>
-<button id=envoyer>Générer</button>
-<p id=etat></p>
-<div id=apercu></div>
-<p class=credit>Questions de culture générale : Open Trivia Database, CC BY-SA 4.0</p>
-</form>
-<script>
-const BASE = location.pathname.endsWith('/')
-  ? location.pathname : location.pathname + '/';
-const form = document.getElementById('form');
-const etat = document.getElementById('etat');
-const apercu = document.getElementById('apercu');
-const envoyer = document.getElementById('envoyer');
-
-form.addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  envoyer.disabled = true;
-  apercu.style.display = 'none';
-  etat.className = '';
-  etat.textContent = 'Répartition, sources, puis rédaction…';
-  try {
-    const r = await fetch(BASE + 'generer', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: new URLSearchParams(new FormData(form)).toString(),
-    });
-    const data = await r.json();
-    etat.className = data.ok ? 'ok' : 'ko';
-    etat.textContent = data.message;
-    if (data.questions) {
-      apercu.innerHTML = '<ol>' + data.questions.map(q => {
-        const air = q.artiste && q.titre
-          ? '<div class=air>♪ ' + q.artiste + ' — ' + q.titre
-            + (q.start ? ' @' + q.start + 's' : '') + '</div>'
-          : '';
-        const bonne = (q.a || [])[q.s];
-        return '<li>' + q.q + air
-          + '<div class=rep>' + (q.a || []).join(' · ') + '</div>'
-          + '<div class=rep>→ ' + (bonne || '?') + '</div></li>';
-      }).join('') + '</ol>';
-      apercu.style.display = 'block';
-    }
-  } catch (e) {
-    etat.className = 'ko';
-    etat.textContent = 'Erreur réseau : ' + e.message;
-  }
-  envoyer.disabled = false;
-});
-</script>`
-
 /*
  * Retour d'autorisation Spotify, pour le flux PKCE mené par le navigateur.
  *
@@ -1415,13 +1311,14 @@ export function manquePourGenerer(cles: Cles): string[] {
 /*
  * La génération elle-même, SANS AUCUN CONTRÔLE D'ACCÈS.
  *
- * Deux appelants s'en servent, et c'est la raison de cette séparation : la
- * page autonome /ia, qui demande le mot de passe animateur puisqu'elle n'a
- * pas de session, et l'onglet « quiz » du manager, où la session vient déjà
- * d'être vérifiée par le routeur d'API. Redemander le mot de passe là-bas
- * n'aurait rien protégé de plus.
+ * Son unique appelant est POST /api/quizz/generate, derrière la garde de
+ * session du routeur d'API. Elle a un temps servi aussi la page autonome
+ * /ia, qui demandait le mot de passe animateur faute de session ; cette page
+ * a disparu une fois le formulaire intégré au manager, et avec elle la
+ * seconde surface de saisie du mot de passe.
  *
- * Elle est donc à n'appeler qu'une fois l'appelant authentifié.
+ * Toute nouvelle route qui l'appellerait doit donc porter sa propre
+ * authentification : une génération coûte des jetons Mistral.
  */
 export async function genererQuiz(
   db: D1Database,
@@ -1503,34 +1400,6 @@ export async function genererQuiz(
     questions,
   })
 }
-
-/*
- * La page autonome /ia : mot de passe animateur, puis la génération partagée.
- */
-export async function endpointGenerer(
-  db: D1Database,
-  maitresse: string,
-  cles: Cles,
-  form: URLSearchParams,
-) {
-  const motdepasse = String(form.get("motdepasse") || "")
-
-  if (!(await accesAccorde(db, maitresse, motdepasse))) {
-    log("tentative refusée (mot de passe)")
-
-    return json({ ok: false, message: "Mot de passe incorrect" }, 403)
-  }
-
-  return genererQuiz(
-    db,
-    cles,
-    String(form.get("titre") || ""),
-    String(form.get("description") || ""),
-  )
-}
-
-/** La page de création. */
-export const pageCreation = () => html(PAGE)
 
 /** Le retour de l'autorisation Spotify, pour le flux PKCE du navigateur. */
 export const pageCallbackSpotify = (clientId: string) =>

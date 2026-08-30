@@ -59,20 +59,12 @@ verifier("la casse est significative", casse.statut === 401)
 const vide = await connexion("")
 verifier("un mot de passe vide est refusé", vide.statut === 401)
 
-// ── quizia partage la même vérification ────────────────────────────────────
-const generationRefusee = await fetch(`${base}/ia/generer`, {
-  method: "POST",
-  body: new URLSearchParams({
-    titre: "T",
-    description: "D",
-    motdepasse: "PasLeBon",
-  }),
-}).then((r) => r.status)
-verifier("quizia refuse aussi le mauvais mot de passe", generationRefusee === 403)
-
-// Avec le bon, on doit dépasser le contrôle d'accès : la génération échouera
-// plus loin faute de clés, mais avec un AUTRE code que 403.
-const generationAdmise = await fetch(`${base}/ia/generer`, {
+// ── quizia n'a plus de mot de passe à lui ──────────────────────────────────
+// Le formulaire de génération vivait sur /ia avec son propre champ mot de
+// passe. Il est passé dans le manager, derrière la session ; ce test veille
+// à ce que l'ancien point d'entrée ne revienne pas par mégarde, car il
+// rouvrirait une seconde surface où deviner le mot de passe.
+const ancienneGeneration = await fetch(`${base}/ia/generer`, {
   method: "POST",
   body: new URLSearchParams({
     titre: "T",
@@ -81,9 +73,18 @@ const generationAdmise = await fetch(`${base}/ia/generer`, {
   }),
 }).then((r) => r.status)
 verifier(
-  "quizia accepte le bon, converti compris",
-  generationAdmise !== 403,
-  `reçu ${generationAdmise}`,
+  "l'ancien /ia/generer a bien disparu",
+  ancienneGeneration === 404,
+  `reçu ${ancienneGeneration}`,
+)
+
+// Le signet de l'ancien formulaire mène au manager, où il se trouve désormais.
+const ancienFormulaire = await fetch(`${base}/ia`, { redirect: "manual" })
+verifier(
+  "/ia redirige vers le manager",
+  ancienFormulaire.status === 302 &&
+    (ancienFormulaire.headers.get("location") ?? "").endsWith("/manager"),
+  `${ancienFormulaire.status} ${ancienFormulaire.headers.get("location")}`,
 )
 
 // ── changement depuis l'interface ─────────────────────────────────────────
