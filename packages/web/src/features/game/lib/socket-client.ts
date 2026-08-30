@@ -175,8 +175,11 @@ export class RazziaSocket {
     chemin: string,
     options: RequestInit = {},
   ): Promise<{ statut: number; corps: any }> {
+    // Le JSON n'est le type par défaut que parce que tout le reste de l'API
+    // en parle ; le téléversement d'une image, lui, impose le sien.
     const entetes: Record<string, string> = {
       ...(options.body ? { "content-type": "application/json" } : {}),
+      ...((options.headers as Record<string, string>) ?? {}),
     }
     const jeton = this.jeton
 
@@ -338,9 +341,14 @@ export class RazziaSocket {
         return true
 
       case EVENTS.BRANDING.UPLOAD: {
-        const { nom, ...image } = charge as { nom: string }
+        // Le fichier part TEL QUEL. Encodé en base64 dans du JSON, comme le
+        // reste de l'interface, son décodage coûtait au Worker vingt fois le
+        // temps processeur que le plan gratuit accorde par requête.
+        const { nom, fichier } = charge as { nom: string; fichier: File }
 
-        void this.brandingEcrit(`/branding/image/${nom}`, "PUT", image)
+        void this.brandingEcrit(`/branding/image/${nom}`, "PUT", fichier, {
+          "content-type": fichier.type,
+        })
 
         return true
       }
@@ -418,10 +426,19 @@ export class RazziaSocket {
     chemin: string,
     method: "PUT" | "DELETE",
     corpsEnvoye?: unknown,
+    entetes?: Record<string, string>,
   ) {
     const { statut, corps } = await this.appel(chemin, {
       method,
-      ...(corpsEnvoye ? { body: JSON.stringify(corpsEnvoye) } : {}),
+      ...(corpsEnvoye
+        ? {
+            body:
+              corpsEnvoye instanceof Blob
+                ? corpsEnvoye
+                : JSON.stringify(corpsEnvoye),
+          }
+        : {}),
+      ...(entetes ? { headers: entetes } : {}),
     })
 
     if (statut !== 200) {

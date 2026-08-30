@@ -166,11 +166,7 @@ export interface ClientToServerEvents {
   // Branding
   [EVENTS.BRANDING.GET]: () => void
   [EVENTS.BRANDING.SAVE]: (_theme: BrandingTheme) => void
-  [EVENTS.BRANDING.UPLOAD]: (_image: {
-    nom: string
-    mime: string
-    base64: string
-  }) => void
+  [EVENTS.BRANDING.UPLOAD]: (_image: { nom: string; fichier: File }) => void
   [EVENTS.BRANDING.CLEAR]: (_nom: string) => void
   [EVENTS.BRANDING.RESET]: () => void
 

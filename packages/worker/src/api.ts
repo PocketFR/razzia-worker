@@ -266,27 +266,39 @@ export async function routerApi(
       }
 
       if (methode === "PUT") {
-        const corps = (await request.json().catch(() => null)) as {
-          mime?: string
-          base64?: string
-        } | null
+        /*
+         * L'image arrive en CORPS BINAIRE BRUT, et c'est une contrainte de
+         * plateforme, pas une élégance.
+         *
+         * Elle voyageait d'abord en base64 dans du JSON, comme tout le reste
+         * de l'interface. Mais décoder 2 Mo de base64 coûte 216 ms de temps
+         * processeur — mesuré — quand le plan gratuit en accorde 10 par
+         * requête. Le fond d'écran ne pouvait donc PAS être téléversé : le
+         * Worker était interrompu avant d'écrire quoi que ce soit.
+         *
+         * Le corps brut se lit en 0,8 ms, et évite au passage le tiers de
+         * volume que l'encodage ajoutait.
+         */
+        const mime = (request.headers.get("content-type") ?? "").split(";")[0]
 
-        if (!corps?.base64 || !corps.mime || !MIMES.has(corps.mime)) {
+        if (!MIMES.has(mime)) {
           return erreur("errors:branding.badType", 400)
         }
 
-        let octets: Uint8Array
+        // La longueur annoncée sert de premier filtre : refuser avant de lire
+        // évite de charger en mémoire ce qu'on s'apprête à rejeter.
+        const annoncee = Number(request.headers.get("content-length") ?? 0)
 
-        try {
-          octets = Uint8Array.from(atob(corps.base64), (c) => c.charCodeAt(0))
-        } catch {
-          return erreur("errors:branding.invalid", 400)
+        if (annoncee > TAILLE_MAX) {
+          return erreur("errors:branding.tooLarge", 413)
         }
 
-        // Le contrôle de taille est ici et non seulement dans le navigateur :
-        // c'est D1 qui refuserait la ligne, et son erreur ne dirait rien à
-        // l'animateur.
-        if (octets.byteLength > TAILLE_MAX) {
+        const octets = new Uint8Array(await request.arrayBuffer())
+
+        // Et le contrôle sur la taille RÉELLE, car l'entête n'engage que
+        // celui qui l'envoie. C'est D1 qui refuserait la ligne au-delà, et
+        // son erreur ne dirait rien à l'animateur.
+        if (!octets.byteLength || octets.byteLength > TAILLE_MAX) {
           return erreur("errors:branding.tooLarge", 413)
         }
 
@@ -294,7 +306,7 @@ export async function routerApi(
         // n'est que la première des deux protections — la seconde, la
         // Content-Security-Policy posée au service, est celle qui garantit
         // qu'aucun script ne s'exécute.
-        if (estSvg(corps.mime)) {
+        if (estSvg(mime)) {
           const danger = dangerDuSvg(octets)
 
           if (danger) {
@@ -304,12 +316,7 @@ export async function routerApi(
           }
         }
 
-        await ecrireImage(
-          env.DB,
-          nom,
-          corps.mime,
-          octets.buffer as ArrayBuffer,
-        )
+        await ecrireImage(env.DB, nom, mime, octets.buffer as ArrayBuffer)
 
         return json({ ok: true })
       }

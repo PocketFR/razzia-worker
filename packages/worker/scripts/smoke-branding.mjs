@@ -71,6 +71,16 @@ const entetes = {
   "content-type": "application/json",
 }
 
+/* Le téléversement passe en corps binaire brut : décoder du base64 dans le
+   Worker coûtait 216 ms de temps processeur pour le fond d'écran, quand le
+   plan gratuit en accorde 10 par requête. */
+const envoyerImage = async (nom, mime, octets) =>
+  fetch(`${base}/api/branding/image/${nom}`, {
+    method: "PUT",
+    headers: { authorization: `Bearer ${jeton}`, "content-type": mime },
+    body: octets,
+  }).then(async (r) => ({ statut: r.status, corps: await r.json().catch(() => ({})) }))
+
 const api = async (chemin, options = {}) => {
   const r = await fetch(`${base}/api${chemin}`, {
     ...options,
@@ -178,10 +188,7 @@ try {
   const png =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
-  const envoi = await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({ mime: "image/png", base64: png }),
-  })
+  const envoi = await envoyerImage("logo", "image/png", Buffer.from(png, "base64"))
   verifier("logo téléversé", envoi.statut === 200, JSON.stringify(envoi.corps))
 
   const apres = await api("/branding")
@@ -227,10 +234,11 @@ try {
     arbitrage,
   )
 
-  const mauvaisType = await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({ mime: "image/tiff", base64: png }),
-  })
+  const mauvaisType = await envoyerImage(
+    "logo",
+    "image/tiff",
+    Buffer.from(png, "base64"),
+  )
   verifier("format inconnu refusé", mauvaisType.statut === 400, `reçu ${mauvaisType.statut}`)
   verifier(
     "clé i18n connue",
@@ -246,13 +254,7 @@ try {
   const logo = fs.readFileSync(
     path.join(import.meta.dirname, "../../web/public/branding/logo.svg"),
   )
-  const svgPropre = await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({
-      mime: "image/svg+xml",
-      base64: logo.toString("base64"),
-    }),
-  })
+  const svgPropre = await envoyerImage("logo", "image/svg+xml", logo)
   verifier(
     "le logo livré est accepté",
     svgPropre.statut === 200,
@@ -279,15 +281,13 @@ try {
     svgServi.headers.get("x-content-type-options"),
   )
 
-  const svgArme = await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({
-      mime: "image/svg+xml",
-      base64: Buffer.from(
-        `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`,
-      ).toString("base64"),
-    }),
-  })
+  const svgArme = await envoyerImage(
+    "logo",
+    "image/svg+xml",
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`,
+    ),
+  )
   verifier("SVG porteur de script refusé", svgArme.statut === 400, `reçu ${svgArme.statut}`)
   verifier("clé i18n connue", cleExiste(svgArme.corps.error), svgArme.corps.error)
 
@@ -301,15 +301,13 @@ try {
   )
 
   await api("/branding/image/logo", { method: "DELETE" })
-  await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({ mime: "image/png", base64: png }),
-  })
+  await envoyerImage("logo", "image/png", Buffer.from(png, "base64"))
 
-  const inconnue = await api("/branding/image/banniere", {
-    method: "PUT",
-    body: JSON.stringify({ mime: "image/png", base64: png }),
-  })
+  const inconnue = await envoyerImage(
+    "banniere",
+    "image/png",
+    Buffer.from(png, "base64"),
+  )
   verifier("nom d'image inconnu refusé", inconnue.statut === 404, `reçu ${inconnue.statut}`)
 
   console.log("— le fond d'écran à sa taille réelle")
@@ -318,13 +316,7 @@ try {
   const fond = fs.readFileSync(
     path.join(import.meta.dirname, "../../web/public/branding/background.webp"),
   )
-  const gros = await api("/branding/image/background", {
-    method: "PUT",
-    body: JSON.stringify({
-      mime: "image/webp",
-      base64: fond.toString("base64"),
-    }),
-  })
+  const gros = await envoyerImage("background", "image/webp", fond)
   verifier(
     `D1 accepte ${(fond.length / 1024 / 1024).toFixed(2)} Mo`,
     gros.statut === 200,
@@ -339,13 +331,7 @@ try {
     `${reluOctets.length} contre ${fond.length}`,
   )
 
-  const trop = await api("/branding/image/logo", {
-    method: "PUT",
-    body: JSON.stringify({
-      mime: "image/png",
-      base64: Buffer.alloc(1_900_000, 7).toString("base64"),
-    }),
-  })
+  const trop = await envoyerImage("logo", "image/png", Buffer.alloc(1_900_000, 7))
   verifier("au-delà du plafond : 413", trop.statut === 413, `reçu ${trop.statut}`)
   verifier("clé i18n connue", cleExiste(trop.corps.error), trop.corps.error)
 

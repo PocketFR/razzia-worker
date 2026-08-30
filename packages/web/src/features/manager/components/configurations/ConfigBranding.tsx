@@ -92,21 +92,9 @@ const ConfigBranding = () => {
       return
     }
 
-    const lecteur = new FileReader()
-
-    lecteur.onload = () => {
-      const resultat = String(lecteur.result)
-      // Une data: URL, dont on ne garde que la charge utile.
-      const base64 = resultat.slice(resultat.indexOf(",") + 1)
-
-      socket.emit(EVENTS.BRANDING.UPLOAD, {
-        nom,
-        mime: fichier.type,
-        base64,
-      })
-    }
-
-    lecteur.readAsDataURL(fichier)
+    // Le fichier part tel quel, sans passer par un FileReader : le décodage
+    // du base64 coûtait au serveur vingt fois le temps processeur accordé.
+    socket.emit(EVENTS.BRANDING.UPLOAD, { nom, fichier })
   }
 
   const image = (nom: NomImage) => donnees?.images.find((i) => i.nom === nom)
