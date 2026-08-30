@@ -17,6 +17,10 @@
  *
  * Un joueur ne répond jamais : sinon la manche coupe court et l'on ne
  * mesurerait pas le vidage, mais le passage aux résultats.
+ *
+ * L'effectif de la salle suit exactement les mêmes trois règles, et court le
+ * même risque : un animateur resté sur « 2 joueurs » alors que quatre sont
+ * entrés. Il a donc sa section, avant celle des réponses.
  */
 
 const base = process.argv[2] ?? "http://localhost:8787"
@@ -129,8 +133,39 @@ const joueurs = await Promise.all(
   ["a", "b", "c", "muet"].map((n) => connecter(n, "player")),
 )
 
-joueurs.forEach((j, i) => j.envoyer("player:login", { data: { username: `J${i}` } }))
-await animateur.attendre((t) => t.e === "game:totalPlayers" && t.d === 4)
+console.log("— l'effectif de la salle")
+// L'animateur reçoit un effectif à sa propre connexion : on ne compte que ce
+// qui arrive après, sans quoi la diffusion directe fausserait le total.
+const effectifsAvant = animateur.recus.filter(
+  (t) => t.e === "game:totalPlayers",
+).length
+const tEntree = Date.now()
+
+joueurs.forEach((j, i) =>
+  j.envoyer("player:login", { data: { username: `J${i}` } }),
+)
+
+const complet = await animateur.attendre(
+  (t) => t.e === "game:totalPlayers" && t.d === 4,
+  5000,
+)
+verifier(
+  "l'effectif finit par atteindre 4",
+  complet !== undefined,
+  "il est resté en arrière — le vidage n'a pas eu lieu",
+)
+verifier(
+  "sans faire attendre l'animateur",
+  complet && complet.a - tEntree < 2000,
+  complet ? `${complet.a - tEntree} ms` : "jamais reçu",
+)
+verifier(
+  "quatre arrivées groupées n'ont pas fait quatre diffusions",
+  animateur.recus.filter((t) => t.e === "game:totalPlayers").length -
+    effectifsAvant <
+    4,
+  `${animateur.recus.filter((t) => t.e === "game:totalPlayers").length - effectifsAvant} diffusions pour 4 arrivées`,
+)
 
 animateur.envoyer("manager:startGame", { gameId: partie.gameId })
 await animateur.attendre(

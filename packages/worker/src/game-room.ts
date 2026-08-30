@@ -75,6 +75,12 @@ interface EtatPartie {
   /* Échéance de suppression, armée quand la dernière socket se ferme et
      désarmée dès qu'une connexion revient. Null tant que quelqu'un est là. */
   finDeGrace: number | null
+  /* Diffusion regroupée de l'effectif — même mécanisme que le compteur de
+     réponses, voir `effectif`. Au niveau de la partie et non de la manche :
+     on entre et on sort d'une salle à tout moment, y compris entre deux
+     quiz, alors qu'une manche remet son compteur à zéro. */
+  effectifEnvoyeA: number
+  effectifDu: number | null
   /* Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
      et devait les transposer à chaque retour ; indexés par clientId, ils
      survivent d'eux-mêmes. */
@@ -145,6 +151,7 @@ export class GameRoom implements DurableObject {
       etat.manche.finDePhase,
       etat.finDeGrace,
       etat.manche.compteurDu ?? null,
+      etat.effectifDu ?? null,
     ].filter((d): d is number => typeof d === "number")
 
     if (echeances.length) {
@@ -205,6 +212,8 @@ export class GameRoom implements DurableObject {
       manche: mancheNeuve(),
       seq: 0,
       finDeGrace: null,
+      effectifEnvoyeA: 0,
+      effectifDu: null,
       dernierStatut: null,
       statutAnimateur: null,
       statutsJoueurs: {},
@@ -560,7 +569,7 @@ export class GameRoom implements DurableObject {
 
       if (joueur) {
         joueur.connected = false
-        this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+        this.effectif(etat)
       }
     }
 
@@ -673,6 +682,12 @@ export class GameRoom implements DurableObject {
       this.diffuser(EVENTS.GAME.PLAYER_ANSWER, etat.manche.reponses.length)
     }
 
+    if (etat.effectifDu && Date.now() >= etat.effectifDu) {
+      etat.effectifEnvoyeA = Date.now()
+      etat.effectifDu = null
+      this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+    }
+
     this.rattraper(etat)
     this.ecrire(etat)
   }
@@ -732,11 +747,15 @@ export class GameRoom implements DurableObject {
     }
 
     etat.players.push(joueur)
-    this.ecrire(etat)
 
     this.versAnimateur(etat, EVENTS.MANAGER.NEW_PLAYER, joueur)
-    this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+    this.effectif(etat)
     this.envoyer(ws, EVENTS.GAME.SUCCESS_JOIN, etat.gameId)
+
+    // Écrit APRÈS les émissions : `effectif` peut poser une échéance, et
+    // c'est `ecrire` qui la persiste et reprogramme l'alarme. Aucune attente
+    // entre la lecture et l'écriture — la règle du fichier tient.
+    this.ecrire(etat)
   }
 
   private exclure(qui: Attachement, charge: unknown) {
@@ -754,7 +773,6 @@ export class GameRoom implements DurableObject {
     }
 
     etat.players = etat.players.filter((p) => p.id !== playerId)
-    this.ecrire(etat)
 
     for (const ws of this.ctx.getWebSockets(joueur.clientId)) {
       this.envoyer(ws, EVENTS.GAME.RESET, "errors:game.kickedByManager")
@@ -762,7 +780,8 @@ export class GameRoom implements DurableObject {
     }
 
     this.versAnimateur(etat, EVENTS.MANAGER.PLAYER_KICKED, joueur.id)
-    this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+    this.effectif(etat)
+    this.ecrire(etat)
   }
 
   private async quitter(qui: Attachement) {
@@ -787,9 +806,9 @@ export class GameRoom implements DurableObject {
     }
 
     etat.players = etat.players.filter((p) => p.clientId !== qui.clientId)
-    this.ecrire(etat)
     this.versAnimateur(etat, EVENTS.MANAGER.REMOVE_PLAYER, qui.clientId)
-    this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+    this.effectif(etat)
+    this.ecrire(etat)
   }
 
   // ── Salle d'attente et enchaînement ─────────────────────────────────────
@@ -1072,6 +1091,36 @@ export class GameRoom implements DurableObject {
     } catch {
       // Socket morte mais pas encore signalée : webSocketClose suivra.
     }
+  }
+
+  /*
+   * L'effectif de la salle, diffusé à tous — mais pas à chaque arrivée.
+   *
+   * Même mécanisme que le compteur de réponses, et pour la même raison : une
+   * diffusion par arrivée, vers chaque socket, fait N² envois pour remplir
+   * une salle. Mesuré en production avant ce regroupement, six cents
+   * personnes qui scannent le QR code en même temps mettaient 21,6 s à
+   * entrer — de loin le pire chiffre du système une fois le chemin des
+   * réponses assaini.
+   *
+   * Le cas ordinaire ne change pas : des arrivées espacées de plus de 250 ms
+   * partent chacune immédiatement.
+   */
+  private effectif(etat: EtatPartie) {
+    const maintenant = Date.now()
+
+    // `?? 0` : une salle créée avant ce regroupement n'a pas le champ, et une
+    // soustraction sur undefined donnerait NaN — donc un effectif qui ne
+    // partirait plus jamais.
+    if (maintenant - (etat.effectifEnvoyeA ?? 0) >= PALIER_COMPTEUR) {
+      etat.effectifEnvoyeA = maintenant
+      etat.effectifDu = null
+      this.diffuser(EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
+
+      return
+    }
+
+    etat.effectifDu = (etat.effectifEnvoyeA ?? 0) + PALIER_COMPTEUR
   }
 
   /** L'équivalent de io.to(gameId).emit : toutes mes sockets, sans tri. */
