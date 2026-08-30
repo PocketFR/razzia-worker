@@ -12,6 +12,15 @@
  * DIMENSIONNÉE POUR UN TÉLÉVISEUR, pas pour un écran de bureau à cinquante
  * centimètres : cet écran se regarde de l'autre bout de la pièce, et la
  * première version, calée sur les tailles de l'éditeur, était illisible.
+ *
+ * Trois lignes, et non deux : à cette taille, « artiste · album · année » sur
+ * une seule ligne débordait, et la troncature emportait l'année — celle des
+ * trois qu'on devine le moins.
+ *
+ * L'album a sa ligne à lui car c'est presque toujours le champ le plus long
+ * (les mentions du genre « … (Deluxe Edition, Remastered 2011) » sont la
+ * règle). L'artiste et l'année, courts et complémentaires, tiennent ensemble
+ * en dessous sans risquer de se faire couper.
  */
 
 import { usePisteSpotify } from "@razzia/web/features/spotify/hooks/use-piste"
@@ -27,7 +36,7 @@ const CartePiste = ({ id }: Props) => {
     return null
   }
 
-  const details = [piste.artiste, piste.album, piste.annee ? String(piste.annee) : ""]
+  const signature = [piste.artiste, piste.annee ? String(piste.annee) : ""]
     .filter(Boolean)
     .join(" · ")
 
@@ -45,9 +54,16 @@ const CartePiste = ({ id }: Props) => {
         <p className="truncate text-3xl font-bold drop-shadow md:text-5xl">
           {piste.titre}
         </p>
-        <p className="mt-1 truncate text-lg opacity-85 md:mt-2 md:text-2xl">
-          {details}
-        </p>
+        {piste.album && (
+          <p className="mt-1 truncate text-lg opacity-80 md:mt-2 md:text-2xl">
+            {piste.album}
+          </p>
+        )}
+        {signature && (
+          <p className="mt-1 truncate text-lg opacity-85 md:text-2xl">
+            {signature}
+          </p>
+        )}
       </div>
     </div>
   )

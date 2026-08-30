@@ -258,9 +258,23 @@ function decrireTrack(t: any) {
   if (!t || !t.id) return null
   const album = t.album || {}
   const images = album.images || []
-  // Spotify classe les images de la plus grande à la plus petite : la
-  // dernière suffit pour une vignette et évite de charger du 640x640.
-  const cover = images.length ? images[images.length - 1].url : null
+  // On prend LA PLUS GRANDE. Ces métadonnées ne servaient au départ qu'à une
+  // vignette d'éditeur, et la plus petite (64 px) suffisait ; elles alimentent
+  // maintenant aussi la carte de fin de question, affichée sur un téléviseur,
+  // où ce format-là est franchement flou. Une pochette de 640 px pèse une
+  // cinquantaine de kilo-octets, chargée une fois par question : le confort de
+  // l'éditeur ne justifie pas de dégrader l'écran de jeu.
+  //
+  // L'ordre décroissant est documenté mais on ne s'y fie pas : un tableau
+  // renvoyé dans un autre ordre donnerait ici, en silence, la vignette.
+  let cover: string | null = null
+  let large = -1
+  for (const i of images) {
+    if (i && i.url && (i.width || 0) > large) {
+      cover = i.url
+      large = i.width || 0
+    }
+  }
 
   const artistes = []
   for (const a of t.artists || []) if (a && a.name) artistes.push(a.name)
