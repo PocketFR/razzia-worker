@@ -14,12 +14,12 @@ DOMAINE=quiz.exemple.fr \
 sh scripts/deployer.sh [chemin/vers/config]
 ```
 
-| Variable                | Rôle                                                                                                                                                                                               |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Obligatoire. Modèle « Modifier les Workers de Cloudflare » **plus** la permission « D1 : Modifier », qui n'est pas incluse dans le modèle.                                                         |
-| `CLOUDFLARE_ACCOUNT_ID` | Facultatif : déduit du jeton. À fournir seulement si le jeton voit plusieurs comptes — le script le dit alors, et les liste. |
-| `DOMAINE`               | Facultatif. Sans lui, l'adresse `workers.dev` sert. Le domaine doit être géré par Cloudflare.                                                                                                      |
-| `[chemin/vers/config]`  | Facultatif, et à usage unique : reprend les quiz et résultats d'une ancienne installation Razzia. Ignoré si la base contient déjà des quiz.                                                        |
+| Variable                | Rôle                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Obligatoire. Modèle « Modifier les Workers de Cloudflare » **plus** la permission « D1 : Modifier », qui n'est pas incluse dans le modèle.  |
+| `CLOUDFLARE_ACCOUNT_ID` | Facultatif : déduit du jeton. À fournir seulement si le jeton voit plusieurs comptes — le script le dit alors, et les liste.                |
+| `DOMAINE`               | Facultatif. Sans lui, l'adresse `workers.dev` sert. Le domaine doit être géré par Cloudflare.                                               |
+| `[chemin/vers/config]`  | Facultatif, et à usage unique : reprend les quiz et résultats d'une ancienne installation Razzia. Ignoré si la base contient déjà des quiz. |
 
 **Node 22 au minimum**, éprouvé jusqu'à node 26.
 
