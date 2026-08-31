@@ -124,7 +124,10 @@ const NOISE =
   /\b(live|remaster\w*|karaoke|tribute|instrumental|acoustic|demo|re-?recorded|sped\s*up|slowed|cover|version)\b/i
 const ALBUM_KO = new Set(["compilation"])
 
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const pause = (ms: number) =>
+  new Promise((r) => {
+    setTimeout(r, ms)
+  })
 
 // Les surcouches injectées par sub_filter (razzia-qr, media, spotify, auto,
 // fullscreen) ne sont plus servies ici : elles rejoignent packages/web à
@@ -422,9 +425,12 @@ function decoderHtml(texte: string): string {
     "&deg;": "°",
   }
 
-  return String(texte || "")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&[a-zA-Z]+;|&#\d+;/g, (e) => table[e] || e)
+  return (
+    texte ||
+    ""
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+      .replace(/&[a-zA-Z]+;|&#\d+;/g, (e) => table[e] || e)
+  )
 }
 
 /**
@@ -786,7 +792,7 @@ export function serieOrdonnee(reponses: string[]) {
 
   const valeurs = []
   for (const r of reponses) {
-    const texte = String(r).trim()
+    const texte = r.trim()
 
     if (!/^-?\d{1,6}$/.test(texte)) {
       return false
@@ -911,7 +917,7 @@ export function validerQuestion(
   let brute = champ(item, "s", "solution", "solutions")
 
   if (Array.isArray(brute)) {
-    brute = brute[0]
+    ;[brute] = brute
   }
 
   let index = null
@@ -1223,8 +1229,13 @@ async function construire(cles: Cles, titre: string, description: string) {
   // --- passe 2 : les deux sources, en parallèle ---------------------------
   const debut = Date.now()
 
+  // `categorie ?? 0` plutôt qu'une assertion : deux règles s'opposaient ici,
+  // l'une réclamant un « ! », l'autre l'interdisant. Ni l'une ni l'autre
+  // n'avait tort — une assertion cache le cas où la catégorie annoncée par
+  // l'IA ne figure pas dans la table. 0 est la valeur qu'OpenTDB comprend
+  // comme « toutes catégories », ce qui est exactement ce qu'on veut alors.
   const tacheCulture = partCulture
-    ? questionsOpenTDB(categorie as number, partCulture, difficulte).catch(
+    ? questionsOpenTDB(categorie ?? 0, partCulture, difficulte).catch(
         (e: unknown) => {
           console.error(`! opentdb: ${(e as Error).message}`)
 

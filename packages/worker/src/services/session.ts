@@ -21,7 +21,8 @@
 
 const encodeur = new TextEncoder()
 
-const DUREE_MS = 12 * 60 * 60 * 1000 // Une soirée, largement
+// Une soirée, largement
+const DUREE_MS = 12 * 60 * 60 * 1000
 
 const base64url = (octets: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(octets)))

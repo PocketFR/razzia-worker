@@ -36,6 +36,26 @@ let decalage = 0
 
 export const decalageHorloge = () => decalage
 
+// Ce que /api peut rendre, du point de vue de ce module.
+//
+// `corps` était typé `any`, ce qui faisait de chaque lecture un accès non
+// vérifié — quarante-six signalements du linter à lui seul. Le remplacer par
+// `unknown` aurait obligé à valider partout ; ce type-ci dit la vérité utile :
+// les champs sont FACULTATIFS, parce qu'une réponse d'erreur ne porte pas
+// ceux d'une réussite, et le code doit s'en accommoder de toute façon.
+//
+// L'index de fin garde la porte ouverte aux réponses que ce module ne lit pas
+// et se contente de transmettre — l'état des clés API, la configuration
+// animateur, un quiz complet.
+interface ReponseApi {
+  error?: string
+  token?: string
+  gameId?: string
+  inviteCode?: string
+  id?: string
+  [autre: string]: unknown
+}
+
 export class RazziaSocket {
   connected = false
 
@@ -168,7 +188,7 @@ export class RazziaSocket {
   private async appel(
     chemin: string,
     options: RequestInit = {},
-  ): Promise<{ statut: number; corps: any }> {
+  ): Promise<{ statut: number; corps: ReponseApi }> {
     // Le JSON n'est le type par défaut que parce que tout le reste de l'API
     // en parle ; le téléversement d'une image, lui, impose le sien.
     const entetes: Record<string, string> = {
@@ -183,7 +203,9 @@ export class RazziaSocket {
 
     try {
       const r = await fetch(`/api${chemin}`, { ...options, headers: entetes })
-      const corps = await r.json().catch(() => ({}))
+      // Le type dit ce que ce module lit ; l'objet vide couvre une réponse
+      // sans corps, qu'un 204 ou une erreur réseau peut produire.
+      const corps = (await r.json().catch(() => ({}))) as ReponseApi
 
       // Session expirée ou absente : c'est l'événement que le frontend
       // attendait déjà de socket.io pour renvoyer vers l'écran de connexion.
@@ -309,9 +331,11 @@ export class RazziaSocket {
         }).then(({ corps }) => {
           this.local(EVENTS.QUIZZ.GENERATED, {
             ok: Boolean(corps?.ok),
-            message: String(corps?.message ?? ""),
-            rapport: corps?.rapport,
-            questions: corps?.questions,
+            // `message` est un champ libre du type de réponse : on le
+            // ramène à une chaîne plutôt que de lui faire confiance.
+            message: typeof corps.message === "string" ? corps.message : "",
+            rapport: corps.rapport,
+            questions: corps.questions,
           })
 
           // Le quiz vient d'entrer en base : sans ce rechargement, la liste
@@ -458,7 +482,11 @@ export class RazziaSocket {
       return
     }
 
-    this.jeton = corps.token
+    // `?? null` : le champ est facultatif dans le type parce qu'une réponse
+    // d'erreur ne le porte pas. Un 200 sans jeton n'arrive pas, mais stocker
+    // `undefined` transformerait la prochaine requête en appel anonyme, dont
+    // le 401 n'aurait aucun rapport visible avec la cause.
+    this.jeton = corps.token ?? null
     // L'amont émettait la configuration dans la foulée de la connexion.
     await this.chargerConfig()
   }
@@ -504,11 +532,21 @@ export class RazziaSocket {
       return
     }
 
+    // Un 200 sans identifiant de partie ne devrait pas exister ; s'il
+    // existait, viser(undefined) ouvrirait une WebSocket vers nulle part et
+    // l'animateur resterait devant un écran figé sans message. Mieux vaut
+    // l'échec explicite.
+    if (!corps.gameId) {
+      this.local(EVENTS.GAME.ERROR_MESSAGE, "errors:game.failedToCreate")
+
+      return
+    }
+
     this.role = "manager"
     this.viser(corps.gameId)
     this.local(EVENTS.MANAGER.GAME_CREATED, {
       gameId: corps.gameId,
-      inviteCode: corps.inviteCode,
+      inviteCode: corps.inviteCode ?? "",
     })
   }
 
@@ -520,6 +558,12 @@ export class RazziaSocket {
         EVENTS.GAME.ERROR_MESSAGE,
         corps.error ?? "errors:game.notFound",
       )
+
+      return
+    }
+
+    if (!corps.gameId) {
+      this.local(EVENTS.GAME.ERROR_MESSAGE, "errors:game.notFound")
 
       return
     }
@@ -577,7 +621,7 @@ export class RazziaSocket {
       let trame: { e: string; d?: unknown }
 
       try {
-        trame = JSON.parse(String(ev.data))
+        trame = JSON.parse(String(ev.data)) as { e: string; d?: unknown }
       } catch {
         return
       }

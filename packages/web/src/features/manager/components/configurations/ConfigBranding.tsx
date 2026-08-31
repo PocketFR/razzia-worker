@@ -58,7 +58,7 @@ const ConfigBranding = () => {
   })
 
   useEvent(EVENTS.BRANDING.ERROR, (message) => {
-    toast.error(t(String(message)))
+    toast.error(t(message))
   })
 
   useEvent(EVENTS.BRANDING.SAVED, () => {
@@ -68,14 +68,17 @@ const ConfigBranding = () => {
   const couleur = (nom: string) => theme.colors?.[nom] ?? ""
 
   const poserCouleur = (nom: string) => (valeur: string) =>
-    setTheme((t) => ({ ...t, colors: { ...t.colors, [nom]: valeur } }))
+    setTheme((precedent) => ({
+      ...precedent,
+      colors: { ...precedent.colors, [nom]: valeur },
+    }))
 
   const poserReponse = (index: number) => (valeur: string) =>
-    setTheme((t) => {
-      const liste = [...(t.answerColors ?? ["", "", "", ""])]
+    setTheme((precedent) => {
+      const liste = [...(precedent.answerColors ?? ["", "", "", ""])]
       liste[index] = valeur
 
-      return { ...t, answerColors: liste }
+      return { ...precedent, answerColors: liste }
     })
 
   const televerser = (nom: NomImage) => (fichier: File) => {
@@ -112,7 +115,10 @@ const ConfigBranding = () => {
               variant="sm"
               value={theme.appName ?? ""}
               onChange={(e) =>
-                setTheme((t) => ({ ...t, appName: e.target.value }))
+                setTheme((precedent) => ({
+                  ...precedent,
+                  appName: e.target.value,
+                }))
               }
             />
           </label>
@@ -124,9 +130,9 @@ const ConfigBranding = () => {
               placeholder="Rubik"
               value={theme.font?.family ?? ""}
               onChange={(e) =>
-                setTheme((t) => ({
-                  ...t,
-                  font: { ...t.font, family: e.target.value },
+                setTheme((precedent) => ({
+                  ...precedent,
+                  font: { ...precedent.font, family: e.target.value },
                 }))
               }
             />
@@ -139,9 +145,12 @@ const ConfigBranding = () => {
               placeholder="https://fonts.googleapis.com/css2?family=…"
               value={theme.font?.url ?? ""}
               onChange={(e) =>
-                setTheme((t) => ({
-                  ...t,
-                  font: { family: t.font?.family ?? "", url: e.target.value },
+                setTheme((precedent) => ({
+                  ...precedent,
+                  font: {
+                    family: precedent.font?.family ?? "",
+                    url: e.target.value,
+                  },
                 }))
               }
             />
@@ -205,9 +214,12 @@ const ConfigBranding = () => {
               className="accent-primary mt-1 size-4 shrink-0"
               checked={theme.sounds?.answersMusic === true}
               onChange={(e) =>
-                setTheme((t) => ({
-                  ...t,
-                  sounds: { ...t.sounds, answersMusic: e.target.checked },
+                setTheme((precedent) => ({
+                  ...precedent,
+                  sounds: {
+                    ...precedent.sounds,
+                    answersMusic: e.target.checked,
+                  },
                 }))
               }
             />
@@ -260,7 +272,10 @@ const ConfigBranding = () => {
                     disabled={Boolean(televersee)}
                     value={theme[nom] ?? ""}
                     onChange={(e) =>
-                      setTheme((t) => ({ ...t, [nom]: e.target.value }))
+                      setTheme((precedent) => ({
+                        ...precedent,
+                        [nom]: e.target.value,
+                      }))
                     }
                   />
 

@@ -18,7 +18,13 @@ interface SpotifyGlobal {
 }
 
 interface LecteurSDK {
-  addListener: (_e: string, _cb: (_d: any) => void) => void
+  addListener: (
+    _e: string,
+    // Les deux formes que le SDK envoie : l'annonce du device, et les
+    // erreurs. Un `any` laissait passer n'importe quoi ; un `unknown`
+    // obligerait à valider ce que le SDK garantit déjà.
+    _cb: (_d: { device_id?: string; message?: string }) => void,
+  ) => void
   connect: () => Promise<boolean>
   disconnect: () => void
   /* Débloque l'élément audio du SDK. Voir activerAudio plus bas. */
@@ -72,7 +78,16 @@ export const demarrerLecteur = async (
     return false
   }
 
-  lecteur = new window.Spotify!.Player({
+  // Charger le SDK ne rend la main qu'une fois window.Spotify posé, mais
+  // s'en remettre à un « ! » transformerait le moindre écart en TypeError
+  // sans message. Un refus explicite se lit dans la console.
+  if (!window.Spotify) {
+    console.error("[spotify] SDK chargé sans exposer window.Spotify")
+
+    return false
+  }
+
+  lecteur = new window.Spotify.Player({
     name: "Razzia",
     getOAuthToken: (cb) => {
       void jeton(clientId).then((v) => v && cb(v))
@@ -81,7 +96,9 @@ export const demarrerLecteur = async (
   })
 
   lecteur.addListener("ready", ({ device_id }) => {
-    deviceId = device_id
+    // `?? null` : le champ est facultatif dans le type, parce que le même
+    // rappel sert aussi aux erreurs, qui ne le portent pas.
+    deviceId = device_id ?? null
     console.log("[spotify] lecteur prêt")
   })
 
@@ -154,9 +171,7 @@ export const arreterLecteur = () => {
 
 /** "spotify:ID:offset" -> {id, depart}, ou null. */
 export const lireMedia = (media?: { url?: string } | null) => {
-  const m = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/.exec(
-    String(media?.url ?? ""),
-  )
+  const m = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/.exec(media?.url ?? "")
 
   return m ? { id: m[1], depart: parseInt(m[2], 10) || 0 } : null
 }
@@ -169,8 +184,15 @@ export const jouer = async (clientId: string, id: string, depart: number) => {
   }
 
   // Le device met un instant à être annoncé après connect().
+  //
+  // deviceId est posé par l'écouteur « ready » du SDK, que l'analyse statique
+  // ne relie pas à cette boucle : elle la croit donc infinie. C'est bien une
+  // attente active, bornée à deux secondes.
+  // oxlint-disable-next-line no-unmodified-loop-condition
   for (let i = 0; i < 20 && !deviceId; i++) {
-    await new Promise((r) => setTimeout(r, 100))
+    await new Promise((r) => {
+      setTimeout(r, 100)
+    })
   }
 
   if (!deviceId) {

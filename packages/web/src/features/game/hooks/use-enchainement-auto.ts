@@ -122,19 +122,26 @@ export const useEnchainementAuto = (gameId: string | null) => {
           return
         }
 
+        // La partie est CAPTURÉE ici, et pas relue dans les fermetures.
+        //
+        // Celles-ci s'exécutent après un délai : entre la garde ci-dessus et
+        // leur déclenchement, la référence peut être redevenue nulle — une
+        // partie terminée, un animateur qui a quitté. On émettait alors avec
+        // un gameId nul, ce qu'un `!` masquait au compilateur.
+        const partie = partieRef.current
         const index = avancement.current?.current
         const total = avancement.current?.total
         const derniere = Boolean(total && index === total)
 
         const suivante = () =>
           socket.emit(EVENTS.MANAGER.NEXT_QUESTION, {
-            gameId: partieRef.current!,
+            gameId: partie,
           })
 
         if (index && (index % TOUS_LES === 0 || derniere)) {
           planifier(() => {
             socket.emit(EVENTS.MANAGER.SHOW_LEADERBOARD, {
-              gameId: partieRef.current!,
+              gameId: partie,
             })
             // La seconde attente est posée DEPUIS la première : c'est elle
             // que le nettoyage d'un effet supprimait.

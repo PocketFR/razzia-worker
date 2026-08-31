@@ -32,14 +32,8 @@ jobs:
       - name: Format
         run: pnpm format
 
-      # NON BLOQUANT, et c'est une dette assumée plutôt qu'un oubli. Le paquet
-      # worker n'avait jamais été passé au linter : il reste 241 signalements,
-      # presque tous de style, dans du code écrit pour ce portage. Les rendre
-      # bloquants aujourd'hui rendrait la CI rouge en permanence, ce qui revient
-      # à ne plus la lire. Le compte doit descendre, pas la règle disparaître.
       - name: Lint
         run: pnpm lint
-        continue-on-error: true
 
       # tsc -b, et non tsc -p : la configuration du paquet web déclare
       # « files: [] », si bien que -p ne vérifierait rigoureusement rien.

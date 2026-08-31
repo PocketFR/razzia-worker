@@ -67,7 +67,8 @@ export async function routerApi(
   }
 
   const config = createConfigService(env.DB)
-  const segments = url.pathname.split("/").filter(Boolean).slice(1) // Après "api"
+  // Après "api"
+  const segments = url.pathname.split("/").filter(Boolean).slice(1)
   const [section, ...reste] = segments
   const methode = request.method
 
@@ -108,7 +109,7 @@ export async function routerApi(
 
   // --- joueur : vérification du PIN, sans authentification -----------------
   if (section === "pin" && methode === "GET") {
-    const code = reste[0]
+    const [code] = reste
 
     if (!code) {
       return erreur("errors:game.notFound", 400)
@@ -177,7 +178,7 @@ export async function routerApi(
   // ("errors:quizz.tooManyAnswers"...). Laisser remonter le message brut d'un
   // « not found » afficherait de l'anglais non traduit à l'animateur.
   if (section === "quizz") {
-    const id = reste[0]
+    const [id] = reste
 
     if (methode === "GET" && id) {
       try {
@@ -248,7 +249,7 @@ export async function routerApi(
   // sait envoyer que du JSON. Le surcoût d'encodage est de 33 % sur une image
   // téléversée une fois de temps en temps — le prix d'un chemin unique.
   if (section === "branding") {
-    const cible = reste[0]
+    const [cible] = reste
 
     if (methode === "GET" && !cible) {
       // Le thème EFFECTIF, pas seulement celui de la base : sans quoi l'écran
@@ -256,17 +257,15 @@ export async function routerApi(
       // fichiers du build, et l'enregistrer effacerait ce qui s'y trouvait.
       let theme = await lireTheme(env.DB)
 
-      if (!theme) {
-        theme = await env.ASSETS.fetch(
-          new URL("/branding/theme.json", url).toString(),
-        )
-          // json<Theme>() et non « as Promise<Theme> » : le correcteur
-          // automatique du linter a supprimé cette assertion en la croyant
-          // superflue, et la compilation est tombée — r.json() rend un
-          // `unknown`. La forme générique dit la même chose sans assertion.
-          .then((r) => (r.ok ? r.json<Theme>() : null))
-          .catch(() => null)
-      }
+      theme ??= await env.ASSETS.fetch(
+        new URL("/branding/theme.json", url).toString(),
+      )
+        // Json<Theme>() et non « as Promise<Theme> » : le correcteur
+        // automatique du linter a supprimé cette assertion en la croyant
+        // superflue, et la compilation est tombée — r.json() rend un
+        // `unknown`. La forme générique dit la même chose sans assertion.
+        .then((r) => (r.ok ? r.json<Theme>() : null))
+        .catch(() => null)
 
       return json({
         theme,
@@ -313,7 +312,7 @@ export async function routerApi(
         //
         // Le corps brut se lit en 0,8 ms, et évite au passage le tiers de
         // volume que l'encodage ajoutait.
-        const mime = (request.headers.get("content-type") ?? "").split(";")[0]
+        const [mime] = (request.headers.get("content-type") ?? "").split(";")
 
         if (!MIMES.has(mime)) {
           return erreur("errors:branding.badType", 400)
@@ -358,7 +357,7 @@ export async function routerApi(
   }
 
   if (section === "results") {
-    const id = reste[0]
+    const [id] = reste
 
     if (methode === "GET" && id) {
       try {

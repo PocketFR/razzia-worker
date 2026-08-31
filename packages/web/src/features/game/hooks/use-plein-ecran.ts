@@ -27,18 +27,21 @@ const demander = () => {
   const racine = document.documentElement as HTMLElement & {
     webkitRequestFullscreen?: () => Promise<void>
   }
-  const fn = racine.requestFullscreen ?? racine.webkitRequestFullscreen
+  const fn =
+    racine.requestFullscreen?.bind(racine) ??
+    racine.webkitRequestFullscreen?.bind(racine)
 
-  return fn ? fn.call(racine) : null
+  return fn ? fn() : null
 }
 
 const quitter = () => {
   const doc = document as Document & {
     webkitExitFullscreen?: () => Promise<void>
   }
-  const fn = doc.exitFullscreen ?? doc.webkitExitFullscreen
+  const fn =
+    doc.exitFullscreen?.bind(doc) ?? doc.webkitExitFullscreen?.bind(doc)
 
-  return fn ? fn.call(doc) : null
+  return fn ? fn() : null
 }
 
 const actif = () => {

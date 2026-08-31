@@ -57,12 +57,6 @@ export interface Env {
   SPOTIFY_CLIENT_SECRET?: string
 }
 
-const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  })
-
 // Balayage quotidien des parties anciennes.
 //
 // Le nettoyage par alarme ne suffit pas, et pour une raison structurelle :

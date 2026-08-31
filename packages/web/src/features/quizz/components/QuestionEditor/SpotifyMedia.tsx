@@ -31,6 +31,7 @@ import {
   URI_SPOTIFY,
   usePisteSpotify,
   type Piste,
+  type ReponseSpotify,
 } from "@razzia/web/features/spotify/hooks/use-piste"
 import { Pause, Play } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -97,7 +98,7 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
     try {
       const d = await fetch(`/spotify/search?q=${encodeURIComponent(q)}`, {
         cache: "no-store",
-      }).then((r) => r.json())
+      }).then((r) => r.json() as Promise<ReponseSpotify>)
 
       if (!d?.ok || !d.tracks?.length) {
         setMessage(t("question.spotify.noResult"))

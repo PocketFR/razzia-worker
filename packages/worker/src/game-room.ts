@@ -201,7 +201,7 @@ export class GameRoom implements DurableObject {
     const etat: EtatPartie = {
       gameId,
       inviteCode: ligne.inviteCode,
-      quizz: { id: quiz.id, ...JSON.parse(quiz.json) },
+      quizz: { ...(JSON.parse(quiz.json) as QuizzWithId), id: quiz.id },
       managerClientId: ligne.managerClientId,
       players: [],
       manche: mancheNeuve(),
@@ -382,7 +382,8 @@ export class GameRoom implements DurableObject {
         etat.dernierStatut = { name, data }
         etat.statutAnimateur = null
         etat.statutsJoueurs = {}
-        this.diffuser(EVENTS.GAME.STATUS, { name, data, seq: ++etat.seq })
+        etat.seq += 1
+        this.diffuser(EVENTS.GAME.STATUS, { name, data, seq: etat.seq })
       },
 
       // LE COMPTEUR DE RÉPONSES, REGROUPÉ. C'est ce qui décide de la taille
@@ -430,19 +431,21 @@ export class GameRoom implements DurableObject {
 
       statutAnimateur: (name, data) => {
         etat.statutAnimateur = { name, data }
+        etat.seq += 1
         this.versAnimateur(etat, EVENTS.GAME.STATUS, {
           name,
           data,
-          seq: ++etat.seq,
+          seq: etat.seq,
         })
       },
 
       statutJoueur: (clientId, name, data) => {
         etat.statutsJoueurs[clientId] = { name, data }
+        etat.seq += 1
         this.versJoueur(clientId, EVENTS.GAME.STATUS, {
           name,
           data,
-          seq: ++etat.seq,
+          seq: etat.seq,
         })
       },
 
@@ -481,8 +484,15 @@ export class GameRoom implements DurableObject {
 
     let trame: { e: string; d?: unknown }
 
+    // Une trame binaire n'est pas des nôtres : String() en ferait
+    // « [object ArrayBuffer] », que JSON.parse rejetterait — mais par accident
+    // plutôt que par décision. On l'écarte franchement.
+    if (typeof message !== "string") {
+      return
+    }
+
     try {
-      trame = JSON.parse(String(message))
+      trame = JSON.parse(message) as { e: string; d?: unknown }
     } catch {
       return
     }
@@ -498,7 +508,15 @@ export class GameRoom implements DurableObject {
 
         return
 
+      // Les deux départs font la même chose. Deux corps identiques plutôt
+      // qu'une chute d'un `case` à l'autre : la règle de style impose une
+      // ligne vide entre deux étiquettes, ce qui fait ressembler l'étiquette
+      // vide à un corps oublié — et personne, humain ou linter, ne peut alors
+      // distinguer l'intention de l'erreur.
       case EVENTS.PLAYER.LEAVE:
+        await this.quitter(qui)
+
+        return
 
       case EVENTS.MANAGER.LEAVE:
         await this.quitter(qui)
@@ -600,7 +618,9 @@ export class GameRoom implements DurableObject {
         .bind(etat.gameId)
         .run()
         .then(() => undefined)
-        .catch((e) => console.error("suppression du PIN impossible :", e)),
+        .catch((e: unknown) =>
+          console.error("suppression du PIN impossible :", e),
+        ),
     )
 
     // DeleteAll efface aussi l'alarme : rien ne rappellera cet objet.
@@ -864,7 +884,7 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    etat.quizz = { id: quiz.id, ...JSON.parse(quiz.json) }
+    etat.quizz = { ...(JSON.parse(quiz.json) as QuizzWithId), id: quiz.id }
     etat.manche = mancheNeuve()
 
     // Les scores sont le seul choix laissé à l'animateur : conservés, le

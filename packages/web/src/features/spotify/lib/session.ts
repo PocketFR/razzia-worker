@@ -19,7 +19,9 @@ export interface SessionSpotify {
 
 export const lireSession = (): SessionSpotify | null => {
   try {
-    return JSON.parse(localStorage.getItem(CLE) ?? "null")
+    return JSON.parse(
+      localStorage.getItem(CLE) ?? "null",
+    ) as SessionSpotify | null
   } catch {
     return null
   }

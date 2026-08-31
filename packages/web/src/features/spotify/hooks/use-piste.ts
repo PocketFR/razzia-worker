@@ -20,6 +20,19 @@ export interface Piste {
   cover: string | null
 }
 
+// Ce que rendent /spotify/track et /spotify/search.
+//
+// Sans ce type, `r.json()` rend un `any` et chaque lecture devient un accès
+// non vérifié. Les champs sont facultatifs parce qu'une réponse d'échec ne
+// porte que `ok: false` et un message : le code doit s'en accommoder, et le
+// type le dit au lieu de le laisser deviner.
+export interface ReponseSpotify {
+  ok?: boolean
+  track?: Piste
+  tracks?: Piste[]
+  message?: string
+}
+
 const cache = new Map<string, Piste>()
 
 export const lireUri = (url?: string) => {
@@ -61,7 +74,7 @@ export const usePisteSpotify = (id: string): EtatPiste => {
     setEtat({ piste: null, introuvable: false })
 
     void fetch(`/spotify/track/${id}`, { cache: "no-store" })
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<ReponseSpotify>)
       .then((d) => {
         if (!vivant) {
           return

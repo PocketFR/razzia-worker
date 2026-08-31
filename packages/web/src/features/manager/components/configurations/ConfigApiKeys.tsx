@@ -57,7 +57,7 @@ const ConfigApiKeys = () => {
   })
 
   useEvent(EVENTS.SETTINGS.ERROR, (erreur) => {
-    toast.error(t(String(erreur)))
+    toast.error(t(erreur))
   })
 
   useEvent(EVENTS.SETTINGS.PASSWORD_OK, () => {
