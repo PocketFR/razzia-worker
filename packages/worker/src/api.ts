@@ -129,6 +129,29 @@ export async function routerApi(
     return json({ gameId: partie.gameId })
   }
 
+  /*
+   * Une partie existe-t-elle encore ? Publique, comme la résolution de PIN.
+   *
+   * Elle sert au client à distinguer deux échecs que la WebSocket confond :
+   * le navigateur ne montre pas le code HTTP d'une ouverture refusée — un
+   * refus arrive comme une fermeture 1006, exactement comme une coupure
+   * réseau. Sans ce point d'appui, un onglet laissé ouvert sur une partie
+   * terminée retente indéfiniment, faute de pouvoir apprendre qu'elle ne
+   * reviendra jamais.
+   *
+   * Elle ne divulgue rien de plus que /pin/<code>, qui est publique aussi :
+   * l'existence d'un identifiant, à qui le connaît déjà.
+   */
+  if (section === "game" && methode === "GET" && reste[0]) {
+    const partie = await env.DB.prepare(
+      `SELECT 1 AS present FROM games WHERE game_id = ?`,
+    )
+      .bind(reste[0])
+      .first<{ present: number }>()
+
+    return partie ? json({ present: true }) : erreur("errors:game.notFound", 404)
+  }
+
   // --- tout ce qui suit exige la session animateur -------------------------
   if (!(await authentifie())) {
     return erreur("errors:manager.unauthorized", 401)

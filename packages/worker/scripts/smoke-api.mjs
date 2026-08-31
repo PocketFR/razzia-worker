@@ -186,6 +186,16 @@ const inconnu = await appel("/pin/000000")
 verifier("PIN inconnu : 404", inconnu.statut === 404)
 verifier("clé i18n connue", cleExiste(inconnu.corps.error), inconnu.corps.error)
 
+// Le client s'en sert pour savoir s'il doit continuer à retenter : le
+// navigateur ne lui montre pas le code d'une ouverture de WebSocket refusée.
+// Sans authentification, comme la résolution de PIN — un joueur n'en a pas.
+const vivante = await appel(`/game/${partie.corps.gameId}`)
+verifier("partie vivante reconnue, sans jeton", vivante.statut === 200)
+
+const effacee = await appel("/game/00000000-1111-2222-3333-444444444444")
+verifier("partie inconnue : 404", effacee.statut === 404, `reçu ${effacee.statut}`)
+verifier("clé i18n connue", cleExiste(effacee.corps.error), effacee.corps.error)
+
 const sansQuiz = await appel("/game", {
   ...json({ quizzId: "bidon", clientId: "client-de-test" }),
   headers: { ...auth.headers, "content-type": "application/json" },

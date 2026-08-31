@@ -638,16 +638,71 @@ export class RazziaSocket {
     })
   }
 
-  /** Reconnexion à délai croissant, plafonnée — l'amont réessayait sans fin. */
+  /*
+   * Reconnexion à délai croissant, plafonnée — l'amont réessayait sans fin.
+   *
+   * MAIS ON ABANDONNE quand la partie a disparu, et c'est tout l'objet du
+   * détour par /api/game. Le navigateur ne montre pas le code HTTP d'une
+   * ouverture de WebSocket refusée : un 404 arrive comme une fermeture 1006,
+   * indiscernable d'une coupure réseau. Or les deux appellent des conduites
+   * opposées — on retente une coupure, jamais une salle effacée.
+   *
+   * Sans cette distinction, un onglet laissé ouvert sur une partie terminée
+   * rouvre une WebSocket toutes les quinze secondes pour toujours. Observé
+   * en production : une à deux requêtes par heure toute la nuit, personne ne
+   * jouant, chacune instanciant un Durable Object pour se faire refuser.
+   *
+   * La question n'est posée qu'après quelques échecs. Une reconnexion
+   * ordinaire, celle d'un téléphone qui change de réseau au milieu d'une
+   * question, réussit bien avant et ne coûte donc rien de plus.
+   */
+  private static readonly AVANT_DE_DEMANDER = 3
+
   private reessayer() {
     this.tentatives += 1
     const delai = Math.min(1000 * 2 ** (this.tentatives - 1), 15000)
 
     setTimeout(() => {
-      if (!this.ferme && this.gameId) {
-        this.ouvrir()
+      if (this.ferme || !this.gameId) {
+        return
       }
+
+      if (this.tentatives < RazziaSocket.AVANT_DE_DEMANDER) {
+        this.ouvrir()
+
+        return
+      }
+
+      void this.existeEncore().then((existe) => {
+        if (this.ferme || !this.gameId) {
+          return
+        }
+
+        if (existe) {
+          this.ouvrir()
+
+          return
+        }
+
+        // Définitif : la salle a été effacée. On cesse de retenter et on
+        // renvoie l'écran à l'accueil, plutôt que de laisser un joueur devant
+        // un « reconnexion… » qui n'aboutira jamais.
+        this.ferme = true
+        this.gameId = null
+        this.local(EVENTS.GAME.RESET, "errors:game.notFound")
+      })
     }, delai)
+  }
+
+  /**
+   * La partie existe-t-elle encore ? `null` signifie « on ne sait pas » —
+   * l'appel lui-même a échoué, ce qui est le cas d'une vraie coupure réseau.
+   * Le doute profite à la reconnexion.
+   */
+  private async existeEncore(): Promise<boolean> {
+    const { statut } = await this.appel(`/game/${this.gameId}`)
+
+    return statut !== 404
   }
 }
 

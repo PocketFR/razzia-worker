@@ -16,6 +16,7 @@ import assert from "node:assert"
 class FauxWS {
   static OPEN = 1
   constructor(url) {
+    FauxWS.ouvertures = (FauxWS.ouvertures ?? 0) + 1
     FauxWS.dernier = this
     this.url = url
     this.readyState = 0
@@ -126,6 +127,95 @@ verifier(
   "sans rouvrir de WebSocket vers la partie quittée",
   FauxWS.dernier.readyState === 3,
 )
+
+// ── une salle effacée : on cesse de retenter ──────────────────────────────
+//
+// Le navigateur ne montre pas le code HTTP d'une ouverture refusée : un 404
+// arrive comme une fermeture 1006, indiscernable d'une coupure réseau. Le
+// shim va donc le demander à /api/game — et ce test veille à ce qu'il le
+// fasse, et à ce qu'il s'arrête vraiment. Sans cela, un onglet abandonné
+// rouvre une WebSocket toutes les quinze secondes pour toujours.
+
+const vraiSetTimeout = globalThis.setTimeout
+// Le temps ne doit pas ralentir le test : les délais de reprise montent
+// jusqu'à quinze secondes.
+globalThis.setTimeout = (fn) => vraiSetTimeout(fn, 0)
+
+let interrogations = 0
+globalThis.fetch = async (url) => {
+  if (String(url).includes("/api/game/")) {
+    interrogations += 1
+
+    return { status: 404, json: async () => ({ error: "errors:game.notFound" }) }
+  }
+
+  return { status: 200, json: async () => ({}) }
+}
+
+const efface = new RazziaSocket()
+efface.configurer("client-4")
+
+let remise = null
+efface.on("game:reset", (m) => { remise = m })
+efface.viser("partie-effacee")
+
+const souffler = () => new Promise((r) => vraiSetTimeout(r, 5))
+
+// Chaque fermeture relance une tentative. Au bout de quelques-unes, le shim
+// doit poser la question au lieu de rouvrir aveuglément.
+for (let i = 0; i < 8 && remise === null; i++) {
+  FauxWS.dernier.close()
+  await souffler()
+}
+
+verifier(
+  "le shim a fini par demander si la partie existe",
+  interrogations >= 1,
+  `${interrogations} interrogation(s)`,
+)
+verifier(
+  "il n'a pas demandé dès la première coupure",
+  interrogations < 8,
+  `${interrogations} interrogation(s) pour 8 coupures`,
+)
+verifier(
+  "l'écran est renvoyé à l'accueil",
+  remise === "errors:game.notFound",
+  String(remise),
+)
+
+const ouverturesALArret = FauxWS.ouvertures
+await souffler()
+await souffler()
+verifier(
+  "et plus aucune WebSocket n'est ouverte ensuite",
+  FauxWS.ouvertures === ouverturesALArret,
+  `${FauxWS.ouvertures - ouverturesALArret} ouverture(s) de trop`,
+)
+
+// Le doute profite à la reconnexion : un appel qui échoue lui-même ne prouve
+// pas que la salle a disparu — c'est le cas d'une vraie coupure réseau.
+globalThis.fetch = async () => { throw new Error("réseau coupé") }
+
+const coupe = new RazziaSocket()
+coupe.configurer("client-5")
+
+let remiseCoupe = null
+coupe.on("game:reset", (m) => { remiseCoupe = m })
+coupe.viser("partie-vivante")
+
+for (let i = 0; i < 6; i++) {
+  FauxWS.dernier.close()
+  await souffler()
+}
+
+verifier(
+  "une coupure réseau ne fait pas abandonner",
+  remiseCoupe === null,
+  String(remiseCoupe),
+)
+
+globalThis.setTimeout = vraiSetTimeout
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)
