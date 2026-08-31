@@ -22,8 +22,8 @@
 # une première visite à la page Workers du tableau de bord. Aucune API ne le
 # crée. Le script le dit s'il tombe dessus, mais autant le savoir avant.
 #
-# CLOUDFLARE_ACCOUNT_ID est utile dès qu'une machine a déployé sur plusieurs
-# comptes : wrangler garde un cache local et vise sinon le mauvais.
+# CLOUDFLARE_ACCOUNT_ID est déduit du jeton quand il n'est pas fourni. Ne le
+# renseigner que si le jeton voit plusieurs comptes.
 set -e
 
 CONFIG_SOURCE="$1"
@@ -53,6 +53,45 @@ compter() {
         process.stdout.write(String(Object.values(l)[0]))}catch{process.stdout.write("")}})' \
     2>/dev/null || true
 }
+
+# Le compte, déduit du jeton plutôt que demandé.
+#
+# ET SURTOUT EXPORTÉ. Wrangler sait retrouver le compte tout seul, mais il
+# garde un cache local dans .wrangler : sur une machine ayant déjà déployé
+# ailleurs, il vise le compte précédent et rend une erreur d'authentification
+# qui n'évoque pas la cause. Poser la variable règle la question pour toutes
+# les commandes qui suivent.
+if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+  COMPTES=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+    "https://api.cloudflare.com/client/v4/accounts" \
+    | node -e 'let e="";process.stdin.on("data",d=>e+=d).on("end",()=>{
+        try{const r=JSON.parse(e)
+        if(!r.success)process.exit(0)
+        for(const c of r.result)console.log(c.id+" "+c.name)}catch{}})' || true)
+
+  NOMBRE=$(printf "%s" "$COMPTES" | grep -c . || true)
+
+  if [ "${NOMBRE:-0}" -eq 1 ]; then
+    CLOUDFLARE_ACCOUNT_ID=$(printf "%s" "$COMPTES" | cut -d" " -f1)
+    export CLOUDFLARE_ACCOUNT_ID
+    echo "== compte Cloudflare"
+    echo "   déduit du jeton : $(printf "%s" "$COMPTES" | cut -d" " -f2-)"
+  elif [ "${NOMBRE:-0}" -gt 1 ]; then
+    echo "! Ce jeton voit plusieurs comptes. Choisir lequel avec" >&2
+    echo "  CLOUDFLARE_ACCOUNT_ID=<id> :" >&2
+    printf "%s\n" "$COMPTES" | sed "s/^/      /" >&2
+    exit 1
+  else
+    echo "! Impossible de déduire le compte : le jeton ne peut pas lister les" >&2
+    echo "  comptes. Le fournir explicitement avec CLOUDFLARE_ACCOUNT_ID=<id>," >&2
+    echo "  visible sur la page d'accueil du tableau de bord Cloudflare." >&2
+    exit 1
+  fi
+else
+  export CLOUDFLARE_ACCOUNT_ID
+  echo "== compte Cloudflare"
+  echo "   fourni : $CLOUDFLARE_ACCOUNT_ID"
+fi
 
 echo "== 1. configuration locale"
 if [ ! -f wrangler.jsonc ]; then

@@ -45,7 +45,6 @@ pnpm install
 
 cd packages/worker
 CLOUDFLARE_API_TOKEN=<jeton> \
-CLOUDFLARE_ACCOUNT_ID=<id du compte> \
 DOMAINE=quiz.exemple.fr \
 sh scripts/deployer.sh
 ```

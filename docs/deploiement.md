@@ -10,7 +10,6 @@ il se rejoue sans dommage après un échec en cours de route.
 cd packages/worker
 
 CLOUDFLARE_API_TOKEN=<jeton> \
-CLOUDFLARE_ACCOUNT_ID=<id du compte> \
 DOMAINE=quiz.exemple.fr \
 sh scripts/deployer.sh [chemin/vers/config]
 ```
@@ -18,7 +17,7 @@ sh scripts/deployer.sh [chemin/vers/config]
 | Variable                | Rôle                                                                                                                                                                                               |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CLOUDFLARE_API_TOKEN`  | Obligatoire. Modèle « Modifier les Workers de Cloudflare » **plus** la permission « D1 : Modifier », qui n'est pas incluse dans le modèle.                                                         |
-| `CLOUDFLARE_ACCOUNT_ID` | Théoriquement facultatif. À mettre systématiquement : wrangler garde un cache local et vise sinon le dernier compte utilisé, avec une erreur d'authentification qui n'évoque pas du tout la cause. |
+| `CLOUDFLARE_ACCOUNT_ID` | Facultatif : déduit du jeton. À fournir seulement si le jeton voit plusieurs comptes — le script le dit alors, et les liste. |
 | `DOMAINE`               | Facultatif. Sans lui, l'adresse `workers.dev` sert. Le domaine doit être géré par Cloudflare.                                                                                                      |
 | `[chemin/vers/config]`  | Facultatif, et à usage unique : reprend les quiz et résultats d'une ancienne installation Razzia. Ignoré si la base contient déjà des quiz.                                                        |
 
@@ -66,6 +65,12 @@ problème : une route de domaine dédié n'a pas besoin de `workers.dev`.
 
 **Le jeton sans la permission D1** échoue à l'étape 3 sur une erreur
 d'authentification laconique.
+
+**Wrangler garde un cache de compte** dans `.wrangler`. Sur une machine ayant
+déjà déployé ailleurs, il visait le compte précédent et rendait une erreur
+d'authentification sans rapport visible avec la cause. Le script pose
+maintenant `CLOUDFLARE_ACCOUNT_ID` lui-même, ce qui tranche la question pour
+toutes les commandes qui suivent.
 
 **Une copie de travail vaut une installation.** `wrangler.jsonc` n'étant pas
 versionné et ne décrivant qu'un déploiement, en gérer deux depuis le même
