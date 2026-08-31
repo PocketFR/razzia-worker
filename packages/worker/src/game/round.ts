@@ -42,6 +42,7 @@ import type {
   QuizzWithId,
 } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
+import { estPari, PARIS, type Tirage } from "@razzia/common/paris"
 import { derouler, type Etape } from "@razzia/common/deroulement"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
@@ -53,6 +54,7 @@ export const PHASE = {
   ENONCE: "SHOW_QUESTION",
   REPONSES: "SELECT_ANSWER",
   ANNONCE: "SHOW_INTERLUDE",
+  TIRAGE: "SHOW_DRAW",
 } as const
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE]
@@ -82,6 +84,17 @@ export interface Manche {
   enLice: string[] | null
   /* Le rang du groupe en cours dans le quiz, pour savoir quand il change. */
   groupeIndex: number | null
+  /*
+   * Le tirage d'un pari : l'indice gagnant, et la graine dont les clients
+   * rejouent l'animation. Null hors pari, et tant que le tirage n'a pas eu
+   * lieu.
+   *
+   * Il est ÉCRIT AVANT D'ÊTRE RÉVÉLÉ, et jamais retiré ensuite : sans cela un
+   * réveil après hibernation sortirait une autre carte, et l'animation déjà
+   * vue par les joueurs cesserait de dire la vérité.
+   */
+  tirage: number | null
+  graine: number | null
   classement: Player[]
   ancienClassement: Player[] | null
   historique: QuestionResult[]
@@ -98,6 +111,8 @@ export const mancheNeuve = (): Manche => ({
   compteurDu: null,
   enLice: null,
   groupeIndex: null,
+  tirage: null,
+  graine: null,
   classement: [],
   ancienClassement: null,
   historique: [],
@@ -136,6 +151,31 @@ export interface ContextePartie {
 // Registry et Game, donc socket.io et fs, qui n'existent pas sur Workers.
 // Les règles de score, elles, viennent bien de services/scoring — celui-là ne
 // dépend que de @razzia/common, et doit rester partagé avec l'amont.
+/** Durée de mise imposée à un pari importé sans limite de temps. */
+const DUREE_DE_PARI = 15
+
+/*
+ * La durée pendant laquelle on peut répondre.
+ *
+ * Elle vaut `question.time`, sauf pour un pari sans limite : les mises ne se
+ * fermeraient jamais, et le tirage n'aurait jamais lieu. L'éditeur l'interdit
+ * déjà ; un quiz importé à la main, non. La notion est posée une seule fois
+ * parce que DEUX endroits en dépendent — l'échéance de la phase et le barème
+ * au temps —, et qu'ils désaccorder donnerait des points calculés sur une
+ * durée de -1.
+ */
+// La durée du jeu pour un pari : celle réglée dans le quiz, à défaut celle du
+// type.
+const dureeDuPari = (question: Question): number =>
+  estPari(question.type)
+    ? (question.dureePari ?? PARIS[question.type].duree)
+    : 0
+
+const dureeDeReponse = (question: Question): number =>
+  question.time === NO_TIME_LIMIT && estPari(question.type)
+    ? DUREE_DE_PARI
+    : question.time
+
 const ordreVersPoints = (
   index: number,
   totalJoueurs: number,
@@ -287,6 +327,44 @@ const entrerAnnonce = (
   })
 }
 
+/*
+ * Le tirage d'un pari, fait une seule fois et gardé.
+ *
+ * L'idempotence n'est pas un luxe : `entrerEnonce` peut être rejoué par une
+ * alarme après hibernation, et retirer une carte donnerait un résultat qui
+ * contredit l'animation déjà vue.
+ *
+ * `crypto.getRandomValues` plutôt que `Math.random` : c'est ce dont dispose
+ * un Worker, et le résultat décide qui reste en jeu.
+ */
+const tirerLePari = (
+  ctx: ContextePartie,
+  question: Question,
+): Tirage | null => {
+  if (!estPari(question.type)) {
+    return null
+  }
+
+  const { choix } = PARIS[question.type]
+
+  if (ctx.manche.tirage === null || ctx.manche.graine === null) {
+    const des = new Uint32Array(2)
+    crypto.getRandomValues(des)
+
+    const [gagnant, graine] = des
+
+    ctx.manche.tirage = gagnant % choix
+    ctx.manche.graine = graine
+  }
+
+  return {
+    type: question.type,
+    choix,
+    gagnant: ctx.manche.tirage,
+    graine: ctx.manche.graine,
+  }
+}
+
 const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
   const avant = ctx.manche.groupeIndex
 
@@ -307,6 +385,9 @@ const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
 
   ctx.manche.phase = PHASE.PREPARATION
   ctx.manche.finDePhase = dans(DUREE_PREPARATION)
+  // Le tirage appartient à une question : il repart à zéro avec elle.
+  ctx.manche.tirage = null
+  ctx.manche.graine = null
 
   em.diffuser(EVENTS.GAME.UPDATE_QUESTION, {
     current: ctx.manche.question + 1,
@@ -322,8 +403,26 @@ const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
 const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
   const { question } = etapeCourante(ctx)
 
+  /*
+   * Le bonneteau mélange PENDANT l'énoncé : c'est sa durée de jeu qui règle
+   * cette phase, et non l'affichage de la question. Les deux se confondraient
+   * sans profit — on ne lit pas un énoncé pendant qu'on suit une carte.
+   */
+  const melange = estPari(question.type) && !PARIS[question.type].apresLesMises
+  const affichage = melange ? dureeDuPari(question) : question.cooldown
+
   ctx.manche.phase = PHASE.ENONCE
-  ctx.manche.finDePhase = dans(question.cooldown)
+  ctx.manche.finDePhase = dans(affichage)
+
+  /*
+   * Un pari « voir puis choisir » — le bonneteau — se mélange ICI, sous les
+   * yeux de tout le monde, pendant le cooldown. Sa position part donc au
+   * client avant la réponse : c'est le jeu même, on suit la dame des yeux.
+   *
+   * Les paris tirés après les mises, eux, ne laissent rien filtrer à ce
+   * stade : `tirerLePari` n'est pas appelé.
+   */
+  const pari = melange ? (tirerLePari(ctx, question) ?? undefined) : undefined
 
   em.statutPourTous(STATUS.SHOW_QUESTION, {
     question: question.question,
@@ -331,8 +430,9 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
     // se lancerait deux fois.
     media:
       question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined,
-    cooldown: question.cooldown,
+    cooldown: affichage,
     endsAt: ctx.manche.finDePhase,
+    pari,
   })
   // L'amorce part à l'animateur seul : c'est lui qui tient le lecteur, et
   // l'envoyer à tous divulguerait le morceau avant la question.
@@ -347,7 +447,8 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
 
 const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
   const { question } = etapeCourante(ctx)
-  const sansLimite = question.time === NO_TIME_LIMIT
+  const duree = dureeDeReponse(question)
+  const sansLimite = duree === NO_TIME_LIMIT
 
   ctx.manche.phase = PHASE.REPONSES
   ctx.manche.debutReponses = Date.now()
@@ -355,13 +456,13 @@ const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
   // se voir tout de suite, quoi qu'ait fait la précédente.
   ctx.manche.compteurEnvoyeA = 0
   ctx.manche.compteurDu = null
-  ctx.manche.finDePhase = sansLimite ? null : dans(question.time)
+  ctx.manche.finDePhase = sansLimite ? null : dans(duree)
 
   const charge = {
     question: question.question,
     answers: question.answers,
     media: question.media,
-    time: question.time,
+    time: sansLimite ? NO_TIME_LIMIT : duree,
     endsAt: ctx.manche.finDePhase,
     totalPlayer: survivants(ctx).length,
     questionType: question.type,
@@ -391,6 +492,69 @@ const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
   if (ctx.manche.finDePhase) {
     em.programmer(ctx.manche.finDePhase)
   }
+}
+
+/*
+ * Le tirage d'un pari joué APRÈS les mises : rouge ou noir, PMU.
+ *
+ * Les mises sont closes, la trame peut donc porter le gagnant sans rien
+ * divulguer. L'animation est rejouée par chaque client à partir de la graine,
+ * ce qui la rend identique partout sans qu'on ait à la piloter image par
+ * image.
+ */
+const entrerTirage = (
+  ctx: ContextePartie,
+  em: Emetteur,
+  question: Question,
+  pari: Tirage,
+) => {
+  const duree = dureeDuPari(question)
+  const noms = question.answers
+
+  ctx.manche.phase = PHASE.TIRAGE
+  ctx.manche.finDePhase = dans(duree)
+  // Un compteur retenu n'a plus personne à informer : l'écran a changé.
+  ctx.manche.compteurDu = null
+
+  em.statutPourTous(STATUS.SHOW_DRAW, {
+    pari,
+    duree,
+    endsAt: ctx.manche.finDePhase,
+    noms,
+  })
+
+  em.programmer(ctx.manche.finDePhase)
+}
+
+/**
+ * Ferme les mises.
+ *
+ * Trois chemins y mènent — l'échéance, le dernier joueur qui répond, et le
+ * bouton « passer » de l'animateur — et tous doivent traverser le tirage
+ * quand il y en a un. C'est la raison d'être de cette fonction : sans elle,
+ * répondre vite sauterait l'animation.
+ */
+export const cloturerReponses = (ctx: ContextePartie, em: Emetteur) => {
+  if (ctx.manche.phase !== PHASE.REPONSES) {
+    montrerResultats(ctx, em)
+
+    return
+  }
+
+  const { question } = etapeCourante(ctx)
+
+  if (estPari(question.type) && PARIS[question.type].apresLesMises) {
+    const pari = tirerLePari(ctx, question)
+
+    if (pari) {
+      em.annulerAlarme()
+      entrerTirage(ctx, em, question, pari)
+
+      return
+    }
+  }
+
+  montrerResultats(ctx, em)
 }
 
 // ── Réveil ────────────────────────────────────────────────────────────────
@@ -433,6 +597,11 @@ export const avancer = (ctx: ContextePartie, em: Emetteur): void => {
       return
 
     case PHASE.REPONSES:
+      cloturerReponses(ctx, em)
+
+      return
+
+    case PHASE.TIRAGE:
       montrerResultats(ctx, em)
 
       return
@@ -473,14 +642,15 @@ export const repondre = (
   // Sans limite de temps, c'est l'ORDRE d'arrivée qui départage ; avec limite,
   // la rapidité. Les deux repartent de données enregistrées, jamais de
   // l'instant d'un réveil.
+  const duree = dureeDeReponse(question)
   const points =
-    question.time === NO_TIME_LIMIT
+    duree === NO_TIME_LIMIT
       ? ordreVersPoints(
           ctx.manche.reponses.length,
           survivants(ctx).length,
           question.maxPoints,
         )
-      : tempsVersPoints(ctx.manche.debutReponses, question)
+      : tempsVersPoints(ctx.manche.debutReponses, { ...question, time: duree })
 
   ctx.manche.reponses.push({ playerId: clientId, answerIds, points })
 
@@ -496,7 +666,17 @@ export const repondre = (
 // ── Résultats ─────────────────────────────────────────────────────────────
 
 export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
-  const { question } = etapeCourante(ctx)
+  const { question: posee } = etapeCourante(ctx)
+
+  /*
+   * Un pari n'a pas de bonne réponse écrite dans le quiz : elle vient d'être
+   * tirée. On la substitue ici, et tout l'aval — barème, historique, écran
+   * des réponses — fonctionne sans savoir qu'il s'agit d'un pari.
+   */
+  const question: Question =
+    estPari(posee.type) && ctx.manche.tirage !== null
+      ? { ...posee, solutions: [ctx.manche.tirage] }
+      : posee
 
   em.annulerAlarme()
   ctx.manche.phase = null
@@ -535,7 +715,13 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
         : 0
 
       const points = Math.round((reponse?.points ?? 0) * facteur)
-      const juste = points > 0
+      /*
+       * La justesse vient du BARÈME, pas des points. Les deux coïncidaient
+       * tant qu'une bonne réponse en rapportait toujours ; un pari dont on met
+       * `maxPoints` à zéro — pour ne jouer que le pot de l'interlude — aurait
+       * alors éliminé tout le monde, y compris ceux qui avaient vu juste.
+       */
+      const juste = facteur > 0
       const penalite = !juste && reponse ? (question.penalty ?? 0) : 0
 
       joueur.points = Math.max(0, joueur.points + points - penalite)
@@ -640,12 +826,14 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
     } else {
       em.statutAnimateur(STATUS.SHOW_RESPONSES, {
         ...question,
+        questionType: question.type,
         responses: comptes,
       })
     }
   } else {
     em.statutAnimateur(STATUS.SHOW_RESPONSES, {
       ...question,
+      questionType: question.type,
       responses: comptes,
     })
   }

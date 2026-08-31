@@ -49,6 +49,9 @@ export interface Question {
   time: number
   maxPoints?: number
   penalty?: number
+  // Durée du jeu, pour un pari : le tirage, ou le mélange du bonneteau.
+  // Absente, celle du type s'applique (voir PARIS dans paris.ts).
+  dureePari?: number
   options?: QuestionOptions
 }
 

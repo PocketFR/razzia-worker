@@ -36,6 +36,27 @@
     "subtitle": "Même salle, même PIN — personne ne rescanne",
     "title": "Enchaîner un autre quiz"
   },
+  "paris": {
+    "bonneteau": {
+      "consigne": "Où est la dame de cœur ?",
+      "droite": "Droite",
+      "gauche": "Gauche",
+      "milieu": "Milieu"
+    },
+    "pmu": {
+      "cheval1": "Cheval 1",
+      "cheval2": "Cheval 2",
+      "cheval3": "Cheval 3",
+      "cheval4": "Cheval 4",
+      "consigne": "Sur quel cheval misez-vous ?",
+      "vainqueur": "{{nom}} l’emporte !"
+    },
+    "rougeNoir": {
+      "consigne": "Rouge ou noir ?",
+      "noir": "Noir",
+      "rouge": "Rouge"
+    }
+  },
   "pinLabel": "Code PIN",
   "playersJoined": "Joueurs connectés : ",
   "questionPrefix": "Question n°",

@@ -114,11 +114,10 @@ export const useEnchainementAuto = (gameId: string | null) => {
           return
         }
 
-        // Les deux écrans d'un interlude attendent l'animateur, qui les
-        // commente au micro. En enchaînement automatique il n'y a personne
-        // pour cliquer : sans ces deux-là, la partie s'arrêtait net à
-        // l'annonce, puis à la proclamation des survivants.
-        if (name === STATUS.SHOW_INTERLUDE || name === STATUS.SHOW_SURVIVORS) {
+        // L'annonce d'un interlude attend l'animateur, qui la commente au
+        // micro. En enchaînement automatique il n'y a personne pour cliquer :
+        // sans elle, la partie s'arrêtait net sur cet écran.
+        if (name === STATUS.SHOW_INTERLUDE) {
           if (!actifRef.current || !partieRef.current) {
             return
           }
@@ -132,7 +131,7 @@ export const useEnchainementAuto = (gameId: string | null) => {
           return
         }
 
-        if (name !== STATUS.SHOW_RESPONSES) {
+        if (name !== STATUS.SHOW_RESPONSES && name !== STATUS.SHOW_SURVIVORS) {
           return
         }
 
@@ -151,12 +150,21 @@ export const useEnchainementAuto = (gameId: string | null) => {
         const total = avancement.current?.total
         const derniere = Boolean(total && index === total)
 
+        // La proclamation des survivants passe TOUJOURS par le classement.
+        //
+        // C'est lui qui sait reconnaître la dernière étape et clore la partie ;
+        // l'enchaînement direct laissait un quiz terminé par un interlude sans
+        // écran de fin. Et le compteur de questions ne peut pas trancher ici :
+        // un groupe qui s'arrête au dernier survivant saute ses questions
+        // restantes, si bien que l'avancement diffusé est en retard.
+        const finDInterlude = name === STATUS.SHOW_SURVIVORS
+
         const suivante = () =>
           socket.emit(EVENTS.MANAGER.NEXT_QUESTION, {
             gameId: partie,
           })
 
-        if (index && (index % TOUS_LES === 0 || derniere)) {
+        if (finDInterlude || (index && (index % TOUS_LES === 0 || derniere))) {
           planifier(() => {
             socket.emit(EVENTS.MANAGER.SHOW_LEADERBOARD, {
               gameId: partie,

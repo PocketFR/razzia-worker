@@ -184,7 +184,10 @@ async function jetonSpotify(cles: Cles): Promise<string> {
     throw new Error(`token Spotify HTTP ${r.status}`)
   }
 
-  const j = (await r.json()) as { access_token: string; expires_in: number }
+  // `r.json<T>()` et non `as T` : l'assertion faisait clignoter oxlint — sa
+  // passe typée la jugeait tantôt nécessaire, tantôt superflue, une fois sur
+  // quatre environ, ce qui suffit à rendre la CI capricieuse.
+  const j = await r.json<{ access_token: string; expires_in: number }>()
   jeton = j.access_token
   jetonExpire = Date.now() + (j.expires_in - 60) * 1000
 

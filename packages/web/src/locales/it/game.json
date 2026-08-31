@@ -27,6 +27,27 @@
   },
   "joinInstruction": "Unisciti al gioco su",
   "leaderboard": "Classifica",
+  "paris": {
+    "bonneteau": {
+      "consigne": "Dov’è la donna di cuori?",
+      "droite": "Destra",
+      "gauche": "Sinistra",
+      "milieu": "Centro"
+    },
+    "pmu": {
+      "cheval1": "Cavallo 1",
+      "cheval2": "Cavallo 2",
+      "cheval3": "Cavallo 3",
+      "cheval4": "Cavallo 4",
+      "consigne": "Su quale cavallo punti?",
+      "vainqueur": "Vince {{nom}}!"
+    },
+    "rougeNoir": {
+      "consigne": "Rosso o nero?",
+      "noir": "Nero",
+      "rouge": "Rosso"
+    }
+  },
   "pinLabel": "Codice PIN",
   "playersJoined": "Giocatori connessi: ",
   "questionPrefix": "Domanda #",

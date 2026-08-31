@@ -1,7 +1,7 @@
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+} from "@razzia/web/features/game/utils/reponses"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
@@ -13,7 +13,8 @@ const QuestionEditorAnswers = () => {
   const { t } = useTranslation()
 
   const questionType = currentQuestion.type
-  const { SolutionPicker } = QUESTION_REGISTRY[questionType]
+  const { SolutionPicker, AnswersEditor, nombreDeReponsesFige } =
+    QUESTION_REGISTRY[questionType]
 
   const updateAnswer = (index: number, value: string) => {
     const next = [...currentQuestion.answers]
@@ -22,7 +23,7 @@ const QuestionEditorAnswers = () => {
   }
 
   const addAnswer = () => {
-    if (currentQuestion.answers.length >= 4) {
+    if (nombreDeReponsesFige || currentQuestion.answers.length >= 4) {
       return
     }
 
@@ -30,7 +31,7 @@ const QuestionEditorAnswers = () => {
   }
 
   const removeAnswer = () => {
-    if (currentQuestion.answers.length <= 2) {
+    if (nombreDeReponsesFige || currentQuestion.answers.length <= 2) {
       return
     }
 
@@ -44,6 +45,12 @@ const QuestionEditorAnswers = () => {
     })
   }
 
+  // Un type peut imposer ses choix — les paris. Il n'y a alors ni texte à
+  // saisir, ni nombre de réponses à régler, ni solution à cocher.
+  if (AnswersEditor) {
+    return <AnswersEditor />
+  }
+
   return (
     <div className="z-10 flex flex-col gap-3">
       <div className="flex items-center justify-between px-1">
@@ -54,14 +61,22 @@ const QuestionEditorAnswers = () => {
         <div className="flex gap-2">
           <button
             onClick={removeAnswer}
-            disabled={currentQuestion.answers.length <= 2}
+            aria-label={t("quizz:removeAnswer")}
+            disabled={
+              Boolean(nombreDeReponsesFige) ||
+              currentQuestion.answers.length <= 2
+            }
             className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
           >
             <Minus className="size-4" />
           </button>
           <button
             onClick={addAnswer}
-            disabled={currentQuestion.answers.length >= 4}
+            aria-label={t("quizz:addAnswer")}
+            disabled={
+              Boolean(nombreDeReponsesFige) ||
+              currentQuestion.answers.length >= 4
+            }
             className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
           >
             <Plus className="size-4" />

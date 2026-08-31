@@ -27,6 +27,27 @@
   },
   "joinInstruction": "Únete al juego en",
   "leaderboard": "Clasificación",
+  "paris": {
+    "bonneteau": {
+      "consigne": "¿Dónde está la reina de corazones?",
+      "droite": "Derecha",
+      "gauche": "Izquierda",
+      "milieu": "Centro"
+    },
+    "pmu": {
+      "cheval1": "Caballo 1",
+      "cheval2": "Caballo 2",
+      "cheval3": "Caballo 3",
+      "cheval4": "Caballo 4",
+      "consigne": "¿A qué caballo apuestas?",
+      "vainqueur": "¡Gana {{nom}}!"
+    },
+    "rougeNoir": {
+      "consigne": "¿Rojo o negro?",
+      "noir": "Negro",
+      "rouge": "Rojo"
+    }
+  },
   "pinLabel": "Código PIN",
   "playersJoined": "Jugadores conectados: ",
   "questionPrefix": "Pregunta #",

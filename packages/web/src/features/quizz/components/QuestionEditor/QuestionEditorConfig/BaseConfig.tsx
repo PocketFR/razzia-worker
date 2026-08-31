@@ -19,7 +19,20 @@ import { useTranslation } from "react-i18next"
 const DEFAULT_TIME = 20
 const DEFAULT_PENALTY = 100
 
-const BaseConfig = () => {
+// `sansLimite` : certains types refusent l'absence de limite de temps. Un
+// pari, sans échéance, laisserait les mises ouvertes pour toujours et son
+// tirage n'aurait jamais lieu — l'interrupteur disparaît plutôt que d'offrir
+// un réglage qui bloque la partie.
+// `affichage` : le bonneteau mélange PENDANT la phase d'énoncé, dont la durée
+// est alors celle du jeu. « Affichage de la question » n'aurait plus rien à
+// régler, et deux champs pour une même durée sèment la confusion.
+const BaseConfig = ({
+  sansLimite = true,
+  affichage = true,
+}: {
+  sansLimite?: boolean
+  affichage?: boolean
+}) => {
   const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
   const isTimeLimitEnabled = currentQuestion.time !== NO_TIME_LIMIT
@@ -121,21 +134,23 @@ const BaseConfig = () => {
       </ConfigSection>
 
       <ConfigSection title={t("quizz:question.config.timings")}>
-        <ConfigField>
-          <ConfigField.Label
-            icon={<Clock className="size-4" />}
-            label={t("quizz:question.config.questionDisplay")}
-            unit="sec"
-          />
-          <ConfigNumberInput
-            value={currentQuestion.cooldown}
-            min={3}
-            onChange={handleUpdateQuestion("cooldown")}
-          />
-          <ConfigField.Description>
-            {t("quizz:question.config.questionDisplayHint")}
-          </ConfigField.Description>
-        </ConfigField>
+        {affichage && (
+          <ConfigField>
+            <ConfigField.Label
+              icon={<Clock className="size-4" />}
+              label={t("quizz:question.config.questionDisplay")}
+              unit="sec"
+            />
+            <ConfigNumberInput
+              value={currentQuestion.cooldown}
+              min={3}
+              onChange={handleUpdateQuestion("cooldown")}
+            />
+            <ConfigField.Description>
+              {t("quizz:question.config.questionDisplayHint")}
+            </ConfigField.Description>
+          </ConfigField>
+        )}
 
         <ConfigField>
           <ConfigField.Label
@@ -143,10 +158,12 @@ const BaseConfig = () => {
             label={t("quizz:question.config.answerTime")}
             unit={isTimeLimitEnabled ? "sec" : undefined}
             action={
-              <Switch
-                checked={isTimeLimitEnabled}
-                onCheckedChange={handleToggleTimeLimit}
-              />
+              sansLimite ? (
+                <Switch
+                  checked={isTimeLimitEnabled}
+                  onCheckedChange={handleToggleTimeLimit}
+                />
+              ) : undefined
             }
           />
           {isTimeLimitEnabled && (

@@ -1,4 +1,5 @@
 {
+  "addAnswer": "選択肢を追加",
   "addAnswerPlaceholder": "回答を追加...",
   "addQuestion": "質問を追加",
   "answersCountSuffix": "件の回答",
@@ -6,6 +7,11 @@
   "groupe": {
     "add": "幕間を追加",
     "addQuestion": "問題",
+    "collapse": "幕間を折りたたむ",
+    "delete": "幕間を削除",
+    "deleteConfirm": "中の問題もまとめて消えます。取り消せません。",
+    "drag": "幕間を移動",
+    "expand": "幕間を展開する",
     "explain": "間違えた人はその幕間から脱落します。問題が尽きるか、残りが2人未満になると終了します。",
     "points": "生き残りで分け合うポイント",
     "summary_other": "敗退方式の問題{{count}}問",
@@ -14,6 +20,13 @@
     "untitled": "無題の幕間"
   },
   "noQuestionYet": "まだ質問がありません",
+  "paris": {
+    "duree": "ゲームの長さ",
+    "dureeHintMelange": "シャッフルの長さ。長いほどクイーンを追うのが難しくなります。",
+    "dureeHintTirage": "賭けを締め切ったあとの抽選アニメーションの長さ。",
+    "explain": "選択肢も正解も書きません。サーバーがその場で抽選します。賭けの時間と、必要ならポイントを設定してください。",
+    "jeu": "ゲーム"
+  },
   "question": {
     "addMediaHint": "質問に画像、動画、音声を追加できます",
     "config": {
@@ -66,10 +79,14 @@
     }
   },
   "questionType": {
+    "bonneteau": "賭け — 3枚のカード",
     "multi": "複数選択",
+    "pmu": "賭け — 競馬",
+    "rouge-noir": "賭け — 赤か黒か",
     "single": "単一選択"
   },
   "quizzSaved": "クイズを保存しました",
   "quizzUpdated": "クイズを更新しました",
+  "removeAnswer": "選択肢を削除",
   "titleQuizzPlaceholder": "クイズのタイトル..."
 }

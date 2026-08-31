@@ -1,4 +1,5 @@
 {
+  "addAnswer": "Add an answer",
   "addAnswerPlaceholder": "Add an answer...",
   "addQuestion": "Add question",
   "answersCountSuffix": " answers",
@@ -6,6 +7,11 @@
   "groupe": {
     "add": "Add an interlude",
     "addQuestion": "question",
+    "collapse": "Collapse the interlude",
+    "delete": "Delete the interlude",
+    "deleteConfirm": "Its questions go with it. This cannot be undone.",
+    "drag": "Move the interlude",
+    "expand": "Expand the interlude",
     "explain": "Players who answer wrong are out for the rest of the interlude. It ends when its questions run out or fewer than two players remain.",
     "points": "Points shared between survivors",
     "summary_one": "{{count}} knockout question",
@@ -15,6 +21,13 @@
     "untitled": "Untitled interlude"
   },
   "noQuestionYet": "No question yet",
+  "paris": {
+    "duree": "Game duration",
+    "dureeHintMelange": "How long the shuffle lasts. The longer it runs, the harder the queen is to follow.",
+    "dureeHintTirage": "How long the draw animation runs, once betting closes.",
+    "explain": "Choices and the right answer are not written down: the server draws at play time. Set how long bets stay open and, if you like, the points.",
+    "jeu": "The game"
+  },
   "question": {
     "addMediaHint": "Add an image, video or audio to your question",
     "config": {
@@ -67,10 +80,14 @@
     }
   },
   "questionType": {
+    "bonneteau": "Bet — three-card monte",
     "multi": "Multiple choice",
+    "pmu": "Bet — horse race",
+    "rouge-noir": "Bet — red or black",
     "single": "Single choice"
   },
   "quizzSaved": "Quizz saved successfully",
   "quizzUpdated": "Quizz updated successfully",
+  "removeAnswer": "Remove an answer",
   "titleQuizzPlaceholder": "Quizz title..."
 }

@@ -1,4 +1,5 @@
 {
+  "addAnswer": "Antwort hinzufügen",
   "addAnswerPlaceholder": "Antwort hinzufügen...",
   "addQuestion": "Frage hinzufügen",
   "answersCountSuffix": " Antworten",
@@ -6,6 +7,11 @@
   "groupe": {
     "add": "Zwischenspiel hinzufügen",
     "addQuestion": "Frage",
+    "collapse": "Zwischenspiel einklappen",
+    "delete": "Zwischenspiel löschen",
+    "deleteConfirm": "Seine Fragen verschwinden mit. Das lässt sich nicht rückgängig machen.",
+    "drag": "Zwischenspiel verschieben",
+    "expand": "Zwischenspiel ausklappen",
     "explain": "Wer falsch antwortet, scheidet für den Rest des Zwischenspiels aus. Es endet, wenn die Fragen aufgebraucht sind oder weniger als zwei Spieler übrig sind.",
     "points": "Punkte, die die Überlebenden teilen",
     "summary_one": "{{count}} K.-o.-Frage",
@@ -15,6 +21,13 @@
     "untitled": "Zwischenspiel ohne Titel"
   },
   "noQuestionYet": "Noch keine Fragen",
+  "paris": {
+    "duree": "Spieldauer",
+    "dureeHintMelange": "Dauer des Mischens. Je länger, desto schwerer ist die Dame zu verfolgen.",
+    "dureeHintTirage": "Dauer der Ziehungsanimation, sobald die Einsätze geschlossen sind.",
+    "explain": "Auswahl und richtige Antwort werden nicht eingetragen: Der Server zieht beim Spielen. Stelle die Einsatzdauer ein und bei Bedarf die Punkte.",
+    "jeu": "Das Spiel"
+  },
   "question": {
     "addMediaHint": "Füge ein Bild, Video oder Audio zu deiner Frage hinzu",
     "config": {
@@ -67,10 +80,14 @@
     }
   },
   "questionType": {
+    "bonneteau": "Wette — Hütchenspiel",
     "multi": "Mehrfachauswahl",
+    "pmu": "Wette — Pferderennen",
+    "rouge-noir": "Wette — Rot oder Schwarz",
     "single": "Einzelauswahl"
   },
   "quizzSaved": "Quiz erfolgreich gespeichert",
   "quizzUpdated": "Quiz erfolgreich aktualisiert",
+  "removeAnswer": "Antwort entfernen",
   "titleQuizzPlaceholder": "Quiz-Titel..."
 }

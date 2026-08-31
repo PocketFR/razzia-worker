@@ -22,6 +22,27 @@
   },
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",
+  "paris": {
+    "bonneteau": {
+      "consigne": "ハートのクイーンはどこ？",
+      "droite": "右",
+      "gauche": "左",
+      "milieu": "真ん中"
+    },
+    "pmu": {
+      "cheval1": "1番",
+      "cheval2": "2番",
+      "cheval3": "3番",
+      "cheval4": "4番",
+      "consigne": "どの馬に賭けますか？",
+      "vainqueur": "{{nom}} の勝ち！"
+    },
+    "rougeNoir": {
+      "consigne": "赤か、黒か？",
+      "noir": "黒",
+      "rouge": "赤"
+    }
+  },
   "pinLabel": "PINコード",
   "playersJoined": "参加プレイヤー数: ",
   "questionPrefix": "問題 #",

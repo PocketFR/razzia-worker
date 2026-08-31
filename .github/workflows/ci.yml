@@ -41,8 +41,9 @@ jobs:
         run: pnpm run typecheck
 
       # Les suites qui n'ont pas besoin d'un serveur. Les smoke-* exigent un
-      # « wrangler dev » et une base peuplée : elles se lancent à la main,
-      # voir docs/deploiement.md.
+      # « wrangler dev » et une base peuplée : elles se lancent à la main.
+      # smoke-fin-interlude.mjs en fait partie : c'est le seul endroit où
+      # l'enchaînement entre l'écran de l'animateur et le serveur se vérifie.
       - name: Tests unitaires
         working-directory: packages/worker
         run: |
@@ -51,3 +52,10 @@ jobs:
           npx tsx scripts/test-socket-client.mts
           npx tsx scripts/test-rattrapage.mts
           npx tsx scripts/test-enchainement-auto.mts
+          npx tsx scripts/test-arborescence.mts
+          npx tsx scripts/test-paris.mts
+
+      # L'éditeur monté dans jsdom et cliqué. Ce panneau m'a échappé trois fois
+      # de suite : un typecheck vert n'y prouve rien, seul un clic le fait.
+      - name: Tests de l'interface
+        run: pnpm --filter @razzia/web test

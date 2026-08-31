@@ -43,7 +43,7 @@ import {
   pisteSpotify,
   estDerniereQuestion,
   mancheNeuve,
-  montrerResultats,
+  cloturerReponses,
   questionSuivante,
   repondre,
   type ContextePartie,
@@ -987,7 +987,7 @@ export class GameRoom implements DurableObject {
     // Plus personne à attendre : on coupe court plutôt que de laisser
     // l'alarme courir. L'amont faisait de même via cooldown.abort().
     if (tousOntRepondu) {
-      montrerResultats(this.contexte(etat), em)
+      cloturerReponses(this.contexte(etat), em)
     }
 
     this.ecrire(etat)
@@ -1001,7 +1001,7 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    montrerResultats(this.contexte(etat), this.emetteur(etat))
+    cloturerReponses(this.contexte(etat), this.emetteur(etat))
     this.ecrire(etat)
   }
 

@@ -2,7 +2,7 @@ import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+} from "@razzia/web/features/game/utils/reponses"
 import type { AnswerComponentProps } from "@razzia/web/features/questions/types"
 
 const SingleAnswers = ({

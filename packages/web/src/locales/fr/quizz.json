@@ -1,4 +1,5 @@
 {
+  "addAnswer": "Ajouter une réponse",
   "addAnswerPlaceholder": "Ajouter une réponse...",
   "addQuestion": "Ajouter une question",
   "answersCountSuffix": " réponses",
@@ -6,6 +7,11 @@
   "groupe": {
     "add": "Ajouter un interlude",
     "addQuestion": "question",
+    "collapse": "Replier l'interlude",
+    "delete": "Supprimer l'interlude",
+    "deleteConfirm": "Ses questions seront supprimées avec lui. Cette action est définitive.",
+    "drag": "Déplacer l'interlude",
+    "expand": "Déplier l'interlude",
     "explain": "Les joueurs qui se trompent sont écartés du reste de l'interlude. Il s'arrête quand ses questions sont épuisées ou qu'il reste moins de deux joueurs.",
     "points": "Points à partager entre les survivants",
     "summary_one": "{{count}} question à élimination",
@@ -15,6 +21,13 @@
     "untitled": "Interlude sans titre"
   },
   "noQuestionYet": "Aucune question pour l'instant",
+  "paris": {
+    "duree": "Durée du jeu",
+    "dureeHintMelange": "Durée du mélange. Plus il est long, plus la dame est difficile à suivre.",
+    "dureeHintTirage": "Durée de l'animation, une fois les mises closes.",
+    "explain": "Les choix et la bonne réponse ne s'écrivent pas : le serveur tire au sort au moment de jouer. Réglez la durée des mises et, si vous voulez, les points.",
+    "jeu": "Le jeu"
+  },
   "question": {
     "addMediaHint": "Ajoutez une image, une vidéo ou un audio à votre question",
     "config": {
@@ -67,10 +80,14 @@
     }
   },
   "questionType": {
+    "bonneteau": "Pari — bonneteau",
     "multi": "Choix multiple",
+    "pmu": "Pari — course de chevaux",
+    "rouge-noir": "Pari — rouge ou noir",
     "single": "Choix unique"
   },
   "quizzSaved": "Quizz enregistré avec succès",
   "quizzUpdated": "Quizz mis à jour avec succès",
+  "removeAnswer": "Retirer une réponse",
   "titleQuizzPlaceholder": "Titre du quizz..."
 }

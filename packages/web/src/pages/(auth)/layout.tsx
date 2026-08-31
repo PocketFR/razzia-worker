@@ -25,8 +25,10 @@ const AuthLayout = () => {
     )
   }
 
+  // Les écrans de saisie — PIN, pseudo, mot de passe animateur — se posent
+  // haut : le clavier d'un téléphone recouvrait les champs.
   return (
-    <Background>
+    <Background haut>
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>

@@ -6,6 +6,7 @@ import {
   type Question,
   type QuizzWithId,
 } from "@razzia/common/types/game"
+import { deplacerBloc } from "@razzia/web/features/quizz/lib/arborescence"
 import {
   createContext,
   useContext,
@@ -55,6 +56,7 @@ interface QuizzEditorContextType {
   ) => void
   reorder: (_from: number, _to: number) => void
   reorderDansGroupe: (_groupeId: string, _from: number, _to: number) => void
+  deplacer: (_id: string, _groupeCible: string | null, _rang: number) => void
 }
 
 const QuizzEditorContext = createContext<QuizzEditorContextType | null>(null)
@@ -145,31 +147,30 @@ export const QuizzEditorProvider = ({
   // Supprime un bloc de premier niveau, ou une question à l'intérieur d'un
   // groupe. Un groupe emporte son contenu — c'est l'intérêt de l'imbrication.
   const removeBloc = (id: string) => {
-    setQuestions((prev) => {
-      const sansLuiAuSommet = prev.filter((bloc) => bloc.id !== id)
+    const sansLuiAuSommet = questions.filter((bloc) => bloc.id !== id)
 
-      const suivant =
-        sansLuiAuSommet.length !== prev.length
-          ? sansLuiAuSommet
-          : prev.map((bloc) =>
-              estGroupeAvecId(bloc)
-                ? {
-                    ...bloc,
-                    questions: bloc.questions.filter((q) => q.id !== id),
-                  }
-                : bloc,
-            )
+    const suivant =
+      sansLuiAuSommet.length !== questions.length
+        ? sansLuiAuSommet
+        : questions.map((bloc) =>
+            estGroupeAvecId(bloc)
+              ? {
+                  ...bloc,
+                  questions: bloc.questions.filter((q) => q.id !== id),
+                }
+              : bloc,
+          )
 
-      // Un groupe vidé de sa dernière question n'a plus de raison d'être, et
-      // serait de toute façon refusé à l'enregistrement.
-      const nettoye = suivant.filter(
-        (bloc) => !estGroupeAvecId(bloc) || bloc.questions.length > 0,
-      )
+    // Un groupe vidé de sa dernière question n'a plus de raison d'être, et
+    // serait de toute façon refusé à l'enregistrement.
+    const nettoye = suivant.filter(
+      (bloc) => !estGroupeAvecId(bloc) || bloc.questions.length > 0,
+    )
 
-      setCurrentId(parcourir(nettoye)[0]?.id ?? nettoye[0]?.id ?? null)
-
-      return nettoye
-    })
+    // Calculé DEHORS, jamais dans l'updater : React rejoue les updaters en
+    // mode strict, et un setState qui s'y cache part deux fois.
+    setQuestions(nettoye)
+    setCurrentId(parcourir(nettoye)[0]?.id ?? nettoye[0]?.id ?? null)
   }
 
   const updateQuestion = (id: string, updates: Partial<QuestionWithId>) => {
@@ -228,6 +229,18 @@ export const QuizzEditorProvider = ({
     )
   }
 
+  // Déplace un bloc d'un conteneur à l'autre : du sommet vers un groupe, d'un
+  // groupe vers le sommet, ou d'un groupe à un autre. Le remaniement lui-même
+  // vit dans un module pur, sous test.
+  const deplacer = (id: string, groupeCible: string | null, rang: number) => {
+    setQuestions((prev) =>
+      deplacerBloc(prev, estGroupeAvecId, { id, groupe: groupeCible, rang }),
+    )
+    // Le bloc qu'on vient de déposer devient le bloc courant : c'est celui
+    // qu'on regarde.
+    setCurrentId(id)
+  }
+
   return (
     <QuizzEditorContext.Provider
       value={{
@@ -246,6 +259,7 @@ export const QuizzEditorProvider = ({
         updateGroupe,
         reorder,
         reorderDansGroupe,
+        deplacer,
       }}
     >
       {children}

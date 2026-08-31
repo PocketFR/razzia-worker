@@ -1,3 +1,4 @@
+import type { Tirage } from "@razzia/common/paris"
 import type {
   Player,
   QuestionMedia,
@@ -11,6 +12,8 @@ export const STATUS = {
   SHOW_PREPARED: "SHOW_PREPARED",
   SHOW_QUESTION: "SHOW_QUESTION",
   SELECT_ANSWER: "SELECT_ANSWER",
+  // Le tirage d'un pari, joué après la fermeture des mises.
+  SHOW_DRAW: "SHOW_DRAW",
   SHOW_RESULT: "SHOW_RESULT",
   SHOW_RESPONSES: "SHOW_RESPONSES",
   SHOW_LEADERBOARD: "SHOW_LEADERBOARD",
@@ -36,6 +39,10 @@ export interface CommonStatusDataMap {
     // Date de fin de phase, en ms epoch. Le serveur n'égrène plus le
     // décompte : il annonce l'échéance, le client la rend.
     endsAt: number
+    // Présent pour un pari qui se joue AVANT les mises — le bonneteau. Le
+    // mélange occupe alors la durée du `cooldown`, et le client le rejoue à
+    // partir de la graine.
+    pari?: Tirage
   }
   SELECT_ANSWER: {
     question: string
@@ -53,6 +60,18 @@ export interface CommonStatusDataMap {
     // inertes. Le champ n'est posé que sur le statut PERSONNEL des éliminés,
     // jamais sur la diffusion générale.
     elimine?: boolean
+  }
+  // Le tirage d'un pari joué après les mises : rouge ou noir, PMU. Les mises
+  // sont closes, l'animation peut donc porter le résultat sans rien divulguer
+  // d'avance.
+  SHOW_DRAW: {
+    pari: Tirage
+    duree: number
+    endsAt: number
+    // Les libellés du quiz. Ils ne servent qu'aux paris dont les choix se
+    // nomment — les chevaux du PMU ; les autres tirent leurs libellés de leur
+    // habillage, et restent donc traduits.
+    noms: string[]
   }
   // L'annonce d'un interlude. Tout le monde la voit — c'est le moment où
   // l'on comprend que les règles changent.
@@ -88,6 +107,9 @@ interface ManagerExtraStatus {
     solutions: number[]
     answers: string[]
     media?: QuestionMedia
+    // Le type sert à l'affichage : un pari dont les choix ne se nomment pas
+    // tire ses libellés de son habillage, traduit, et non du quiz.
+    questionType: QuestionType
   }
   SHOW_LEADERBOARD: { oldLeaderboard: Player[]; leaderboard: Player[] }
   // Fin d'un interlude. `survivants` est vide quand tout le monde s'est

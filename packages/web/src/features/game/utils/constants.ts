@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import Answers from "@razzia/web/features/game/components/states/Answers"
+import Draw from "@razzia/web/features/game/components/states/Draw"
 import Interlude from "@razzia/web/features/game/components/states/Interlude"
 import InterludeEnd from "@razzia/web/features/game/components/states/InterludeEnd"
 import Leaderboard from "@razzia/web/features/game/components/states/Leaderboard"
@@ -15,15 +16,6 @@ import Survivors from "@razzia/web/features/game/components/states/Survivors"
 import Wait from "@razzia/web/features/game/components/states/Wait"
 
 import { STATUS } from "@razzia/common/types/game/status"
-
-export const ANSWERS_COLORS = [
-  "bg-[var(--color-answer-1)] text-white",
-  "bg-[var(--color-answer-2)] text-white",
-  "bg-[var(--color-answer-3)] text-white",
-  "bg-[var(--color-answer-4)] text-white",
-]
-
-export const ANSWERS_LABELS = ["A", "B", "C", "D"]
 
 export const GAME_STATES = {
   status: {
@@ -43,6 +35,7 @@ export const GAME_STATE_COMPONENTS = {
   [STATUS.SHOW_INTERLUDE]: Interlude,
   [STATUS.SHOW_INTERLUDE_END]: InterludeEnd,
   [STATUS.SELECT_ANSWER]: Answers,
+  [STATUS.SHOW_DRAW]: Draw,
   [STATUS.SHOW_QUESTION]: Question,
   [STATUS.WAIT]: Wait,
   [STATUS.SHOW_START]: Start,
@@ -95,7 +88,16 @@ export const MANAGER_SKIP_EVENTS = {
   // Depuis l'annonce, « suivant » lance le groupe. Le serveur sait que la
   // question courante est déjà la bonne et ne l'incrémente pas.
   [STATUS.SHOW_INTERLUDE]: EVENTS.MANAGER.NEXT_QUESTION,
-  [STATUS.SHOW_SURVIVORS]: EVENTS.MANAGER.NEXT_QUESTION,
+  // La proclamation des survivants est l'écran de RÉSULTAT du groupe : elle
+  // mène au classement, comme SHOW_RESPONSES, et non directement à la question
+  // suivante.
+  //
+  // Avec NEXT_QUESTION, un interlude qui terminait le quiz laissait la partie
+  // en plan : il n'y avait pas de question suivante, le serveur ne faisait
+  // rien, et l'écran de fin n'arrivait jamais. Passer par le classement rend
+  // la fin de partie possible — c'est lui qui sait qu'on est à la dernière
+  // étape.
+  [STATUS.SHOW_SURVIVORS]: EVENTS.MANAGER.SHOW_LEADERBOARD,
   // Un libellé sans action donne un bouton inerte, et une partie bloquée sur
   // l'écran — c'est arrivé en ajoutant SHOW_SURVIVORS. Le type l'interdit
   // désormais : tout statut dont le bouton s'affiche DOIT figurer ici.
@@ -117,6 +119,9 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_PREPARED]: null,
   [STATUS.SHOW_QUESTION]: null,
   [STATUS.SELECT_ANSWER]: "common:skip",
+  // Le tirage se termine tout seul, et l'interrompre priverait la salle de
+  // l'animation qu'elle attend. Pas de bouton.
+  [STATUS.SHOW_DRAW]: null,
   [STATUS.SHOW_RESULT]: null,
   [STATUS.SHOW_RESPONSES]: "common:next",
   [STATUS.SHOW_LEADERBOARD]: "common:next",

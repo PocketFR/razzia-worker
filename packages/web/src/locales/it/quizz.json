@@ -1,4 +1,5 @@
 {
+  "addAnswer": "Aggiungi una risposta",
   "addAnswerPlaceholder": "Aggiungi una risposta...",
   "addQuestion": "Aggiungi domanda",
   "answersCountSuffix": " risposte",
@@ -6,6 +7,11 @@
   "groupe": {
     "add": "Aggiungi un interludio",
     "addQuestion": "domanda",
+    "collapse": "Comprimi l'interludio",
+    "delete": "Elimina l'interludio",
+    "deleteConfirm": "Le sue domande spariscono con lui. L'azione è definitiva.",
+    "drag": "Sposta l'interludio",
+    "expand": "Espandi l'interludio",
     "explain": "Chi sbaglia è fuori per il resto dell'interludio. Finisce quando le domande si esauriscono o restano meno di due giocatori.",
     "points": "Punti divisi tra i superstiti",
     "summary_one": "{{count}} domanda a eliminazione",
@@ -15,6 +21,13 @@
     "untitled": "Interludio senza titolo"
   },
   "noQuestionYet": "Nessuna domanda ancora",
+  "paris": {
+    "duree": "Durata del gioco",
+    "dureeHintMelange": "Durata del mescolamento. Più è lungo, più è difficile seguire la donna.",
+    "dureeHintTirage": "Durata dell'animazione dell'estrazione, chiuse le puntate.",
+    "explain": "Scelte e risposta esatta non si scrivono: il server estrae al momento di giocare. Imposta la durata delle puntate e, se vuoi, i punti.",
+    "jeu": "Il gioco"
+  },
   "question": {
     "addMediaHint": "Aggiungi un'immagine, video o audio alla tua domanda",
     "config": {
@@ -67,10 +80,14 @@
     }
   },
   "questionType": {
+    "bonneteau": "Scommessa — gioco delle tre carte",
     "multi": "Scelta multipla",
+    "pmu": "Scommessa — corsa di cavalli",
+    "rouge-noir": "Scommessa — rosso o nero",
     "single": "Scelta singola"
   },
   "quizzSaved": "Quiz salvato con successo",
   "quizzUpdated": "Quiz aggiornato con successo",
+  "removeAnswer": "Togli una risposta",
   "titleQuizzPlaceholder": "Titolo del quiz..."
 }

@@ -1,15 +1,21 @@
+import { estPari } from "@razzia/common/paris"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
-  SFX,
-} from "@razzia/web/features/game/utils/constants"
+} from "@razzia/web/features/game/utils/reponses"
+import { SFX } from "@razzia/web/features/game/utils/constants"
 import { calculatePercentages } from "@razzia/web/features/game/utils/score"
 import CartePiste from "@razzia/web/features/spotify/components/CartePiste"
+import {
+  couleursDuPari,
+  HABILLAGES,
+} from "@razzia/web/features/questions/paris/types"
 import { lireUri } from "@razzia/web/features/spotify/hooks/use-piste"
 import clsx from "clsx"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
 
 interface Props {
@@ -17,9 +23,28 @@ interface Props {
 }
 
 const Responses = ({
-  data: { question, answers, responses, solutions, media },
+  data: { question, answers, responses, solutions, media, questionType },
 }: Props) => {
   const piste = lireUri(media?.url)
+  const { t } = useTranslation()
+
+  // Les libellés d'un pari dont les choix ne se nomment pas viennent de son
+  // habillage, jamais du quiz.
+  //
+  // Le quiz garde ceux écrits le jour de la création : réordonner les boutons
+  // du bonneteau — gauche, droite, milieu — avait donc changé les boutons de
+  // mise sans changer cet écran-ci, qui appelait « Milieu » ce que le joueur
+  // venait de cliquer comme « Droite ». Les libellés vivent d'un seul côté.
+  const libelles =
+    estPari(questionType) && !HABILLAGES[questionType].nommables
+      ? HABILLAGES[questionType].choix.map((cle) => t(cle))
+      : answers
+
+  // Le code couleur doit être le même qu'au moment de miser : la salle vient
+  // de cliquer sur un bouton rouge, elle doit retrouver le rouge ici.
+  const couleurs = estPari(questionType)
+    ? couleursDuPari(questionType)
+    : ANSWERS_COLORS
 
   const [percentages, setPercentages] = useState<Record<string, string>>({})
 
@@ -57,12 +82,12 @@ const Responses = ({
           className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}
           style={{ gridTemplateColumns: `repeat(${answers.length}, 1fr)` }}
         >
-          {answers.map((_, key) => (
+          {libelles.map((_, key) => (
             <div
               key={key}
               className={clsx(
                 "flex flex-col justify-end self-end overflow-hidden rounded-md",
-                ANSWERS_COLORS[key],
+                couleurs[key],
               )}
               style={{ height: percentages[key] }}
             >
@@ -76,10 +101,10 @@ const Responses = ({
 
       <div>
         <div className="mx-auto mb-4 grid w-full max-w-7xl grid-cols-2 gap-1 rounded-full px-2 text-lg font-bold text-white md:text-xl">
-          {answers.map((answer, key) => (
+          {libelles.map((answer, key) => (
             <AnswerButton
               key={key}
-              className={clsx(ANSWERS_COLORS[key], {
+              className={clsx(couleurs[key], {
                 // oxlint-disable-next-line typescript/no-unnecessary-condition
                 "opacity-65": responses && !solutions.includes(key),
               })}

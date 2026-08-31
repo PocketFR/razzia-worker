@@ -2,7 +2,7 @@ import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+} from "@razzia/web/features/game/utils/reponses"
 import clsx from "clsx"
 import { useTranslation } from "react-i18next"
 

@@ -97,7 +97,14 @@ const Medal = ({ rank }: { rank: number }) => {
 }
 
 const Podium = ({ data: { subject, top } }: Props) => {
-  const apparition = usePodiumAnimation(top.length)
+  // Le classement peut être court, voire absent.
+  //
+  // Les deuxième et troisième places étaient gardées, la PREMIÈRE non : une
+  // partie qui s'achève sans personne au classement emportait donc l'écran de
+  // fin — le pire moment pour une page blanche, devant toute la salle. Une
+  // partie d'essai à un ou deux joueurs suffit à y arriver.
+  const classes = top ?? []
+  const apparition = usePodiumAnimation(classes.length)
 
   const { width, height } = useScreenSize()
 
@@ -111,7 +118,7 @@ const Podium = ({ data: { subject, top } }: Props) => {
         />
       )}
 
-      {apparition >= 3 && top.length >= 3 && (
+      {apparition >= 3 && classes.length >= 3 && (
         <div className="pointer-events-none absolute min-h-dvh w-full overflow-hidden">
           <div className="spotlight"></div>
         </div>
@@ -122,10 +129,12 @@ const Podium = ({ data: { subject, top } }: Props) => {
         </h2>
 
         <div
-          style={{ gridTemplateColumns: `repeat(${top.length}, 1fr)` }}
+          style={{
+            gridTemplateColumns: `repeat(${Math.max(1, classes.length)}, 1fr)`,
+          }}
           className={`grid w-full max-w-200 flex-1 items-end justify-center justify-self-end overflow-x-visible overflow-y-hidden`}
         >
-          {top[1] && (
+          {classes[1] && (
             <div
               className={clsx(
                 "z-20 flex h-[50%] w-full translate-y-full flex-col items-center justify-center gap-3 opacity-0 transition-all",
@@ -140,45 +149,47 @@ const Podium = ({ data: { subject, top } }: Props) => {
                   },
                 )}
               >
-                {top[1].username}
+                {classes[1].username}
               </p>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={2} />
                 <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
-                  {top[1].points}
+                  {classes[1].points}
                 </p>
               </div>
             </div>
           )}
 
-          <div
-            className={clsx(
-              "z-30 flex h-[60%] w-full translate-y-full flex-col items-center gap-3 opacity-0 transition-all",
-              {
-                "translate-y-0! opacity-100": apparition >= 3,
-              },
-              {
-                "md:min-w-64": top.length < 2,
-              },
-            )}
-          >
-            <p
+          {classes[0] && (
+            <div
               className={clsx(
-                "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white opacity-0 drop-shadow-lg md:text-4xl",
-                { "anim-balanced opacity-100": apparition >= 4 },
+                "z-30 flex h-[60%] w-full translate-y-full flex-col items-center gap-3 opacity-0 transition-all",
+                {
+                  "translate-y-0! opacity-100": apparition >= 3,
+                },
+                {
+                  "md:min-w-64": classes.length < 2,
+                },
               )}
             >
-              {top[0].username}
-            </p>
-            <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
-              <Medal rank={1} />
-              <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
-                {top[0].points}
+              <p
+                className={clsx(
+                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white opacity-0 drop-shadow-lg md:text-4xl",
+                  { "anim-balanced opacity-100": apparition >= 4 },
+                )}
+              >
+                {classes[0].username}
               </p>
+              <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
+                <Medal rank={1} />
+                <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
+                  {classes[0].points}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
-          {top[2] && (
+          {classes[2] && (
             <div
               className={clsx(
                 "z-10 flex h-[40%] w-full translate-y-full flex-col items-center gap-3 opacity-0 transition-all",
@@ -195,13 +206,13 @@ const Podium = ({ data: { subject, top } }: Props) => {
                   },
                 )}
               >
-                {top[2].username}
+                {classes[2].username}
               </p>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={3} />
 
                 <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
-                  {top[2].points}
+                  {classes[2].points}
                 </p>
               </div>
             </div>

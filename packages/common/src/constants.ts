@@ -99,6 +99,12 @@ export const MAX_POINTS = 1000
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
+  // Les paris. Ce sont des questions comme les autres — même éditeur, mêmes
+  // phases, même barème — à ceci près que la bonne réponse n'est pas écrite
+  // dans le quiz : le serveur la tire au moment de jouer. Voir paris.ts.
+  ROUGE_NOIR: "rouge-noir",
+  BONNETEAU: "bonneteau",
+  PMU: "pmu",
 } as const
 
 // Le discriminant d'un bloc de quiz. Un bloc est soit une question — dont le

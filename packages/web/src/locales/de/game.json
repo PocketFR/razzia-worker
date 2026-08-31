@@ -27,6 +27,27 @@
   },
   "joinInstruction": "Tritt dem Spiel bei auf",
   "leaderboard": "Bestenliste",
+  "paris": {
+    "bonneteau": {
+      "consigne": "Wo ist die Herzdame?",
+      "droite": "Rechts",
+      "gauche": "Links",
+      "milieu": "Mitte"
+    },
+    "pmu": {
+      "cheval1": "Pferd 1",
+      "cheval2": "Pferd 2",
+      "cheval3": "Pferd 3",
+      "cheval4": "Pferd 4",
+      "consigne": "Auf welches Pferd setzt du?",
+      "vainqueur": "{{nom}} gewinnt!"
+    },
+    "rougeNoir": {
+      "consigne": "Rot oder Schwarz?",
+      "noir": "Schwarz",
+      "rouge": "Rot"
+    }
+  },
   "pinLabel": "PIN-Code",
   "playersJoined": "Verbundene Spieler: ",
   "questionPrefix": "Frage #",

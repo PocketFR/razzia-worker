@@ -36,6 +36,27 @@
     "subtitle": "Same room, same PIN — nobody rescans",
     "title": "Play another quiz"
   },
+  "paris": {
+    "bonneteau": {
+      "consigne": "Where is the queen of hearts?",
+      "droite": "Right",
+      "gauche": "Left",
+      "milieu": "Middle"
+    },
+    "pmu": {
+      "cheval1": "Horse 1",
+      "cheval2": "Horse 2",
+      "cheval3": "Horse 3",
+      "cheval4": "Horse 4",
+      "consigne": "Which horse are you backing?",
+      "vainqueur": "{{nom}} wins!"
+    },
+    "rougeNoir": {
+      "consigne": "Red or black?",
+      "noir": "Black",
+      "rouge": "Red"
+    }
+  },
   "pinLabel": "PIN Code",
   "playersJoined": "Players Joined: ",
   "questionPrefix": "Question #",
