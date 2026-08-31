@@ -12,7 +12,7 @@ import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
 import ConfigNumberInput from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigNumberInput"
 import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { ArrowBigDownDash, Clock, ListChecks, Star, Timer } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -20,7 +20,7 @@ const DEFAULT_TIME = 20
 const DEFAULT_PENALTY = 100
 
 const BaseConfig = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
+  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
   const isTimeLimitEnabled = currentQuestion.time !== NO_TIME_LIMIT
   const isPenaltyEnabled = (currentQuestion.penalty ?? 0) > 0

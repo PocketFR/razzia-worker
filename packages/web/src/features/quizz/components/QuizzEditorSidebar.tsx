@@ -19,16 +19,51 @@ import { CSS } from "@dnd-kit/utilities"
 import Button from "@razzia/web/components/Button"
 import QuizzEditorCard from "@razzia/web/features/quizz/components/QuizzEditorCard"
 import {
+  estGroupeAvecId,
   useQuizzEditor,
-  type QuestionWithId,
+  type BlocWithId,
+  type GroupeWithId,
 } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
 import { Plus } from "lucide-react"
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 
+// La vignette d'un groupe.
+//
+// Provisoire, et volontairement inerte : un interlude importé depuis un JSON
+// doit rester VISIBLE et surtout SURVIVRE à une modification du quiz. Sans
+// cette carte, un groupe serait invisible dans la pellicule et disparaîtrait
+// au premier enregistrement. L'arborescence qui permettra de l'éditer viendra
+// après le moteur.
+const GroupeCard = ({
+  groupe,
+  isActive,
+  onClick,
+}: {
+  groupe: GroupeWithId
+  isActive: boolean
+  onClick: () => void
+}) => (
+  <button
+    onClick={onClick}
+    className={clsx(
+      "border-accent w-full rounded-md border-2 border-dashed p-3 text-left",
+      isActive && "border-primary",
+    )}
+  >
+    <p className="text-foreground truncate font-semibold">
+      {groupe.titre ?? "Interlude"}
+    </p>
+    <p className="text-muted-foreground text-sm">
+      {groupe.questions.length} question(s) à élimination
+      {groupe.points ? ` · ${groupe.points} pts` : ""}
+    </p>
+  </button>
+)
+
 interface SortableItemProps {
-  q: QuestionWithId
+  q: BlocWithId
   index: number
   isActive: boolean
   canDelete: boolean
@@ -61,14 +96,18 @@ const SortableItem = ({
       {...listeners}
       className={clsx(isDragging && "shadow-lg")}
     >
-      <QuizzEditorCard
-        question={q}
-        index={index}
-        isActive={isActive}
-        canDelete={canDelete}
-        onClick={onClick}
-        onDelete={onDelete}
-      />
+      {estGroupeAvecId(q) ? (
+        <GroupeCard groupe={q} isActive={isActive} onClick={onClick} />
+      ) : (
+        <QuizzEditorCard
+          question={q}
+          index={index}
+          isActive={isActive}
+          canDelete={canDelete}
+          onClick={onClick}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   )
 }

@@ -3,13 +3,13 @@ import {
   ANSWERS_LABELS,
 } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorAnswers = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
+  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
 
   const questionType = currentQuestion.type

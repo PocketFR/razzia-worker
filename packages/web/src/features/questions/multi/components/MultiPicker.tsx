@@ -1,10 +1,10 @@
 import type { SolutionPickerProps } from "@razzia/web/features/questions/types"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
 import { Check } from "lucide-react"
 
 const MultiSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
+  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
 
   const handleToggle = () => {
     const current = currentQuestion.solutions

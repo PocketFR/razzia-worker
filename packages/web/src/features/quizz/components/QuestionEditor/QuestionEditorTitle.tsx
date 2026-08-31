@@ -1,9 +1,9 @@
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import type { ChangeEvent } from "react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorTitle = () => {
-  const { updateQuestion, currentIndex, currentQuestion } = useQuizzEditor()
+  const { updateQuestion, currentIndex, currentQuestion } = useQuestionEditee()
   const { t } = useTranslation()
 
   const handleChangeQuestion = (e: ChangeEvent<HTMLInputElement>) => {

@@ -2,6 +2,7 @@ import {
   MEDIA_TYPES,
   QUESTION_TYPES,
   SCORING_MODES,
+  TYPE_GROUPE,
 } from "@razzia/common/constants"
 import { z } from "zod"
 
@@ -51,9 +52,26 @@ const questionValidator = z.preprocess(
   }),
 )
 
+// Un groupe à élimination.
+//
+// Ses `questions` sont validées par le validateur de QUESTION, jamais par
+// celui de bloc : c'est ce qui interdit un groupe dans un groupe, au même
+// titre que le type. La règle n'a donc nulle part où être contournée.
+const groupeValidator = z.object({
+  type: z.literal(TYPE_GROUPE),
+  titre: z.string().optional(),
+  points: z.number().int().min(0).optional(),
+  questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
+})
+
+// Une union et non un discriminatedUnion : le validateur de question est
+// enveloppé dans un preprocess, pour les quiz d'avant l'existence du champ
+// `type`, et zod ne sait pas lire le discriminant à travers.
+const blocValidator = z.union([groupeValidator, questionValidator])
+
 export const quizzValidator = z.object({
   subject: z.string().min(1, "errors:quizz.subjectEmpty"),
-  questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
+  questions: z.array(blocValidator).min(1, "errors:quizz.noQuestions"),
 })
 
 export type QuizzValidated = z.infer<typeof quizzValidator>

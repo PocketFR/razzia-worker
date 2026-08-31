@@ -9,6 +9,7 @@ import Responses from "@razzia/web/features/game/components/states/Responses"
 import Result from "@razzia/web/features/game/components/states/Result"
 import Room from "@razzia/web/features/game/components/states/Room"
 import Start from "@razzia/web/features/game/components/states/Start"
+import Survivors from "@razzia/web/features/game/components/states/Survivors"
 import Wait from "@razzia/web/features/game/components/states/Wait"
 
 import { STATUS } from "@razzia/common/types/game/status"
@@ -48,6 +49,7 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
   [STATUS.SHOW_ROOM]: Room,
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
+  [STATUS.SHOW_SURVIVORS]: Survivors,
   [STATUS.FINISHED]: Podium,
 }
 
@@ -92,6 +94,7 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_RESULT]: null,
   [STATUS.SHOW_RESPONSES]: "common:next",
   [STATUS.SHOW_LEADERBOARD]: "common:next",
+  [STATUS.SHOW_SURVIVORS]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,
 }

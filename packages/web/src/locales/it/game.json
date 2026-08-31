@@ -2,10 +2,19 @@
   "auto": "Auto",
   "confirm": "Conferma",
   "correct": "Bravo!",
+  "eliminated": "Sei eliminato da questo interludio",
   "gamePinLabel": "PIN del gioco:",
   "hud": {
     "answers": "Risposte",
     "time": "Tempo"
+  },
+  "interlude": {
+    "nobody": "Nessuno ha resistito",
+    "points_one": "{{count}} punto a testa",
+    "points_other": "{{count}} punti a testa",
+    "survivors_one": "Ultimo rimasto",
+    "survivors_other": "{{count}} superstiti",
+    "title": "Interludio"
   },
   "joinInstruction": "Unisciti al gioco su",
   "leaderboard": "Classifica",

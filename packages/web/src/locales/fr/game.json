@@ -2,10 +2,19 @@
   "auto": "Auto",
   "confirm": "Valider",
   "correct": "Bravo !",
+  "eliminated": "Vous êtes éliminé de cet interlude",
   "gamePinLabel": "PIN de la partie :",
   "hud": {
     "answers": "Réponses",
     "time": "Temps"
+  },
+  "interlude": {
+    "nobody": "Personne n'a tenu",
+    "points_one": "{{count}} point chacun",
+    "points_other": "{{count}} points chacun",
+    "survivors_one": "Dernier debout",
+    "survivors_other": "{{count}} survivants",
+    "title": "Interlude"
   },
   "joinInstruction": "Rejoins la partie sur",
   "leaderboard": "Classement",

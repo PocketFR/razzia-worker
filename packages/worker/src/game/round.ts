@@ -42,6 +42,7 @@ import type {
   QuizzWithId,
 } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
+import { derouler, type Etape } from "@razzia/common/deroulement"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
 /** Phases temporisées. Les écrans de résultats attendent l'animateur. */
@@ -72,6 +73,14 @@ export interface Manche {
   // quand une diffusion a été retenue. Voir `compteur` dans l'émetteur.
   compteurEnvoyeA: number
   compteurDu: number | null
+  /*
+   * Les clientId encore en lice dans l'interlude en cours, null hors
+   * interlude. Des clientId et non des id de joueur : c'est la clé qui
+   * survit à une reconnexion.
+   */
+  enLice: string[] | null
+  /* Le rang du groupe en cours dans le quiz, pour savoir quand il change. */
+  groupeIndex: number | null
   classement: Player[]
   ancienClassement: Player[] | null
   historique: QuestionResult[]
@@ -86,6 +95,8 @@ export const mancheNeuve = (): Manche => ({
   reponses: [],
   compteurEnvoyeA: 0,
   compteurDu: null,
+  enLice: null,
+  groupeIndex: null,
   classement: [],
   ancienClassement: null,
   historique: [],
@@ -145,6 +156,26 @@ const tempsVersPoints = (debut: number, question: Question): number => {
 
 const dans = (secondes: number) => Date.now() + secondes * 1000
 
+/*
+ * Le quiz déroulé, groupes aplatis. `manche.question` indexe CETTE liste et
+ * non `quizz.questions`, qui contient des blocs : sans quoi le compteur
+ * sauterait des questions et la dernière question d'un quiz avec interlude ne
+ * serait jamais atteinte.
+ */
+const etapes = (ctx: ContextePartie): Etape[] => derouler(ctx.quizz.questions)
+
+const etapeCourante = (ctx: ContextePartie): Etape => {
+  const etape = etapes(ctx)[ctx.manche.question]
+
+  // Un index hors du quiz est un défaut de la machine à états, pas un cas à
+  // rattraper : mieux vaut le bruit d'une exception qu'une question muette.
+  if (!etape) {
+    throw new Error(`étape ${ctx.manche.question} hors du quiz`)
+  }
+
+  return etape
+}
+
 /**
  * Extrait l'identifiant Spotify d'une question sonore.
  *
@@ -195,15 +226,56 @@ const entrerAvantPremiere = (ctx: ContextePartie, em: Emetteur) => {
   em.programmer(ctx.manche.finDePhase)
 }
 
+/*
+ * Qui a le droit de répondre à l'étape courante.
+ *
+ * Hors interlude, tout le monde. Dans un interlude, les seuls survivants — et
+ * un joueur arrivé en cours d'interlude n'en fait pas partie : il n'a pas
+ * traversé les tours précédents, l'y admettre serait injuste pour ceux qui
+ * les ont passés.
+ */
+const enJeu = (ctx: ContextePartie, clientId: string) =>
+  ctx.manche.enLice === null || ctx.manche.enLice.includes(clientId)
+
+const survivants = (ctx: ContextePartie) => {
+  // Capturé dans une variable : TypeScript ne peut pas garantir qu'un champ
+  // mutable reste non nul à l'intérieur du filtre.
+  const { enLice } = ctx.manche
+
+  return enLice === null
+    ? ctx.players
+    : ctx.players.filter((joueur) => enLice.includes(joueur.clientId))
+}
+
+/*
+ * Ouvre l'interlude à l'entrée dans sa première question, le referme à la
+ * sortie. Appelé à chaque préparation, il est donc idempotent : entrer dans la
+ * deuxième question d'un groupe ne réarme pas la liste des survivants, sans
+ * quoi les éliminés reviendraient à chaque tour.
+ */
+const suivreLeGroupe = (ctx: ContextePartie) => {
+  const index = etapeCourante(ctx).groupeIndex
+
+  if (index === ctx.manche.groupeIndex) {
+    return
+  }
+
+  ctx.manche.groupeIndex = index
+  ctx.manche.enLice =
+    index === null ? null : ctx.players.map((joueur) => joueur.clientId)
+}
+
 const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
-  const question = ctx.quizz.questions[ctx.manche.question]
+  suivreLeGroupe(ctx)
+
+  const { question } = etapeCourante(ctx)
 
   ctx.manche.phase = PHASE.PREPARATION
   ctx.manche.finDePhase = dans(DUREE_PREPARATION)
 
   em.diffuser(EVENTS.GAME.UPDATE_QUESTION, {
     current: ctx.manche.question + 1,
-    total: ctx.quizz.questions.length,
+    total: etapes(ctx).length,
   })
   em.statutPourTous(STATUS.SHOW_PREPARED, {
     totalAnswers: question.answers.length,
@@ -213,7 +285,7 @@ const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
 }
 
 const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
-  const question = ctx.quizz.questions[ctx.manche.question]
+  const { question } = etapeCourante(ctx)
 
   ctx.manche.phase = PHASE.ENONCE
   ctx.manche.finDePhase = dans(question.cooldown)
@@ -239,7 +311,7 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
 }
 
 const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
-  const question = ctx.quizz.questions[ctx.manche.question]
+  const { question } = etapeCourante(ctx)
   const sansLimite = question.time === NO_TIME_LIMIT
 
   ctx.manche.phase = PHASE.REPONSES
@@ -250,16 +322,33 @@ const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
   ctx.manche.compteurDu = null
   ctx.manche.finDePhase = sansLimite ? null : dans(question.time)
 
-  em.statutPourTous(STATUS.SELECT_ANSWER, {
+  const charge = {
     question: question.question,
     answers: question.answers,
     media: question.media,
     time: question.time,
     endsAt: ctx.manche.finDePhase,
-    totalPlayer: ctx.players.length,
+    totalPlayer: survivants(ctx).length,
     questionType: question.type,
     options: question.options,
-  })
+  }
+
+  em.statutPourTous(STATUS.SELECT_ANSWER, charge)
+
+  /*
+   * Les écartés reçoivent LE MÊME écran, marqué. Ils suivent l'interlude —
+   * la question, le décompte, le média — sans pouvoir y répondre. Un écran
+   * d'attente les aurait sortis du spectacle, qui est l'intérêt d'un
+   * interlude.
+   */
+  for (const joueur of ctx.players) {
+    if (!enJeu(ctx, joueur.clientId)) {
+      em.statutJoueur(joueur.clientId, STATUS.SELECT_ANSWER, {
+        ...charge,
+        elimine: true,
+      })
+    }
+  }
 
   // Sans limite de temps, aucune alarme : l'objet dort jusqu'à ce que tout le
   // monde ait répondu ou que l'animateur tranche. C'est le cas le plus
@@ -333,7 +422,13 @@ export const repondre = (
     return false
   }
 
-  const question = ctx.quizz.questions[ctx.manche.question]
+  // Un éliminé voit le même écran, boutons grisés. S'il force malgré tout une
+  // trame, elle est ignorée : l'interface ne suffit pas à faire une règle.
+  if (!enJeu(ctx, clientId)) {
+    return false
+  }
+
+  const { question } = etapeCourante(ctx)
 
   // Sans limite de temps, c'est l'ORDRE d'arrivée qui départage ; avec limite,
   // la rapidité. Les deux repartent de données enregistrées, jamais de
@@ -342,7 +437,7 @@ export const repondre = (
     question.time === NO_TIME_LIMIT
       ? ordreVersPoints(
           ctx.manche.reponses.length,
-          ctx.players.length,
+          survivants(ctx).length,
           question.maxPoints,
         )
       : tempsVersPoints(ctx.manche.debutReponses, question)
@@ -353,13 +448,15 @@ export const repondre = (
   em.compteur(ctx.manche.reponses.length)
 
   // Tout le monde a répondu : inutile d'attendre la fin du compte à rebours.
-  return ctx.manche.reponses.length >= ctx.players.length
+  // « Tout le monde », c'est-à-dire les survivants — attendre les éliminés
+  // ferait durer chaque tour d'un interlude jusqu'à l'échéance.
+  return ctx.manche.reponses.length >= survivants(ctx).length
 }
 
 // ── Résultats ─────────────────────────────────────────────────────────────
 
 export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
-  const question = ctx.quizz.questions[ctx.manche.question]
+  const { question } = etapeCourante(ctx)
 
   em.annulerAlarme()
   ctx.manche.phase = null
@@ -383,6 +480,15 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
 
   const classes = ctx.players
     .map((joueur) => {
+      /*
+       * Un éliminé traverse le tour sans y être : ni point, ni pénalité, ni
+       * série rompue. Le pénaliser d'une question à laquelle il n'avait pas le
+       * droit de répondre serait une double peine.
+       */
+      if (!enJeu(ctx, joueur.clientId)) {
+        return { ...joueur, lastCorrect: false, lastPoints: 0, ecarte: true }
+      }
+
       const reponse = ctx.manche.reponses.find((r) => r.playerId === joueur.id)
       const facteur = reponse
         ? QUESTION_SCORING[question.type](question, reponse.answerIds)
@@ -399,6 +505,7 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
         ...joueur,
         lastCorrect: juste,
         lastPoints: juste ? points : -penalite,
+        ecarte: false,
       }
     })
     .sort((a, b) => b.points - a.points)
@@ -407,6 +514,14 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
 
   classes.forEach((joueur, index) => {
     const devant = classes[index - 1]
+
+    if (joueur.ecarte) {
+      em.statutJoueur(joueur.clientId, STATUS.WAIT, {
+        text: "game:eliminated",
+      })
+
+      return
+    }
 
     em.statutJoueur(joueur.clientId, STATUS.SHOW_RESULT, {
       correct: joueur.lastCorrect,
@@ -418,7 +533,69 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
     })
   })
 
-  em.statutAnimateur(STATUS.SHOW_RESPONSES, { ...question, responses: comptes })
+  /*
+   * L'élimination, puis la clôture éventuelle de l'interlude.
+   *
+   * Le groupe s'arrête pour deux raisons : ses questions sont épuisées, ou il
+   * ne reste plus de quoi jouer — moins de deux survivants. Dans le second
+   * cas on saute les questions restantes du groupe, sinon la partie
+   * continuerait à les poser à une personne seule, ou à personne.
+   */
+  const etape = etapeCourante(ctx)
+
+  if (etape.groupe) {
+    const restants = classes
+      .filter((joueur) => !joueur.ecarte && joueur.lastCorrect)
+      .map((joueur) => joueur.clientId)
+
+    ctx.manche.enLice = restants
+
+    if (etape.finDeGroupe || restants.length <= 1) {
+      // Le pot se partage entre les survivants, à parts égales. Zéro
+      // survivant : personne ne gagne, la règle voulue.
+      const pot = etape.groupe.points ?? 0
+      const part = restants.length ? Math.floor(pot / restants.length) : 0
+
+      if (part) {
+        for (const joueur of ctx.players) {
+          if (restants.includes(joueur.clientId)) {
+            joueur.points += part
+          }
+        }
+      }
+
+      em.statutAnimateur(STATUS.SHOW_SURVIVORS, {
+        titre: etape.groupe.titre,
+        survivants: ctx.players
+          .filter((joueur) => restants.includes(joueur.clientId))
+          .map((joueur) => joueur.username),
+        points: part || undefined,
+      })
+
+      // On se place sur la DERNIÈRE étape du groupe : « question suivante »
+      // sortira alors de l'interlude au lieu d'y rester.
+      const liste = etapes(ctx)
+      const fin = liste.reduce(
+        (dernier, e, index) =>
+          e.groupeIndex === etape.groupeIndex ? index : dernier,
+        ctx.manche.question,
+      )
+
+      ctx.manche.question = fin
+      ctx.manche.enLice = null
+      ctx.manche.groupeIndex = null
+    } else {
+      em.statutAnimateur(STATUS.SHOW_RESPONSES, {
+        ...question,
+        responses: comptes,
+      })
+    }
+  } else {
+    em.statutAnimateur(STATUS.SHOW_RESPONSES, {
+      ...question,
+      responses: comptes,
+    })
+  }
 
   ctx.manche.historique.push({
     ...question,
@@ -445,7 +622,7 @@ export const questionSuivante = (
     return false
   }
 
-  if (!ctx.quizz.questions[ctx.manche.question + 1]) {
+  if (!etapes(ctx)[ctx.manche.question + 1]) {
     return false
   }
 
@@ -456,4 +633,4 @@ export const questionSuivante = (
 }
 
 export const estDerniereQuestion = (ctx: ContextePartie) =>
-  ctx.manche.question + 1 === ctx.quizz.questions.length
+  ctx.manche.question + 1 === etapes(ctx).length

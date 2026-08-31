@@ -2,10 +2,19 @@
   "auto": "Auto",
   "confirm": "Bestätigen",
   "correct": "Richtig!",
+  "eliminated": "Du bist aus diesem Zwischenspiel ausgeschieden",
   "gamePinLabel": "Spiel-PIN:",
   "hud": {
     "answers": "Antworten",
     "time": "Zeit"
+  },
+  "interlude": {
+    "nobody": "Niemand hat durchgehalten",
+    "points_one": "{{count}} Punkt pro Person",
+    "points_other": "{{count}} Punkte pro Person",
+    "survivors_one": "Als Letzter übrig",
+    "survivors_other": "{{count}} Überlebende",
+    "title": "Zwischenspiel"
   },
   "joinInstruction": "Tritt dem Spiel bei auf",
   "leaderboard": "Bestenliste",

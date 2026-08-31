@@ -2,10 +2,19 @@
   "auto": "Auto",
   "confirm": "Confirm",
   "correct": "Nice!",
+  "eliminated": "You are out of this interlude",
   "gamePinLabel": "Game PIN:",
   "hud": {
     "answers": "Answers",
     "time": "Time"
+  },
+  "interlude": {
+    "nobody": "Nobody made it",
+    "points_one": "{{count}} point each",
+    "points_other": "{{count}} points each",
+    "survivors_one": "Last one standing",
+    "survivors_other": "{{count}} survivors",
+    "title": "Interlude"
   },
   "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",

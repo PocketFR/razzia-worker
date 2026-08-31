@@ -30,6 +30,7 @@ const Answers = ({
     totalPlayer,
     questionType,
     options,
+    elimine,
   },
 }: Props) => {
   const { socket } = useSocket()
@@ -106,11 +107,17 @@ const Answers = ({
           </div>
         </div>
 
+        {elimine && (
+          <p className="mx-auto mb-3 rounded-lg bg-black/50 px-4 py-2 text-center text-lg font-bold text-white md:text-xl">
+            {t("game:eliminated")}
+          </p>
+        )}
+
         <AnswerComponent
           answers={answers}
           options={options}
           onSubmit={handleSubmit}
-          readOnly={!player}
+          readOnly={!player || Boolean(elimine)}
         />
       </div>
     </div>

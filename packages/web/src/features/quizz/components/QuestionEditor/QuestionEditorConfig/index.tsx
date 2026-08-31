@@ -11,12 +11,12 @@ import {
   QUESTION_TYPE_LIST,
 } from "@razzia/web/features/questions"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { LayoutList } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorConfig = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
+  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
   const questionType = currentQuestion.type
 

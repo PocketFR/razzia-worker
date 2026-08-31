@@ -7,14 +7,14 @@ import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import SpotifyMedia, {
   URI_SPOTIFY,
 } from "@razzia/web/features/quizz/components/QuestionEditor/SpotifyMedia"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { Image, ImageOff, Music, Video } from "lucide-react"
 import { type ChangeEvent } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorMedia = () => {
-  const { updateQuestion, currentIndex, currentQuestion } = useQuizzEditor()
+  const { updateQuestion, currentIndex, currentQuestion } = useQuestionEditee()
   const questionMedia = currentQuestion.media
   const { t } = useTranslation()
 

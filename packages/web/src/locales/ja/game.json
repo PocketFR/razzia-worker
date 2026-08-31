@@ -2,10 +2,17 @@
   "auto": "自動",
   "confirm": "確認",
   "correct": "正解！",
+  "eliminated": "この幕間から脱落しました",
   "gamePinLabel": "ゲームPIN:",
   "hud": {
     "answers": "回答数",
     "time": "時間"
+  },
+  "interlude": {
+    "nobody": "誰も残りませんでした",
+    "points_other": "1人あたり{{count}}ポイント",
+    "survivors_other": "生き残り{{count}}人",
+    "title": "幕間"
   },
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",

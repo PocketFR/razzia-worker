@@ -1,7 +1,8 @@
-import type {
-  MEDIA_TYPES,
-  QUESTION_TYPES,
-  SCORING_MODES,
+import {
+  TYPE_GROUPE,
+  type MEDIA_TYPES,
+  type QUESTION_TYPES,
+  type SCORING_MODES,
 } from "@razzia/common/constants"
 
 export type QuestionType = (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES]
@@ -51,9 +52,32 @@ export interface Question {
   options?: QuestionOptions
 }
 
+// Un groupe de questions à élimination — un « interlude ».
+//
+// Ses questions s'enchaînent comme les autres, mais qui se trompe est écarté
+// du reste du groupe. Il s'arrête quand ses questions sont épuisées ou qu'il
+// reste moins de deux joueurs en lice. Le pot, s'il y en a un, se partage
+// entre les survivants — rien du tout s'il n'en reste aucun.
+//
+// `questions` est un tableau de Question et NON de BlocQuizz : c'est ainsi
+// qu'un groupe dans un groupe devient impossible à écrire, plutôt qu'une règle
+// à vérifier. Une élimination dans une élimination n'aurait aucun sens.
+export interface Groupe {
+  type: typeof TYPE_GROUPE
+  titre?: string
+  points?: number
+  questions: Question[]
+}
+
+/** Ce que contient un quiz : des questions, et des groupes de questions. */
+export type BlocQuizz = Question | Groupe
+
+export const estGroupe = (bloc: BlocQuizz): bloc is Groupe =>
+  bloc.type === TYPE_GROUPE
+
 export interface Quizz {
   subject: string
-  questions: Question[]
+  questions: BlocQuizz[]
 }
 
 export type QuizzWithId = Quizz & { id: string }

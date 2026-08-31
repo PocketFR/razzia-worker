@@ -101,6 +101,10 @@ export const QUESTION_TYPES = {
   MULTI: "multi",
 } as const
 
+// Le discriminant d'un bloc de quiz. Un bloc est soit une question — dont le
+// `type` est l'un de QUESTION_TYPES — soit un groupe à élimination.
+export const TYPE_GROUPE = "groupe"
+
 export const SCORING_MODES = {
   STRICT: "strict",
   BALANCED: "balanced",

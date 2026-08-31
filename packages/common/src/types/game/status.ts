@@ -14,6 +14,8 @@ export const STATUS = {
   SHOW_RESULT: "SHOW_RESULT",
   SHOW_RESPONSES: "SHOW_RESPONSES",
   SHOW_LEADERBOARD: "SHOW_LEADERBOARD",
+  /* Fin d'un interlude : la liste de ceux qui restaient debout. */
+  SHOW_SURVIVORS: "SHOW_SURVIVORS",
   FINISHED: "FINISHED",
   WAIT: "WAIT",
 } as const
@@ -42,6 +44,11 @@ export interface CommonStatusDataMap {
     totalPlayer: number
     questionType: QuestionType
     options?: QuestionOptions
+    // Vrai pour un joueur écarté d'un interlude. Il voit le même écran que
+    // les autres — la question, le décompte, le média — mais ses boutons sont
+    // inertes. Le champ n'est posé que sur le statut PERSONNEL des éliminés,
+    // jamais sur la diffusion générale.
+    elimine?: boolean
   }
   SHOW_RESULT: {
     correct: boolean
@@ -65,6 +72,16 @@ interface ManagerExtraStatus {
     media?: QuestionMedia
   }
   SHOW_LEADERBOARD: { oldLeaderboard: Player[]; leaderboard: Player[] }
+  // Fin d'un interlude. `survivants` est vide quand tout le monde s'est
+  // trompé au même tour : personne ne gagne, et l'écran le dit.
+  //
+  // `points` est ce que chacun ramasse, le pot divisé par le nombre de
+  // survivants — absent quand le groupe n'attribue rien.
+  SHOW_SURVIVORS: {
+    titre?: string
+    survivants: string[]
+    points?: number
+  }
 }
 
 export type PlayerStatusDataMap = CommonStatusDataMap

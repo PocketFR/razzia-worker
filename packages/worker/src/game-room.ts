@@ -31,6 +31,7 @@
 // persisté côté navigateur : le joueur redevient lui-même sans rien
 // transposer, et toute une classe de bugs de reconnexion disparaît.
 
+import { derouler } from "@razzia/common/deroulement"
 import { EVENTS } from "@razzia/common/constants"
 import type { GameResult, Player, QuizzWithId } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
@@ -292,7 +293,7 @@ export class GameRoom implements DurableObject {
     const avancement = etat.manche.demarree
       ? {
           current: etat.manche.question + 1,
-          total: etat.quizz.questions.length,
+          total: derouler(etat.quizz.questions).length,
         }
       : null
 
@@ -354,7 +355,8 @@ export class GameRoom implements DurableObject {
         etat.manche.phase === PHASE.REPONSES
 
       if (enJeu) {
-        const piste = pisteSpotify(etat.quizz.questions[etat.manche.question])
+        const etape = derouler(etat.quizz.questions)[etat.manche.question]
+        const piste = etape && pisteSpotify(etape.question)
 
         if (piste) {
           this.envoyer(server, EVENTS.GAME.AUDIO_CUE, piste)
