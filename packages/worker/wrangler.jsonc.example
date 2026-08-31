@@ -44,11 +44,15 @@
     }
   ],
 
-  // Le domaine sur lequel l'application répond. Le script de déploiement le
-  // demande au premier passage et le reporte ici, comme l'identifiant D1.
-  // Il doit être géré par Cloudflare : c'est ce qui permet d'y attacher un
-  // Worker sans passer par un enregistrement DNS à la main.
-  "routes": [{ "pattern": "REMPLACER_PAR_VOTRE_DOMAINE", "custom_domain": true }],
+  // L'adresse publique. Par défaut celle que Cloudflare fournit gratuitement,
+  // <worker>.<compte>.workers.dev, qui ne demande aucun domaine à soi et
+  // suffit parfaitement à des soirées entre amis.
+  //
+  // Pour un nom à vous, relancer le script avec DOMAINE=quiz.exemple.fr : il
+  // remplace cette ligne par une route de domaine dédié. Le domaine doit être
+  // géré par Cloudflare — c'est ce qui permet d'y attacher un Worker sans
+  // toucher au DNS à la main.
+  "workers_dev": true,
 
   // Quotidien, à 4 h UTC : il ne ramasse que des lignes vieilles d'un jour,
   // l'heure exacte n'a donc aucune importance.

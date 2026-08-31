@@ -15,8 +15,17 @@
 # quiz et des résultats de l'ancienne installation, et n'est repris qu'une
 # fois — un second passage refuserait d'écraser des données déjà en base.
 #
-# DOMAINE n'est demandé qu'au premier passage, et seulement si wrangler.jsonc
-# ne le connaît pas encore. Il doit être géré par Cloudflare.
+# DOMAINE est FACULTATIF. Sans lui, l'application répond sur l'adresse
+# workers.dev que Cloudflare fournit gratuitement — ce qui suffit, et n'exige
+# pas de posséder un domaine. Avec lui, elle répond sur ce nom, qui doit être
+# géré par Cloudflare.
+#
+# ATTENTION SUR UN COMPTE NEUF : le sous-domaine workers.dev n'existe qu'après
+# une première visite à la page Workers du tableau de bord. Aucune API ne le
+# crée. Le script le dit s'il tombe dessus, mais autant le savoir avant.
+#
+# CLOUDFLARE_ACCOUNT_ID est utile dès qu'une machine a déployé sur plusieurs
+# comptes : wrangler garde un cache local et vise sinon le mauvais.
 set -e
 
 CONFIG_SOURCE="$1"
@@ -55,22 +64,20 @@ else
   echo "   wrangler.jsonc déjà présent, on garde l'existant"
 fi
 
-echo "== 2. domaine"
-if grep -q "REMPLACER_PAR_VOTRE_DOMAINE" wrangler.jsonc; then
-  if [ -z "$DOMAINE" ]; then
-    echo "! DOMAINE manquant." >&2
-    echo "  Le nom sur lequel l'application répondra, par exemple quiz.exemple.fr." >&2
-    echo "  Il doit déjà être géré par Cloudflare : c'est ce qui permet d'y" >&2
-    echo "  attacher un Worker sans toucher au DNS à la main." >&2
-    echo "  Relancer avec : DOMAINE=quiz.exemple.fr sh scripts/deployer.sh" >&2
-    exit 1
-  fi
-
-  sed -i "s/REMPLACER_PAR_VOTRE_DOMAINE/$DOMAINE/" wrangler.jsonc
+echo "== 2. adresse publique"
+if grep -q '"routes"' wrangler.jsonc; then
+  DOMAINE=$(grep -o '"pattern": "[^"]*"' wrangler.jsonc | head -1 | cut -d'"' -f4)
+  echo "   déjà configurée : $DOMAINE"
+elif [ -n "$DOMAINE" ]; then
+  # On remplace la ligne workers.dev par une route de domaine dédié. Les deux
+  # peuvent coexister chez Cloudflare, mais garder l'adresse workers.dev
+  # laisserait une seconde porte d'entrée que personne ne surveille.
+  sed -i "s|\"workers_dev\": true,|\"routes\": [{ \"pattern\": \"$DOMAINE\", \"custom_domain\": true }],|" wrangler.jsonc
   echo "   $DOMAINE reporté dans wrangler.jsonc"
 else
-  DOMAINE=$(grep -o '"pattern": "[^"]*"' wrangler.jsonc | head -1 | cut -d'"' -f4)
-  echo "   déjà configuré : $DOMAINE"
+  DOMAINE=""
+  echo "   aucun domaine fourni : l'adresse workers.dev de Cloudflare servira"
+  echo "   (pour un nom à vous, relancer avec DOMAINE=quiz.exemple.fr)"
 fi
 
 echo "== 3. base de données"
@@ -184,7 +191,35 @@ echo "== 8. build du frontend"
 echo "   dist prêt"
 
 echo "== 9. déploiement"
-npx wrangler deploy
+SORTIE_DEPLOI=$(npx wrangler deploy 2>&1) || {
+  echo "$SORTIE_DEPLOI" >&2
+
+  # Sur un compte tout neuf, le sous-domaine workers.dev n'existe pas encore,
+  # et il ne se crée QUE par une visite au tableau de bord. Rien dans l'API ne
+  # permet de le provoquer. Le message de Cloudflare est correct mais noyé
+  # dans la sortie ; on le remonte, parce que c'est le seul obstacle qui
+  # demande une action humaine et qu'il tombe à la toute dernière étape.
+  if echo "$SORTIE_DEPLOI" | grep -q "workers.dev subdomain"; then
+    echo >&2
+    echo "! Ce compte Cloudflare n'a pas encore de sous-domaine workers.dev." >&2
+    echo "  Il se crée en ouvrant UNE FOIS la page Workers du tableau de bord :" >&2
+    echo "      https://dash.cloudflare.com/ -> Compute (Workers)" >&2
+    echo "  Puis relancer ce script : tout le reste est déjà en place." >&2
+    echo >&2
+    echo "  Ou, pour éviter cette étape, utiliser un domaine à vous :" >&2
+    echo "      DOMAINE=quiz.exemple.fr sh scripts/deployer.sh" >&2
+  fi
+
+  exit 1
+}
+echo "$SORTIE_DEPLOI"
+
+# Sans domaine à soi, l'adresse n'est connue qu'ici : c'est Cloudflare qui la
+# compose à partir du nom du compte.
+if [ -z "$DOMAINE" ]; then
+  DOMAINE=$(echo "$SORTIE_DEPLOI" \
+    | grep -oE '[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' | head -1)
+fi
 
 cat <<FIN
 
