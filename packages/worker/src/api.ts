@@ -1,17 +1,15 @@
-/*
- * Routeur /api — tout ce qui précède la partie.
- *
- * Reprend, en requête/réponse, ce que les handlers amont faisaient par
- * événements socket.io : manager.ts, quizz.ts, results.ts, plus la
- * vérification du PIN et la création de partie extraites de game.ts.
- *
- * Rien ici ne réveille de Durable Object : la consultation des quiz et des
- * résultats ne touche que D1. C'est l'effet secondaire heureux du découpage.
- *
- * Les codes d'erreur restent les clés i18n de l'amont ("errors:quizz.notFound",
- * "errors:manager.invalidPassword"...) : le frontend les traduit déjà, il n'y
- * a aucune raison d'inventer un vocabulaire parallèle.
- */
+// Routeur /api — tout ce qui précède la partie.
+//
+// Reprend, en requête/réponse, ce que les handlers amont faisaient par
+// événements socket.io : manager.ts, quizz.ts, results.ts, plus la
+// vérification du PIN et la création de partie extraites de game.ts.
+//
+// Rien ici ne réveille de Durable Object : la consultation des quiz et des
+// résultats ne touche que D1. C'est l'effet secondaire heureux du découpage.
+//
+// Les codes d'erreur restent les clés i18n de l'amont ("errors:quizz.notFound",
+// "errors:manager.invalidPassword"...) : le frontend les traduit déjà, il n'y
+// a aucune raison d'inventer un vocabulaire parallèle.
 
 import { changerMotDePasse, createConfigService } from "./services/config"
 import {
@@ -69,7 +67,7 @@ export async function routerApi(
   }
 
   const config = createConfigService(env.DB)
-  const segments = url.pathname.split("/").filter(Boolean).slice(1) // après "api"
+  const segments = url.pathname.split("/").filter(Boolean).slice(1) // Après "api"
   const [section, ...reste] = segments
   const methode = request.method
 
@@ -129,19 +127,17 @@ export async function routerApi(
     return json({ gameId: partie.gameId })
   }
 
-  /*
-   * Une partie existe-t-elle encore ? Publique, comme la résolution de PIN.
-   *
-   * Elle sert au client à distinguer deux échecs que la WebSocket confond :
-   * le navigateur ne montre pas le code HTTP d'une ouverture refusée — un
-   * refus arrive comme une fermeture 1006, exactement comme une coupure
-   * réseau. Sans ce point d'appui, un onglet laissé ouvert sur une partie
-   * terminée retente indéfiniment, faute de pouvoir apprendre qu'elle ne
-   * reviendra jamais.
-   *
-   * Elle ne divulgue rien de plus que /pin/<code>, qui est publique aussi :
-   * l'existence d'un identifiant, à qui le connaît déjà.
-   */
+  // Une partie existe-t-elle encore ? Publique, comme la résolution de PIN.
+  //
+  // Elle sert au client à distinguer deux échecs que la WebSocket confond :
+  // le navigateur ne montre pas le code HTTP d'une ouverture refusée — un
+  // refus arrive comme une fermeture 1006, exactement comme une coupure
+  // réseau. Sans ce point d'appui, un onglet laissé ouvert sur une partie
+  // terminée retente indéfiniment, faute de pouvoir apprendre qu'elle ne
+  // reviendra jamais.
+  //
+  // Elle ne divulgue rien de plus que /pin/<code>, qui est publique aussi :
+  // l'existence d'un identifiant, à qui le connaît déjà.
   if (section === "game" && methode === "GET" && reste[0]) {
     const partie = await env.DB.prepare(
       `SELECT 1 AS present FROM games WHERE game_id = ?`,
@@ -149,7 +145,9 @@ export async function routerApi(
       .bind(reste[0])
       .first<{ present: number }>()
 
-    return partie ? json({ present: true }) : erreur("errors:game.notFound", 404)
+    return partie
+      ? json({ present: true })
+      : erreur("errors:game.notFound", 404)
   }
 
   // --- tout ce qui suit exige la session animateur -------------------------
@@ -203,12 +201,19 @@ export async function routerApi(
     // La session vient d'être vérifiée plus haut, d'où la génération nue.
     // C'est ici la SEULE porte vers `genererQuiz`, qui ne contrôle rien.
     if (methode === "POST" && id === "generate") {
-      const { titre, description } = (await request.json().catch(() => ({}))) as {
+      const { titre, description } = (await request
+        .json()
+        .catch(() => ({}))) as {
         titre?: string
         description?: string
       }
 
-      return genererQuiz(env.DB, await lireCles(env), titre ?? "", description ?? "")
+      return genererQuiz(
+        env.DB,
+        await lireCles(env),
+        titre ?? "",
+        description ?? "",
+      )
     }
 
     if ((methode === "POST" && !id) || (methode === "PUT" && id)) {
@@ -255,11 +260,19 @@ export async function routerApi(
         theme = await env.ASSETS.fetch(
           new URL("/branding/theme.json", url).toString(),
         )
-          .then((r) => (r.ok ? (r.json() as Promise<Theme>) : null))
+          // json<Theme>() et non « as Promise<Theme> » : le correcteur
+          // automatique du linter a supprimé cette assertion en la croyant
+          // superflue, et la compilation est tombée — r.json() rend un
+          // `unknown`. La forme générique dit la même chose sans assertion.
+          .then((r) => (r.ok ? r.json<Theme>() : null))
           .catch(() => null)
       }
 
-      return json({ theme, images: await etatDesImages(env.DB), max: TAILLE_MAX })
+      return json({
+        theme,
+        images: await etatDesImages(env.DB),
+        max: TAILLE_MAX,
+      })
     }
 
     if (methode === "PUT" && !cible) {
@@ -289,19 +302,17 @@ export async function routerApi(
       }
 
       if (methode === "PUT") {
-        /*
-         * L'image arrive en CORPS BINAIRE BRUT, et c'est une contrainte de
-         * plateforme, pas une élégance.
-         *
-         * Elle voyageait d'abord en base64 dans du JSON, comme tout le reste
-         * de l'interface. Mais décoder 2 Mo de base64 coûte 216 ms de temps
-         * processeur — mesuré — quand le plan gratuit en accorde 10 par
-         * requête. Le fond d'écran ne pouvait donc PAS être téléversé : le
-         * Worker était interrompu avant d'écrire quoi que ce soit.
-         *
-         * Le corps brut se lit en 0,8 ms, et évite au passage le tiers de
-         * volume que l'encodage ajoutait.
-         */
+        // L'image arrive en CORPS BINAIRE BRUT, et c'est une contrainte de
+        // plateforme, pas une élégance.
+        //
+        // Elle voyageait d'abord en base64 dans du JSON, comme tout le reste
+        // de l'interface. Mais décoder 2 Mo de base64 coûte 216 ms de temps
+        // processeur — mesuré — quand le plan gratuit en accorde 10 par
+        // requête. Le fond d'écran ne pouvait donc PAS être téléversé : le
+        // Worker était interrompu avant d'écrire quoi que ce soit.
+        //
+        // Le corps brut se lit en 0,8 ms, et évite au passage le tiers de
+        // volume que l'encodage ajoutait.
         const mime = (request.headers.get("content-type") ?? "").split(";")[0]
 
         if (!MIMES.has(mime)) {
@@ -339,7 +350,7 @@ export async function routerApi(
           }
         }
 
-        await ecrireImage(env.DB, nom, mime, octets.buffer as ArrayBuffer)
+        await ecrireImage(env.DB, nom, mime, octets.buffer)
 
         return json({ ok: true })
       }
@@ -381,7 +392,9 @@ export async function routerApi(
       return erreur("errors:manager.passwordTooShort", 400)
     }
 
-    if ((await config.verifierAcces(env.RAZZIA_MASTER_KEY, actuel ?? "")) !== "ok") {
+    if (
+      (await config.verifierAcces(env.RAZZIA_MASTER_KEY, actuel ?? "")) !== "ok"
+    ) {
       return erreur("errors:manager.invalidPassword", 401)
     }
 

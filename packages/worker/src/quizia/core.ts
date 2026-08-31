@@ -1,5 +1,5 @@
 /**
- * razzia-quizia — génération de quiz et métadonnées Spotify.
+ * Razzia-quizia — génération de quiz et métadonnées Spotify.
  *
  * Deux rôles distincts, réunis ici parce qu'ils partagent le client Spotify
  * et son cache de jeton d'application :
@@ -65,7 +65,6 @@
  * Le reste — les trois passes, les deux sources de vérité, le mélange des
  * réponses — est inchangé.
  */
-
 
 export interface Cles {
   mistralKey: string
@@ -137,6 +136,7 @@ const melanger = <T>(liste: T[]): T[] => {
     const j = Math.floor(Math.random() * (i + 1))
     ;[copie[i], copie[j]] = [copie[j], copie[i]]
   }
+
   return copie
 }
 
@@ -150,6 +150,7 @@ async function parLots<T, R>(
     const lot = items.slice(i, i + taille)
     resultats.push(...(await Promise.all(lot.map(fn))))
   }
+
   return resultats
 }
 
@@ -162,7 +163,10 @@ let jeton: string | null = null
 let jetonExpire = 0
 
 async function jetonSpotify(cles: Cles): Promise<string> {
-  if (jeton && Date.now() < jetonExpire) return jeton
+  if (jeton && Date.now() < jetonExpire) {
+    return jeton
+  }
+
   const basic = btoa(`${cles.spotifyId}:${cles.spotifySecret}`)
   const r = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -172,10 +176,15 @@ async function jetonSpotify(cles: Cles): Promise<string> {
     },
     body: "grant_type=client_credentials",
   })
-  if (!r.ok) throw new Error(`token Spotify HTTP ${r.status}`)
+
+  if (!r.ok) {
+    throw new Error(`token Spotify HTTP ${r.status}`)
+  }
+
   const j = (await r.json()) as { access_token: string; expires_in: number }
   jeton = j.access_token
   jetonExpire = Date.now() + (j.expires_in - 60) * 1000
+
   return jeton
 }
 
@@ -192,17 +201,24 @@ async function spotify(cles: Cles, chemin: string, essai = 0): Promise<any> {
       30,
       parseInt(r.headers.get("retry-after") || "2", 10),
     )
-    if (essai >= 2)
+
+    if (essai >= 2) {
       throw new Error(`quota Spotify épuisé (429 après ${essai + 1} essais)`)
+    }
+
     log(`quota Spotify atteint, pause ${attente}s`)
     await pause(attente * 1000)
+
     return spotify(cles, chemin, essai + 1)
   }
+
   if (r.status === 401 && essai < 1) {
-    // jeton périmé plus tôt que prévu
+    // Jeton périmé plus tôt que prévu
     jeton = null
+
     return spotify(cles, chemin, essai + 1)
   }
+
   if (!r.ok) {
     const detail = await r.text()
     throw new Error(
@@ -210,26 +226,42 @@ async function spotify(cles: Cles, chemin: string, essai = 0): Promise<any> {
         `— ${detail.slice(0, 120)}`,
     )
   }
+
   return r.json()
 }
 
 /** Normalise une piste Spotify, ou null si elle n'est pas exploitable. */
 function retenirPiste(t: any, nomArtiste: string) {
-  if (!t || !t.id || !t.name) return null
-  if (NOISE.test(t.name)) return null
+  if (!t?.id || !t.name) {
+    return null
+  }
+
+  if (NOISE.test(t.name)) {
+    return null
+  }
 
   const album = t.album || {}
-  if (ALBUM_KO.has(String(album.album_type || "").toLowerCase())) return null
-  if (NOISE.test(album.name || "")) return null
+
+  if (ALBUM_KO.has(String(album.album_type || "").toLowerCase())) {
+    return null
+  }
+
+  if (NOISE.test(album.name || "")) {
+    return null
+  }
 
   // La recherche remonte reprises et artistes voisins : sur « Indochine »,
   // Louise Attaque figurait dans les résultats.
   const interprete = ((t.artists || [])[0] || {}).name || ""
-  if (norm(interprete) !== norm(nomArtiste)) return null
+
+  if (norm(interprete) !== norm(nomArtiste)) {
+    return null
+  }
 
   // Le format varie : "1982" pour l'un, "1985-12-10" pour l'autre.
   const annee =
     parseInt(String(album.release_date || "").slice(0, 4), 10) || null
+
   // L'identifiant est la raison d'être de cette passe : c'est lui qui finira
   // dans le champ media du quiz. Le résoudre ici, contre le catalogue réel,
   // est le seul moyen d'être sûr qu'il désigne bien ce morceau-là.
@@ -238,7 +270,10 @@ function retenirPiste(t: any, nomArtiste: string) {
 
 /** Métadonnées affichables d'un objet track, pour la surcouche d'édition. */
 function decrireTrack(t: any) {
-  if (!t || !t.id) return null
+  if (!t?.id) {
+    return null
+  }
+
   const album = t.album || {}
   const images = album.images || []
   // On prend LA PLUS GRANDE. Ces métadonnées ne servaient au départ qu'à une
@@ -253,14 +288,18 @@ function decrireTrack(t: any) {
   let cover: string | null = null
   let large = -1
   for (const i of images) {
-    if (i && i.url && (i.width || 0) > large) {
+    if (i?.url && (i.width || 0) > large) {
       cover = i.url
       large = i.width || 0
     }
   }
 
   const artistes = []
-  for (const a of t.artists || []) if (a && a.name) artistes.push(a.name)
+  for (const a of t.artists || []) {
+    if (a?.name) {
+      artistes.push(a.name)
+    }
+  }
 
   return {
     id: t.id,
@@ -278,16 +317,24 @@ const dedupliquer = (pistes: any[]) => {
   const parTitre = new Map<string, any>()
   for (const p of pistes) {
     const cle = norm(p.titre)
-    if (!cle) continue
-    const connue = parTitre.get(cle)
-    if (!connue) {
-      parTitre.set(cle, p)
+
+    if (!cle) {
       continue
     }
+
+    const connue = parTitre.get(cle)
+
+    if (!connue) {
+      parTitre.set(cle, p)
+
+      continue
+    }
+
     if (p.annee && (!connue.annee || p.annee < connue.annee)) {
       parTitre.set(cle, { ...connue, annee: p.annee })
     }
   }
+
   return [...parTitre.values()]
 }
 
@@ -299,6 +346,7 @@ async function pistesArtiste(
   anneeMax: number | null,
 ) {
   let requete = `artist:${nom}`
+
   if (anneeMin || anneeMax) {
     requete += ` year:${anneeMin || 1900}-${anneeMax || new Date().getFullYear()}`
   }
@@ -313,8 +361,12 @@ async function pistesArtiste(
   const pistes = []
   for (const t of (res.tracks || {}).items || []) {
     const p = retenirPiste(t, nom)
-    if (p) pistes.push(p)
+
+    if (p) {
+      pistes.push(p)
+    }
   }
+
   return dedupliquer(pistes)
 }
 
@@ -369,6 +421,7 @@ function decoderHtml(texte: string): string {
     "&auml;": "ä",
     "&deg;": "°",
   }
+
   return String(texte || "")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
     .replace(/&[a-zA-Z]+;|&#\d+;/g, (e) => table[e] || e)
@@ -408,26 +461,42 @@ async function questionsOpenTDB(
     amount: String(Math.min(50, Math.max(1, nombre))),
     encode: "url3986",
   })
-  if (CATEGORIES[categorie]) params.set("category", String(categorie))
-  if (niveau && niveaux[niveau]) params.set("difficulty", niveaux[niveau])
+
+  if (CATEGORIES[categorie]) {
+    params.set("category", String(categorie))
+  }
+
+  if (niveau && niveaux[niveau]) {
+    params.set("difficulty", niveaux[niveau])
+  }
 
   const rejouer = async (
     motif: string,
     combien = nombre,
     prochainNiveau: string | null = niveau,
   ): Promise<any[]> => {
-    if (essai >= OPENTDB_ESSAIS)
+    if (essai >= OPENTDB_ESSAIS) {
       throw new Error(`${motif} (après ${essai + 1} essais)`)
+    }
+
     const attente = OPENTDB_PAUSE_MS * (essai + 1)
     const quoi: string[] = []
-    if (combien !== nombre) quoi.push(`${combien} question(s)`)
-    if (prochainNiveau !== niveau)
+
+    if (combien !== nombre) {
+      quoi.push(`${combien} question(s)`)
+    }
+
+    if (prochainNiveau !== niveau) {
       quoi.push(`niveau ${prochainNiveau || "libre"}`)
+    }
+
     log(
-      `opentdb : ${motif}, nouvelle tentative dans ${attente / 1000}s` +
-        (quoi.length ? ` avec ${quoi.join(" et ")}` : ""),
+      `opentdb : ${motif}, nouvelle tentative dans ${attente / 1000}s${
+        quoi.length ? ` avec ${quoi.join(" et ")}` : ""
+      }`,
     )
     await pause(attente)
+
     return questionsOpenTDB(
       categorie,
       combien,
@@ -439,6 +508,7 @@ async function questionsOpenTDB(
   }
 
   let r
+
   try {
     r = await fetch(`${OPENTDB_URL}/api.php?${params}`, {
       signal: AbortSignal.timeout(OPENTDB_TIMEOUT_MS),
@@ -448,10 +518,16 @@ async function questionsOpenTDB(
   }
 
   // 429 = cadence dépassée, 5xx = incident passager : les deux se rejouent.
-  if (r.status === 429 || r.status >= 500) return rejouer(`HTTP ${r.status}`)
-  if (!r.ok) throw new Error(`OpenTDB HTTP ${r.status}`)
+  if (r.status === 429 || r.status >= 500) {
+    return rejouer(`HTTP ${r.status}`)
+  }
+
+  if (!r.ok) {
+    throw new Error(`OpenTDB HTTP ${r.status}`)
+  }
 
   let data: any
+
   try {
     data = await r.json()
   } catch (e) {
@@ -460,23 +536,30 @@ async function questionsOpenTDB(
 
   if (data.response_code === 1) {
     const reduit = Math.floor(nombre * 0.75)
+
     // Palier 1 : un quart de questions en moins, difficulté conservée.
     if (niveau && reduit >= 1 && reduit < nombre) {
       return rejouer("pas assez de questions", reduit)
     }
+
     // Palier 2 : difficulté relâchée, et retour au nombre demandé.
     if (niveau) {
       return rejouer("pas assez de questions", demandeInitiale, null)
     }
+
     // Plus de difficulté à relâcher : il ne reste qu'à demander moins.
     if (reduit >= 1 && reduit < nombre) {
       return rejouer("pas assez de questions", reduit)
     }
+
     throw new Error("catégorie OpenTDB vide pour ces critères")
   }
 
   // 5 = cadence dépassée, signalée dans le corps plutôt qu'en HTTP.
-  if (data.response_code === 5) return rejouer("cadence dépassée")
+  if (data.response_code === 5) {
+    return rejouer("cadence dépassée")
+  }
+
   if (data.response_code !== 0) {
     throw new Error(`OpenTDB code ${data.response_code}`)
   }
@@ -488,8 +571,11 @@ async function questionsOpenTDB(
     for (const m of q.incorrect_answers || []) {
       mauvaises.push(decoderHtml(decodeURIComponent(m)))
     }
+
     // Une seule mauvaise réponse suffit : c'est le cas des vrai/faux.
-    if (!bonne || !mauvaises.length) continue
+    if (!bonne || !mauvaises.length) {
+      continue
+    }
 
     // Position de la bonne réponse fixée ici : la passe 3 a interdiction de
     // réordonner, et rebattre() redistribuera les cartes à l'enregistrement.
@@ -502,6 +588,7 @@ async function questionsOpenTDB(
       categorie: decoderHtml(decodeURIComponent(q.category || "")),
     })
   }
+
   return sortie
 }
 
@@ -527,14 +614,18 @@ async function mistral(cles: Cles, systeme: string, utilisateur: string) {
   })
 
   const texte = await r.text()
-  if (!r.ok)
+
+  if (!r.ok) {
     throw new Error(`Mistral HTTP ${r.status} — ${texte.slice(0, 300)}`)
+  }
 
   const enveloppe = JSON.parse(texte)
   const choix = (enveloppe.choices || [])[0] || {}
+
   if (choix.finish_reason === "length") {
     throw new Error("réponse tronquée — réduis le nombre de questions")
   }
+
   return {
     data: JSON.parse((choix.message || {}).content || "{}"),
     usage: enveloppe.usage || {},
@@ -640,17 +731,15 @@ Ne te soucie pas de la position de la bonne réponse : les propositions sont reb
 
 // ------------------------------------------------------------ écriture du quiz
 
-/*
- * Portage du pyscript razzia_build_quiz, qui vivait sur Home Assistant et
- * déposait le fichier ici en scp. Deux de ses trois rôles ont disparu :
- *
- *   - la résolution des morceaux via Music Assistant : la passe 2 interroge
- *     déjà Spotify et connaît l'identifiant de chaque piste ;
- *   - le transfert scp : quizia monte le dossier config de razzia.
- *
- * Reste le troisième, qui lui doit être reproduit fidèlement : valider les
- * questions, REBATTRE LES RÉPONSES, et écrire le fichier.
- */
+// Portage du pyscript razzia_build_quiz, qui vivait sur Home Assistant et
+// déposait le fichier ici en scp. Deux de ses trois rôles ont disparu :
+//
+//   - la résolution des morceaux via Music Assistant : la passe 2 interroge
+//     déjà Spotify et connaît l'identifiant de chaque piste ;
+//   - le transfert scp : quizia monte le dossier config de razzia.
+//
+// Reste le troisième, qui lui doit être reproduit fidèlement : valider les
+// questions, REBATTRE LES RÉPONSES, et écrire le fichier.
 
 // Alphabet des identifiants razzia. Exactement 64 caractères, donc un octet
 // masqué par 63 donne un tirage uniforme, sans modulo biaisé.
@@ -661,7 +750,10 @@ const ALPHABET =
 export function identifiant(taille = 21) {
   const octets = crypto.getRandomValues(new Uint8Array(taille))
   let sortie = ""
-  for (const octet of octets) sortie += ALPHABET[octet & 63]
+  for (const octet of octets) {
+    sortie += ALPHABET[octet & 63]
+  }
+
   return sortie
 }
 
@@ -673,6 +765,7 @@ export function slug(nom: unknown) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
+
   return s.slice(0, 60) || "quiz"
 }
 
@@ -687,19 +780,32 @@ export function slug(nom: unknown) {
  * un cadeau aux joueurs.
  */
 export function serieOrdonnee(reponses: string[]) {
-  if (reponses.length < 2) return false
+  if (reponses.length < 2) {
+    return false
+  }
+
   const valeurs = []
   for (const r of reponses) {
     const texte = String(r).trim()
-    if (!/^-?\d{1,6}$/.test(texte)) return false
+
+    if (!/^-?\d{1,6}$/.test(texte)) {
+      return false
+    }
+
     valeurs.push(parseInt(texte, 10))
   }
   let croissant = true
   let decroissant = true
   for (let i = 1; i < valeurs.length; i++) {
-    if (valeurs[i] < valeurs[i - 1]) croissant = false
-    if (valeurs[i] > valeurs[i - 1]) decroissant = false
+    if (valeurs[i] < valeurs[i - 1]) {
+      croissant = false
+    }
+
+    if (valeurs[i] > valeurs[i - 1]) {
+      decroissant = false
+    }
   }
+
   return croissant || decroissant
 }
 
@@ -714,11 +820,15 @@ export function rebattre(
   reponses: string[],
   index: number,
 ): [string[], number] {
-  if (reponses.length < 2) return [reponses, index]
+  if (reponses.length < 2) {
+    return [reponses, index]
+  }
+
   const bonne = reponses[index]
   const sortie = serieOrdonnee(reponses)
     ? [...reponses].sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
     : melanger(reponses)
+
   return [sortie, sortie.indexOf(bonne)]
 }
 
@@ -726,14 +836,17 @@ export function rebattre(
 export function champ(item: any, ...noms: string[]): any {
   for (const nom of noms) {
     const valeur = item[nom]
+
     if (
       valeur !== undefined &&
       valeur !== null &&
       valeur !== "" &&
       !(Array.isArray(valeur) && !valeur.length)
-    )
+    ) {
       return valeur
+    }
   }
+
   return null
 }
 
@@ -752,9 +865,13 @@ export function validerQuestion(
   }
 
   const intitule = String(champ(item, "q", "question") || "").trim()
-  if (!intitule) return [null, `question ${numero} : intitulé manquant`]
+
+  if (!intitule) {
+    return [null, `question ${numero} : intitulé manquant`]
+  }
 
   const brutes = champ(item, "a", "answers", "reponses")
+
   if (!Array.isArray(brutes)) {
     return [null, `question ${numero} : réponses non listées`]
   }
@@ -762,8 +879,15 @@ export function validerQuestion(
   const reponses: string[] = []
   for (const valeur of brutes) {
     const texte = String(valeur).trim()
-    if (!texte) continue
-    if (reponses.some((retenue) => norm(retenue) === norm(texte))) continue
+
+    if (!texte) {
+      continue
+    }
+
+    if (reponses.some((retenue) => norm(retenue) === norm(texte))) {
+      continue
+    }
+
     reponses.push(texte)
   }
 
@@ -773,6 +897,7 @@ export function validerQuestion(
       `question ${numero} : ${reponses.length} réponse(s) distincte(s)`,
     ]
   }
+
   // Rogner écraserait la bonne réponse une fois sur deux : c'est la question
   // entière qu'on écarte. Le modèle est prévenu de la limite dans le prompt.
   if (reponses.length > MAX_REPONSES) {
@@ -784,9 +909,13 @@ export function validerQuestion(
 
   // La solution arrive en index, ou directement en texte.
   let brute = champ(item, "s", "solution", "solutions")
-  if (Array.isArray(brute)) brute = brute[0]
+
+  if (Array.isArray(brute)) {
+    brute = brute[0]
+  }
 
   let index = null
+
   if (typeof brute === "boolean") {
     index = null
   } else if (Number.isInteger(brute)) {
@@ -796,7 +925,10 @@ export function validerQuestion(
   } else if (typeof brute === "string") {
     const cible = norm(brute)
     index = reponses.findIndex((r) => norm(r) === cible)
-    if (index < 0) index = null
+
+    if (index < 0) {
+      index = null
+    }
   }
 
   if (index === null || index < 0 || index >= reponses.length) {
@@ -836,6 +968,7 @@ export function validerQuestion(
 async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
   const requete = `artist:${artiste} track:${titre}`
   let res
+
   try {
     res = await spotify(
       cles,
@@ -847,19 +980,28 @@ async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
     console.error(
       `! résolution "${artiste} — ${titre}": ${(e as Error).message}`,
     )
+
     return null
   }
 
   const vise = norm(titre)
   for (const t of (res.tracks || {}).items || []) {
-    // retenirPiste applique déjà le filtre NOISE et l'égalité d'artiste.
+    // RetenirPiste applique déjà le filtre NOISE et l'égalité d'artiste.
     const p = retenirPiste(t, artiste)
-    if (!p) continue
+
+    if (!p) {
+      continue
+    }
+
     const nom = norm(p.titre)
+
     // Garde-fou contre les homonymies : la recherche remonte volontiers un
     // autre titre du même artiste quand celui demandé n'existe pas.
-    if (nom.includes(vise) || vise.includes(nom)) return { ...p, id: t.id }
+    if (nom.includes(vise) || vise.includes(nom)) {
+      return { ...p, id: t.id }
+    }
   }
+
   return null
 }
 
@@ -934,20 +1076,27 @@ export async function ecrireQuiz(
   let sonores = 0
 
   const parTexte = new Map<string, any>()
-  for (const p of pistes) parTexte.set(`${norm(p.artiste)}|${norm(p.titre)}`, p)
+  for (const p of pistes) {
+    parTexte.set(`${norm(p.artiste)}|${norm(p.titre)}`, p)
+  }
 
   for (let i = 0; i < brutes.length && questions.length < MAX_QUESTIONS; i++) {
     const [q, motif] = validerQuestion(brutes[i], i + 1)
+
     if (motif) {
       rejets.push(motif)
+
       continue
     }
 
     // Trois chemins, du plus sûr au plus coûteux : le numéro rendu par la
     // passe 3, la recopie de l'artiste et du titre, puis le catalogue.
     let piste = null
-    if (q.n !== null && q.n >= 1 && q.n <= pistes.length)
+
+    if (q.n !== null && q.n >= 1 && q.n <= pistes.length) {
       piste = pistes[q.n - 1]
+    }
+
     if (!piste && q.artiste && q.titre) {
       piste =
         parTexte.get(`${norm(q.artiste)}|${norm(q.titre)}`) ||
@@ -957,20 +1106,25 @@ export async function ecrireQuiz(
     // Une question musicale sans morceau est injouable : le joueur entendrait
     // le silence. On l'écarte plutôt que de la laisser passer muette.
     const musicale = q.n !== null || (q.artiste && q.titre)
+
     if (musicale) {
       if (!piste) {
         rejets.push(
           `question ${i + 1} : morceau introuvable ` +
             `(n=${q.n}, ${q.artiste} — ${q.titre})`,
         )
+
         continue
       }
+
       if (vus.has(piste.id)) {
         rejets.push(
           `question ${i + 1} : morceau en double (${piste.artiste} — ${piste.titre})`,
         )
+
         continue
       }
+
       vus.add(piste.id)
       sonores++
     }
@@ -983,7 +1137,11 @@ export async function ecrireQuiz(
       cooldown: COOLDOWN,
       time: DUREE,
     }
-    if (musicale) question.media = media(piste.id, q.start)
+
+    if (musicale) {
+      question.media = media(piste.id, q.start)
+    }
+
     questions.push(question)
     positions[q.index] = (positions[q.index] || 0) + 1
   }
@@ -1000,9 +1158,7 @@ export async function ecrireQuiz(
   // La répartition des positions est le seul contrôle qui prouve que le
   // mélange agit : concentrée sur 0, c'est que rebattre() ne passe plus.
   log(
-    `quiz « ${nom} » : ${questions.length} question(s) sur ${brutes.length}, ` +
-      `${sonores} sonore(s), positions ${JSON.stringify(positions)}, id ${id}` +
-      (rejets.length ? ` | rejetés : ${rejets.join(" ; ")}` : ""),
+    `quiz « ${nom} » : ${questions.length} question(s) sur ${brutes.length}, ${sonores} sonore(s), positions ${JSON.stringify(positions)}, id ${id}${rejets.length ? ` | rejetés : ${rejets.join(" ; ")}` : ""}`,
   )
 
   return { id, sonores, rejets, retenues: questions.length }
@@ -1051,16 +1207,17 @@ async function construire(cles: Cles, titre: string, description: string) {
     categorie,
     partCulture,
   })
+
   if (!noms.length && !partCulture) {
     throw new Error("ni artiste ni catégorie exploitable pour ce thème")
   }
 
   log(
-    `passe 1 : ${partMusique} musicale(s) sur ${noms.length} artiste(s), ` +
-      `${partCulture} culture générale` +
-      (categorie ? ` (${CATEGORIES[categorie]})` : "") +
-      `, ${difficulte}` +
-      (anneeMin || anneeMax ? ` [${anneeMin || "…"}-${anneeMax || "…"}]` : ""),
+    `passe 1 : ${partMusique} musicale(s) sur ${noms.length} artiste(s), ${partCulture} culture générale${
+      categorie ? ` (${CATEGORIES[categorie]})` : ""
+    }, ${difficulte}${
+      anneeMin || anneeMax ? ` [${anneeMin || "…"}-${anneeMax || "…"}]` : ""
+    }`,
   )
 
   // --- passe 2 : les deux sources, en parallèle ---------------------------
@@ -1070,6 +1227,7 @@ async function construire(cles: Cles, titre: string, description: string) {
     ? questionsOpenTDB(categorie as number, partCulture, difficulte).catch(
         (e: unknown) => {
           console.error(`! opentdb: ${(e as Error).message}`)
+
           return [] as any[]
         },
       )
@@ -1081,10 +1239,15 @@ async function construire(cles: Cles, titre: string, description: string) {
     async (nom: string) => {
       try {
         const pistes = await pistesArtiste(cles, nom, anneeMin, anneeMax)
-        if (!pistes.length) return { nom, pistes: [] as any[] }
+
+        if (!pistes.length) {
+          return { nom, pistes: [] as any[] }
+        }
+
         return { nom, pistes: melanger(pistes).slice(0, PISTES_PAR_ARTISTE) }
       } catch (e) {
         console.error(`! ${nom}: ${(e as Error).message}`)
+
         return { nom, pistes: [] as any[] }
       }
     },
@@ -1094,14 +1257,18 @@ async function construire(cles: Cles, titre: string, description: string) {
 
   let pistes: any[] = []
   for (const lot of lots) {
-    if (!lot.pistes.length) rapport.absents.push(lot.nom)
-    else pistes.push(...lot.pistes)
+    if (!lot.pistes.length) {
+      rapport.absents.push(lot.nom)
+    } else {
+      pistes.push(...lot.pistes)
+    }
   }
   pistes = melanger(pistes).slice(0, partMusique)
 
   if (!pistes.length && !culture.length) {
     throw new Error("aucune matière récupérée pour ce thème")
   }
+
   rapport.musicales = pistes.length
   rapport.culture = culture.length
   log(
@@ -1118,27 +1285,25 @@ async function construire(cles: Cles, titre: string, description: string) {
 
   if (pistes.length) {
     blocs.push(
-      "MORCEAUX IMPOSÉS (artiste | titre | année) :\n" +
-        pistes
-          .map(
-            (p, i) =>
-              `${i + 1}. ${p.artiste} | ${p.titre}` +
-              (p.annee ? ` | ${p.annee}` : ""),
-          )
-          .join("\n"),
+      `MORCEAUX IMPOSÉS (artiste | titre | année) :\n${pistes
+        .map(
+          (p, i) =>
+            `${i + 1}. ${p.artiste} | ${p.titre}${p.annee ? ` | ${p.annee}` : ""}`,
+        )
+        .join("\n")}`,
     )
   }
+
   if (culture.length) {
     blocs.push(
-      "QUESTIONS À TRADUIRE (l'index donne la bonne réponse, " +
-        "garde l'ordre) :\n" +
-        culture
+      `QUESTIONS À TRADUIRE (l'index donne la bonne réponse, ` +
+        `garde l'ordre) :\n${culture
           .map(
             (q: any, i: number) =>
               `${i + 1}. [index ${q.index}] ${q.question}\n` +
               `   ${q.reponses.map((r: string, j: number) => `(${j}) ${r}`).join(" | ")}`,
           )
-          .join("\n"),
+          .join("\n")}`,
     )
   }
 
@@ -1146,9 +1311,11 @@ async function construire(cles: Cles, titre: string, description: string) {
   rapport.tokens += p3.usage.total_tokens || 0
 
   const questions = p3.data.questions || []
+
   if (!Array.isArray(questions) || !questions.length) {
     throw new Error("aucune question rédigée")
   }
+
   log(`passe 3 : ${questions.length} question(s), ${rapport.tokens} tokens`)
 
   // `pistes` repart avec les questions : c'est la table que le champ "n" de
@@ -1156,13 +1323,11 @@ async function construire(cles: Cles, titre: string, description: string) {
   return { questions, pistes, rapport }
 }
 
-/*
- * Retour d'autorisation Spotify, pour le flux PKCE mené par le navigateur.
- *
- * L'identifiant public est injecté à l'exécution plutôt qu'à la compilation :
- * il est modifiable depuis l'interface (étape 7), et il n'a rien de secret —
- * le flux PKCE l'exige côté client.
- */
+// Retour d'autorisation Spotify, pour le flux PKCE mené par le navigateur.
+//
+// L'identifiant public est injecté à l'exécution plutôt qu'à la compilation :
+// il est modifiable depuis l'interface (étape 7), et il n'a rien de secret —
+// le flux PKCE l'exige côté client.
 const CALLBACK_SPOTIFY = String.raw`<!doctype html><meta charset=utf-8>
 <title>Connexion Spotify</title>
 <style>body{font:16px system-ui;background:#111;color:#eee;display:grid;
@@ -1250,10 +1415,15 @@ export async function endpointTrack(cles: Cles, id: string) {
     const info = decrireTrack(
       await spotify(cles, `/tracks/${id}?market=${MARKET}`),
     )
-    if (!info) return json({ ok: false, message: "Morceau introuvable" }, 404)
+
+    if (!info) {
+      return json({ ok: false, message: "Morceau introuvable" }, 404)
+    }
+
     return json({ ok: true, track: info })
   } catch (e) {
     console.error(`! track ${id}: ${(e as Error).message}`)
+
     return json({ ok: false, message: (e as Error).message }, 502)
   }
 }
@@ -1263,6 +1433,7 @@ export async function endpointSearch(cles: Cles, q: string) {
   if (q.trim().length < 2) {
     return json({ ok: false, message: "Requête trop courte" }, 400)
   }
+
   if (!cles.spotifyId || !cles.spotifySecret) {
     return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
   }
@@ -1277,11 +1448,16 @@ export async function endpointSearch(cles: Cles, q: string) {
     const sortie = []
     for (const t of (res.tracks || {}).items || []) {
       const info = decrireTrack(t)
-      if (info) sortie.push(info)
+
+      if (info) {
+        sortie.push(info)
+      }
     }
+
     return json({ ok: true, tracks: sortie })
   } catch (e) {
     console.error(`! search "${q}": ${(e as Error).message}`)
+
     return json({ ok: false, message: (e as Error).message }, 502)
   }
 }
@@ -1302,26 +1478,35 @@ export async function endpointSearch(cles: Cles, q: string) {
 export function manquePourGenerer(cles: Cles): string[] {
   const manque: string[] = []
 
-  if (!cles.mistralKey) manque.push("MISTRAL_API_KEY")
-  if (!cles.mistralModel) manque.push("MISTRAL_MODEL")
-  if (!cles.spotifyId) manque.push("SPOTIFY_CLIENT_ID")
-  if (!cles.spotifySecret) manque.push("SPOTIFY_CLIENT_SECRET")
+  if (!cles.mistralKey) {
+    manque.push("MISTRAL_API_KEY")
+  }
+
+  if (!cles.mistralModel) {
+    manque.push("MISTRAL_MODEL")
+  }
+
+  if (!cles.spotifyId) {
+    manque.push("SPOTIFY_CLIENT_ID")
+  }
+
+  if (!cles.spotifySecret) {
+    manque.push("SPOTIFY_CLIENT_SECRET")
+  }
 
   return manque
 }
 
-/*
- * La génération elle-même, SANS AUCUN CONTRÔLE D'ACCÈS.
- *
- * Son unique appelant est POST /api/quizz/generate, derrière la garde de
- * session du routeur d'API. Elle a un temps servi aussi la page autonome
- * /ia, qui demandait le mot de passe animateur faute de session ; cette page
- * a disparu une fois le formulaire intégré au manager, et avec elle la
- * seconde surface de saisie du mot de passe.
- *
- * Toute nouvelle route qui l'appellerait doit donc porter sa propre
- * authentification : une génération coûte des jetons Mistral.
- */
+// La génération elle-même, SANS AUCUN CONTRÔLE D'ACCÈS.
+//
+// Son unique appelant est POST /api/quizz/generate, derrière la garde de
+// session du routeur d'API. Elle a un temps servi aussi la page autonome
+// /ia, qui demandait le mot de passe animateur faute de session ; cette page
+// a disparu une fois le formulaire intégré au manager, et avec elle la
+// seconde surface de saisie du mot de passe.
+//
+// Toute nouvelle route qui l'appellerait doit donc porter sa propre
+// authentification : une génération coûte des jetons Mistral.
 export async function genererQuiz(
   db: D1Database,
   cles: Cles,
@@ -1331,9 +1516,13 @@ export async function genererQuiz(
   const titre = titreBrut.trim()
   const description = descriptionBrute.trim()
 
-  if (!titre) return json({ ok: false, message: "Titre manquant" }, 400)
-  if (!description)
+  if (!titre) {
+    return json({ ok: false, message: "Titre manquant" }, 400)
+  }
+
+  if (!description) {
     return json({ ok: false, message: "Description manquante" }, 400)
+  }
 
   const manque = manquePourGenerer(cles)
 
@@ -1345,6 +1534,7 @@ export async function genererQuiz(
   }
 
   let questions, pistes, rapport
+
   try {
     log(`génération « ${titre} »`)
     ;({ questions, pistes, rapport } = await construire(
@@ -1354,16 +1544,19 @@ export async function genererQuiz(
     ))
   } catch (e) {
     console.error(`! ${(e as Error).message}`)
+
     return json({ ok: false, message: `Échec : ${(e as Error).message}` }, 502)
   }
 
   let ecrit
+
   try {
     ecrit = await ecrireQuiz(db, cles, titre, questions, pistes)
   } catch (e) {
     // Les questions repartent quand même : la génération a coûté des tokens,
     // l'aperçu permet de ne pas la perdre.
     console.error(`! écriture: ${(e as Error).message}`)
+
     return json(
       {
         ok: false,

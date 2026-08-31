@@ -95,15 +95,15 @@ Ensuite, il suffit de réagir aux `game:status`.
 
 ## Le déroulé d'une manche
 
-| Statut | Charge (`data`) | Ce que ça veut dire |
-| --- | --- | --- |
-| `SHOW_START` | `{ time, subject }` | Décompte avant le début. |
-| `SHOW_PREPARED` | `{ totalAnswers, questionNumber }` | Écran « préparez-vous », avec le nombre de réponses de la question à venir. |
-| `SHOW_QUESTION` | `{ question, media?, cooldown, endsAt }` | L'énoncé est affiché, les réponses **ne sont pas** encore ouvertes. |
+| Statut          | Charge (`data`)                                                                    | Ce que ça veut dire                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `SHOW_START`    | `{ time, subject }`                                                                | Décompte avant le début.                                                                                                         |
+| `SHOW_PREPARED` | `{ totalAnswers, questionNumber }`                                                 | Écran « préparez-vous », avec le nombre de réponses de la question à venir.                                                      |
+| `SHOW_QUESTION` | `{ question, media?, cooldown, endsAt }`                                           | L'énoncé est affiché, les réponses **ne sont pas** encore ouvertes.                                                              |
 | `SELECT_ANSWER` | `{ question, answers, media?, time, endsAt, totalPlayer, questionType, options? }` | Les réponses sont ouvertes. `answers.length` donne le nombre de boutons utiles (2 à 4). `questionType` vaut `single` ou `multi`. |
-| `SHOW_RESULT` | `{ correct, message, points, myPoints, rank, aheadOfMe }` | Votre réponse était-elle bonne, ce qu'elle rapporte, votre total et votre rang. |
-| `WAIT` | `{ text }` | Écran d'attente. |
-| `FINISHED` | `{ subject, top, rank? }` | Fin de partie, classement. |
+| `SHOW_RESULT`   | `{ correct, message, points, myPoints, rank, aheadOfMe }`                          | Votre réponse était-elle bonne, ce qu'elle rapporte, votre total et votre rang.                                                  |
+| `WAIT`          | `{ text }`                                                                         | Écran d'attente.                                                                                                                 |
+| `FINISHED`      | `{ subject, top, rank? }`                                                          | Fin de partie, classement.                                                                                                       |
 
 Autres événements utiles en cours de partie :
 
@@ -217,25 +217,25 @@ les valeurs exactes des chaînes dans
 
 **Client → serveur**
 
-| Événement | Charge |
-| --- | --- |
-| `player:login` | `{ data: { username: string } }` |
+| Événement               | Charge                               |
+| ----------------------- | ------------------------------------ |
+| `player:login`          | `{ data: { username: string } }`     |
 | `player:selectedAnswer` | `{ data: { answerKeys: number[] } }` |
-| `player:leave` | `{}` |
+| `player:leave`          | `{}`                                 |
 
 **Serveur → client**
 
-| Événement | Charge |
-| --- | --- |
-| `time` | `{ now: number }` — première trame, l'heure du serveur |
-| `game:status` | `{ name, data, seq }` |
-| `player:successReconnect` | `{ gameId, status, player, currentQuestion }` |
-| `game:successJoin` | `gameId: string` |
-| `game:totalPlayers` | `n: number` |
-| `game:updateQuestion` | `{ current, total }` |
-| `game:playerAnswer` | `n: number` |
-| `game:errorMessage` | `clé: string` |
-| `game:reset` | `clé: string` |
+| Événement                 | Charge                                                 |
+| ------------------------- | ------------------------------------------------------ |
+| `time`                    | `{ now: number }` — première trame, l'heure du serveur |
+| `game:status`             | `{ name, data, seq }`                                  |
+| `player:successReconnect` | `{ gameId, status, player, currentQuestion }`          |
+| `game:successJoin`        | `gameId: string`                                       |
+| `game:totalPlayers`       | `n: number`                                            |
+| `game:updateQuestion`     | `{ current, total }`                                   |
+| `game:playerAnswer`       | `n: number`                                            |
+| `game:errorMessage`       | `clé: string`                                          |
+| `game:reset`              | `clé: string`                                          |
 
 Les `clé` sont des identifiants de traduction utilisés par l'interface web
 (`errors:game.notFound` par exemple), pas du texte lisible : traitez-les comme

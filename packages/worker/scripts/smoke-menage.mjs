@@ -1,22 +1,21 @@
-/*
- * Ménage des salles vides.
- *
- *   node scripts/smoke-menage.mjs [base] [motdepasse]
- *
- * Suppose GRACE_MS court (quelques secondes) : deux heures ne se testent pas.
- *
- * LE CONTRÔLE CRITIQUE est « la salle vidée est supprimée ». Pendant
- * webSocketClose, la socket qui se ferme est ENCORE rendue par
- * getWebSockets() — mesuré, pas supposé. Sans l'exclure du compte, le test
- * de vacuité ne serait jamais vrai au départ du dernier participant et la
- * salle ne se nettoierait JAMAIS, sans le moindre message d'erreur.
- *
- * Le contrôle symétrique — « une socket restante garde la salle » — ne
- * suffirait pas : il passe aussi bien avec le compte erroné.
- */
+// Ménage des salles vides.
+//
+//   node scripts/smoke-menage.mjs [base] [motdepasse]
+//
+// Suppose GRACE_MS court (quelques secondes) : deux heures ne se testent pas.
+//
+// LE CONTRÔLE CRITIQUE est « la salle vidée est supprimée ». Pendant
+// webSocketClose, la socket qui se ferme est ENCORE rendue par
+// getWebSockets() — mesuré, pas supposé. Sans l'exclure du compte, le test
+// de vacuité ne serait jamais vrai au départ du dernier participant et la
+// salle ne se nettoierait JAMAIS, sans le moindre message d'erreur.
+//
+// Le contrôle symétrique — « une socket restante garde la salle » — ne
+// suffirait pas : il passe aussi bien avec le compte erroné.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 let echecs = 0
@@ -142,10 +141,7 @@ verifier(
   "la SPA a répondu à sa place, le gestionnaire n'a pas tourné",
 )
 
-verifier(
-  "une ligne récente survit au balayage",
-  await existe(d.inviteCode),
-)
+verifier("une ligne récente survit au balayage", await existe(d.inviteCode))
 
 // Et le cas pour lequel le balayage existe : une ligne assez ancienne pour
 // que plus personne ne la réclame. On la vieillit directement en base, la
@@ -164,10 +160,7 @@ await fetch(`${base}/api/__vieillir`, {
 
 await declencher()
 
-verifier(
-  "une ligne trop ancienne est purgée",
-  !(await existe(e.inviteCode)),
-)
+verifier("une ligne trop ancienne est purgée", !(await existe(e.inviteCode)))
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

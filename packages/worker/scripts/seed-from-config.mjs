@@ -1,29 +1,28 @@
-/*
- * Fabrique un seed.sql à partir d'un dossier config/ existant.
- *
- *   node scripts/seed-from-config.mjs /chemin/vers/config > seed.sql
- *   wrangler d1 execute razzia --file seed.sql
- *
- * Reprend game.json, quizz/ et results/. Les quiz sans « id » en reçoivent un
- * ici — l'amont le posait paresseusement en réécrivant le fichier à la
- * première lecture, ce que D1 ne permet plus (l'id est une clé primaire, il
- * doit exister à l'insertion).
- *
- * Le mot de passe animateur est repris EN CLAIR, volontairement : le hacher
- * ici demanderait la clé maîtresse du déploiement, que ce script n'a pas. Il
- * est converti en empreinte à la première connexion réussie, seul moment où
- * le mot de passe est connu.
- *
- * Un fichier illisible est signalé sur stderr et ignoré, jamais fatal : c'est
- * exactement ce que fait getQuizz() à la lecture, et le dossier d'origine
- * contient au moins un JSON invalide (virgule traînante) que razzia rejette
- * déjà silencieusement.
- */
+// Fabrique un seed.sql à partir d'un dossier config/ existant.
+//
+//   node scripts/seed-from-config.mjs /chemin/vers/config > seed.sql
+//   wrangler d1 execute razzia --file seed.sql
+//
+// Reprend game.json, quizz/ et results/. Les quiz sans « id » en reçoivent un
+// ici — l'amont le posait paresseusement en réécrivant le fichier à la
+// première lecture, ce que D1 ne permet plus (l'id est une clé primaire, il
+// doit exister à l'insertion).
+//
+// Le mot de passe animateur est repris EN CLAIR, volontairement : le hacher
+// ici demanderait la clé maîtresse du déploiement, que ce script n'a pas. Il
+// est converti en empreinte à la première connexion réussie, seul moment où
+// le mot de passe est connu.
+//
+// Un fichier illisible est signalé sur stderr et ignoré, jamais fatal : c'est
+// exactement ce que fait getQuizz() à la lecture, et le dossier d'origine
+// contient au moins un JSON invalide (virgule traînante) que razzia rejette
+// déjà silencieusement.
 
 import fs from "node:fs"
 import path from "node:path"
 
-const ALPHABET = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict"
+const ALPHABET =
+  "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict"
 
 const nanoid = (taille = 21) => {
   const octets = crypto.getRandomValues(new Uint8Array(taille))
@@ -38,7 +37,8 @@ if (!racine) {
   process.exit(1)
 }
 
-const sql = (v) => (v === null ? "NULL" : `'${String(v).replaceAll("'", "''")}'`)
+const sql = (v) =>
+  v === null ? "NULL" : `'${String(v).replaceAll("'", "''")}'`
 
 const lireJson = (chemin) => {
   try {
@@ -61,13 +61,11 @@ const listeJson = (dossier) => {
     .map((f) => path.join(dossier, f))
 }
 
-/*
- * Pas de BEGIN TRANSACTION : D1 les refuse et renvoie « please use the
- * state.storage.transaction() APIs instead ». Local et distant divergent ici
- * — miniflare l'acceptait, ce qui a laissé passer l'erreur jusqu'au premier
- * déploiement réel. Les INSERT sont de toute façon idempotents (OR REPLACE),
- * donc une reprise partielle se rejoue sans dégât.
- */
+// Pas de BEGIN TRANSACTION : D1 les refuse et renvoie « please use the
+// state.storage.transaction() APIs instead ». Local et distant divergent ici
+// — miniflare l'acceptait, ce qui a laissé passer l'erreur jusqu'au premier
+// déploiement réel. Les INSERT sont de toute façon idempotents (OR REPLACE),
+// donc une reprise partielle se rejoue sans dégât.
 const lignes = []
 const now = Date.now()
 
@@ -89,6 +87,7 @@ for (const chemin of listeJson(path.join(racine, "quizz"))) {
 
   if (!data?.subject || !Array.isArray(data.questions)) {
     console.error(`! ignoré ${path.basename(chemin)} : ni sujet ni questions`)
+
     continue
   }
 
@@ -110,6 +109,7 @@ for (const chemin of listeJson(path.join(racine, "results"))) {
 
   if (!data?.id || !data.date) {
     console.error(`! ignoré ${path.basename(chemin)} : ni id ni date`)
+
     continue
   }
 
@@ -122,4 +122,6 @@ for (const chemin of listeJson(path.join(racine, "results"))) {
 }
 
 console.log(lignes.join("\n"))
-console.error(`\n${quiz} quiz, ${res} résultat(s), mot de passe ${jeu?.managerPassword ? "repris" : "absent"}`)
+console.error(
+  `\n${quiz} quiz, ${res} résultat(s), mot de passe ${jeu?.managerPassword ? "repris" : "absent"}`,
+)

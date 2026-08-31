@@ -1,17 +1,16 @@
-/*
- * Vérifie la couche temps réel contre un wrangler dev local, sur de vraies
- * WebSockets : création de partie, arrivée d'un joueur, comptage, exclusion,
- * départ, et reprise après rechargement.
- *
- *   node scripts/smoke-ws.mjs [base] [motdepasse]
- *
- * Le point vérifié en priorité est l'identification par clientId : c'est ce
- * qui remplace le socket.id de l'amont, et donc ce qui décide qu'un joueur
- * revenu après un rechargement est bien le même joueur.
- */
+// Vérifie la couche temps réel contre un wrangler dev local, sur de vraies
+// WebSockets : création de partie, arrivée d'un joueur, comptage, exclusion,
+// départ, et reprise après rechargement.
+//
+//   node scripts/smoke-ws.mjs [base] [motdepasse]
+//
+// Le point vérifié en priorité est l'identification par clientId : c'est ce
+// qui remplace le socket.id de l'amont, et donc ce qui décide qu'un joueur
+// revenu après un rechargement est bien le même joueur.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 let echecs = 0
@@ -180,7 +179,7 @@ const revenu = await connecter(partie.gameId, "joueur-1", "player")
 const reprise = await revenu.attendre("player:successReconnect")
 verifier("le joueur revenu est reconnu", reprise?.player?.username === "Alice")
 
-const totalApres = await revenu.attendre("game:totalPlayers")  // à la connexion
+const totalApres = await revenu.attendre("game:totalPlayers") // À la connexion
 verifier(
   "il n'est pas compté deux fois",
   totalApres === 2,
@@ -209,7 +208,10 @@ const animateurRevenu = await connecter(
 )
 const retour = await animateurRevenu.attendre("manager:successReconnect")
 
-verifier("l'animateur retrouve la salle d'attente", retour?.status?.name === "SHOW_ROOM")
+verifier(
+  "l'animateur retrouve la salle d'attente",
+  retour?.status?.name === "SHOW_ROOM",
+)
 verifier(
   "avec son PIN, donc son QR",
   retour?.status?.data?.inviteCode === partie.inviteCode,

@@ -11,8 +11,8 @@ interface ManagerStore<T> {
   config: ManagerConfig | null
 
   gameId: string | null
-  /* Conservé à part du statut : l'écran d'accueil qui le porte disparaît dès
-     le lancement, or le QR incrusté doit rester disponible toute la partie. */
+  // Conservé à part du statut : l'écran d'accueil qui le porte disparaît dès
+  // le lancement, or le QR incrusté doit rester disponible toute la partie.
   inviteCode: string | null
   status: Status<T> | null
   players: Player[]

@@ -1,24 +1,23 @@
-/*
- * Vérification de bout en bout du routeur /api, contre un wrangler dev local.
- *
- *   node scripts/smoke-api.mjs [base] [motdepasse]
- *
- * Le mot de passe animateur se passe en argument, ou par RAZZIA_MDP. Le repli
- * est celui de la base de développement local, jamais d'une installation
- * réelle : un mot de passe en dur dans un dépôt est un mot de passe publié.
- *
- * Exerce autant les chemins d'échec que les chemins nominaux : c'est là que
- * se cachent les régressions, une API qui répond 200 partout étant facile à
- * croire correcte. Vérifie aussi que les erreurs rendent des CLÉS i18n
- * existantes, pas des messages bruts — un « not found » anglais remonté tel
- * quel s'afficherait non traduit à l'animateur.
- */
+// Vérification de bout en bout du routeur /api, contre un wrangler dev local.
+//
+//   node scripts/smoke-api.mjs [base] [motdepasse]
+//
+// Le mot de passe animateur se passe en argument, ou par RAZZIA_MDP. Le repli
+// est celui de la base de développement local, jamais d'une installation
+// réelle : un mot de passe en dur dans un dépôt est un mot de passe publié.
+//
+// Exerce autant les chemins d'échec que les chemins nominaux : c'est là que
+// se cachent les régressions, une API qui répond 200 partout étant facile à
+// croire correcte. Vérifie aussi que les erreurs rendent des CLÉS i18n
+// existantes, pas des messages bruts — un « not found » anglais remonté tel
+// quel s'afficherait non traduit à l'animateur.
 
 import fs from "node:fs"
 import path from "node:path"
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0
@@ -57,11 +56,15 @@ const cleExiste = (valeur) => {
     return false
   }
 
-  return valeur
-    .slice("errors:".length)
-    .split(".")
-    .reduce((n, p) => (n && typeof n === "object" ? n[p] : undefined), cles) !==
-    undefined
+  return (
+    valeur
+      .slice("errors:".length)
+      .split(".")
+      .reduce(
+        (n, p) => (n && typeof n === "object" ? n[p] : undefined),
+        cles,
+      ) !== undefined
+  )
 }
 
 const json = (corps) => ({
@@ -100,7 +103,10 @@ verifier("jeton périmé : 401", perime.statut === 401)
 
 console.log("— configuration et quiz")
 const config = await appel("/manager/config", auth)
-verifier("config lue", config.statut === 200 && Array.isArray(config.corps.quizz))
+verifier(
+  "config lue",
+  config.statut === 200 && Array.isArray(config.corps.quizz),
+)
 verifier("des quiz sont présents", config.corps.quizz.length > 0)
 verifier(
   "résultats triés du plus récent au plus ancien",
@@ -172,7 +178,11 @@ const brut = (chemin, options) =>
   }))
 
 const retour = await brut("/spotify/callback")
-verifier("le retour d'autorisation répond", retour.statut === 200, `reçu ${retour.statut}`)
+verifier(
+  "le retour d'autorisation répond",
+  retour.statut === 200,
+  `reçu ${retour.statut}`,
+)
 verifier(
   "et c'est bien la page de rappel",
   retour.texte.includes("Connexion Spotify"),
@@ -189,10 +199,18 @@ verifier(
 )
 
 const inconnue = await brut("/spotify/nexistepas")
-verifier("route Spotify inconnue : 404", inconnue.statut === 404, `reçu ${inconnue.statut}`)
+verifier(
+  "route Spotify inconnue : 404",
+  inconnue.statut === 404,
+  `reçu ${inconnue.statut}`,
+)
 
 const mauvaiseMethode = await brut("/spotify/search", { method: "POST" })
-verifier("méthode refusée : 405", mauvaiseMethode.statut === 405, `reçu ${mauvaiseMethode.statut}`)
+verifier(
+  "méthode refusée : 405",
+  mauvaiseMethode.statut === 405,
+  `reçu ${mauvaiseMethode.statut}`,
+)
 
 console.log("— écriture")
 const invalide = await appel("/quizz", {
@@ -230,7 +248,11 @@ const vivante = await appel(`/game/${partie.corps.gameId}`)
 verifier("partie vivante reconnue, sans jeton", vivante.statut === 200)
 
 const effacee = await appel("/game/00000000-1111-2222-3333-444444444444")
-verifier("partie inconnue : 404", effacee.statut === 404, `reçu ${effacee.statut}`)
+verifier(
+  "partie inconnue : 404",
+  effacee.statut === 404,
+  `reçu ${effacee.statut}`,
+)
 verifier("clé i18n connue", cleExiste(effacee.corps.error), effacee.corps.error)
 
 const sansQuiz = await appel("/game", {

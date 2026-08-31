@@ -1,30 +1,29 @@
-/*
- * Le regroupement du compteur de réponses.
- *
- *   node scripts/smoke-compteur.mjs [base] [motdepasse]
- *
- * Trois choses à prouver, et la deuxième est celle qui casserait en silence.
- *
- *   1. CLAIRSEMÉ : une réponse isolée se voit tout de suite. Le regroupement
- *      ne doit rien coûter au cas ordinaire, une petite soirée.
- *   2. LE VIDAGE : après une salve, le dernier chiffre doit finir par
- *      arriver, même si plus personne ne répond. C'est le risque propre à ce
- *      genre d'optimisation — un animateur resté sur « 2 / 4 » alors que
- *      trois ont répondu, sans aucune erreur nulle part.
- *   3. LE REGROUPEMENT A BIEN LIEU : moins de diffusions que de réponses.
- *      Sans ce contrôle, le jour où la condition se retourne, tout passerait
- *      au vert et le gain aurait disparu.
- *
- * Un joueur ne répond jamais : sinon la manche coupe court et l'on ne
- * mesurerait pas le vidage, mais le passage aux résultats.
- *
- * L'effectif de la salle suit exactement les mêmes trois règles, et court le
- * même risque : un animateur resté sur « 2 joueurs » alors que quatre sont
- * entrés. Il a donc sa section, avant celle des réponses.
- */
+// Le regroupement du compteur de réponses.
+//
+//   node scripts/smoke-compteur.mjs [base] [motdepasse]
+//
+// Trois choses à prouver, et la deuxième est celle qui casserait en silence.
+//
+//   1. CLAIRSEMÉ : une réponse isolée se voit tout de suite. Le regroupement
+//      ne doit rien coûter au cas ordinaire, une petite soirée.
+//   2. LE VIDAGE : après une salve, le dernier chiffre doit finir par
+//      arriver, même si plus personne ne répond. C'est le risque propre à ce
+//      genre d'optimisation — un animateur resté sur « 2 / 4 » alors que
+//      trois ont répondu, sans aucune erreur nulle part.
+//   3. LE REGROUPEMENT A BIEN LIEU : moins de diffusions que de réponses.
+//      Sans ce contrôle, le jour où la condition se retourne, tout passerait
+//      au vert et le gain aurait disparu.
+//
+// Un joueur ne répond jamais : sinon la manche coupe court et l'on ne
+// mesurerait pas le vidage, mais le passage aux résultats.
+//
+// L'effectif de la salle suit exactement les mêmes trois règles, et court le
+// même risque : un animateur resté sur « 2 joueurs » alors que quatre sont
+// entrés. Il a donc sa section, avant celle des réponses.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 let echecs = 0
@@ -112,7 +111,9 @@ const connecter = (clientId, role) =>
           return new Promise((r) => {
             attentes.push({
               test: (t) => {
-                if (t.pris || !test(t)) return false
+                if (t.pris || !test(t)) {
+                  return false
+                }
                 t.pris = true
 
                 return true

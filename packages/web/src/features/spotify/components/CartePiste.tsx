@@ -1,27 +1,25 @@
-/*
- * Le morceau d'une question, montré aux joueurs.
- *
- * Sur l'écran des réponses, le blind test se termine sans jamais dire ce
- * qu'on vient d'entendre : la bonne réponse donne le titre OU l'artiste,
- * rarement les deux, et jamais l'album ni l'année. Cette carte referme la
- * question — c'est le moment où tout le monde regarde l'écran en commentant.
- *
- * Elle ne s'affiche que quand les métadonnées sont là : un cadre vide ou un
- * « chargement » perpétuel vaudrait moins que rien à cet endroit.
- *
- * DIMENSIONNÉE POUR UN TÉLÉVISEUR, pas pour un écran de bureau à cinquante
- * centimètres : cet écran se regarde de l'autre bout de la pièce, et la
- * première version, calée sur les tailles de l'éditeur, était illisible.
- *
- * Trois lignes, et non deux : à cette taille, « artiste · album · année » sur
- * une seule ligne débordait, et la troncature emportait l'année — celle des
- * trois qu'on devine le moins.
- *
- * L'album a sa ligne à lui car c'est presque toujours le champ le plus long
- * (les mentions du genre « … (Deluxe Edition, Remastered 2011) » sont la
- * règle). L'artiste et l'année, courts et complémentaires, tiennent ensemble
- * en dessous sans risquer de se faire couper.
- */
+// Le morceau d'une question, montré aux joueurs.
+//
+// Sur l'écran des réponses, le blind test se termine sans jamais dire ce
+// qu'on vient d'entendre : la bonne réponse donne le titre OU l'artiste,
+// rarement les deux, et jamais l'album ni l'année. Cette carte referme la
+// question — c'est le moment où tout le monde regarde l'écran en commentant.
+//
+// Elle ne s'affiche que quand les métadonnées sont là : un cadre vide ou un
+// « chargement » perpétuel vaudrait moins que rien à cet endroit.
+//
+// DIMENSIONNÉE POUR UN TÉLÉVISEUR, pas pour un écran de bureau à cinquante
+// centimètres : cet écran se regarde de l'autre bout de la pièce, et la
+// première version, calée sur les tailles de l'éditeur, était illisible.
+//
+// Trois lignes, et non deux : à cette taille, « artiste · album · année » sur
+// une seule ligne débordait, et la troncature emportait l'année — celle des
+// trois qu'on devine le moins.
+//
+// L'album a sa ligne à lui car c'est presque toujours le champ le plus long
+// (les mentions du genre « … (Deluxe Edition, Remastered 2011) » sont la
+// règle). L'artiste et l'année, courts et complémentaires, tiennent ensemble
+// en dessous sans risquer de se faire couper.
 
 import { usePisteSpotify } from "@razzia/web/features/spotify/hooks/use-piste"
 

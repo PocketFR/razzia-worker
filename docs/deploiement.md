@@ -15,16 +15,22 @@ DOMAINE=quiz.exemple.fr \
 sh scripts/deployer.sh [chemin/vers/config]
 ```
 
-| Variable | Rôle |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Obligatoire. Modèle « Modifier les Workers de Cloudflare » **plus** la permission « D1 : Modifier », qui n'est pas incluse dans le modèle. |
+| Variable                | Rôle                                                                                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Obligatoire. Modèle « Modifier les Workers de Cloudflare » **plus** la permission « D1 : Modifier », qui n'est pas incluse dans le modèle.                                                         |
 | `CLOUDFLARE_ACCOUNT_ID` | Théoriquement facultatif. À mettre systématiquement : wrangler garde un cache local et vise sinon le dernier compte utilisé, avec une erreur d'authentification qui n'évoque pas du tout la cause. |
-| `DOMAINE` | Facultatif. Sans lui, l'adresse `workers.dev` sert. Le domaine doit être géré par Cloudflare. |
-| `[chemin/vers/config]` | Facultatif, et à usage unique : reprend les quiz et résultats d'une ancienne installation Razzia. Ignoré si la base contient déjà des quiz. |
+| `DOMAINE`               | Facultatif. Sans lui, l'adresse `workers.dev` sert. Le domaine doit être géré par Cloudflare.                                                                                                      |
+| `[chemin/vers/config]`  | Facultatif, et à usage unique : reprend les quiz et résultats d'une ancienne installation Razzia. Ignoré si la base contient déjà des quiz.                                                        |
 
-**Node 22 obligatoire.** Sous node 26, wrangler part en erreur de segmentation
-dès le premier appel à l'API. Les commandes purement locales, elles, passent —
-ce qui rend le symptôme déroutant.
+**Node 22 au minimum**, éprouvé jusqu'à node 26.
+
+> Une version de ce document affirmait que node 26 faisait planter wrangler en
+> erreur de segmentation. C'était faux : les plantages venaient d'une barrette
+> de mémoire défaillante sur la machine de développement, remplacée depuis.
+> Retesté sur toute la chaîne — appels à l'API Cloudflare, requêtes D1
+> distantes, build, déploiement à blanc — node 26 ne pose aucun problème. La
+> leçon vaut d'être notée : un symptôme reproductible n'est pas
+> nécessairement causé par ce qu'on croit.
 
 ## Les neuf étapes
 
@@ -71,7 +77,7 @@ fichier par compte et de le passer à wrangler avec `-c`.
 Le script rappelle les deux dernières actions, qui ne peuvent pas être
 automatisées :
 
-1. Déclarer `https://<domaine>/spotify/callback` dans les *Redirect URIs* de
+1. Déclarer `https://<domaine>/spotify/callback` dans les _Redirect URIs_ de
    l'application Spotify. Spotify compare cette adresse à l'identique et refuse
    l'autorisation sans même rediriger si elle n'y figure pas.
 2. Saisir les clés Mistral et Spotify dans `/manager`, onglet **Paramètres**.

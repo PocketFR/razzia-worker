@@ -1,27 +1,23 @@
-/*
- * Décompte rendu localement, à partir d'une date de fin.
- *
- * Le serveur émettait auparavant un événement par seconde. Sur un Durable
- * Object, ce serait un réveil par seconde : l'hibernation n'économiserait
- * plus rien. Il annonce donc une échéance, une seule fois, et c'est ici
- * qu'elle est égrenée.
- *
- * Ce n'est pas qu'une économie. Le compteur suit désormais l'HORLOGE et non
- * le rythme des tics : un onglet ralenti, une trame perdue ou une alarme
- * servie en retard ne décalent plus l'affichage, alors qu'ils faisaient
- * dériver l'ancien compteur sans jamais le rattraper.
- *
- * `surSeconde` sert aux composants qui sonnent à chaque unité.
- */
+// Décompte rendu localement, à partir d'une date de fin.
+//
+// Le serveur émettait auparavant un événement par seconde. Sur un Durable
+// Object, ce serait un réveil par seconde : l'hibernation n'économiserait
+// plus rien. Il annonce donc une échéance, une seule fois, et c'est ici
+// qu'elle est égrenée.
+//
+// Ce n'est pas qu'une économie. Le compteur suit désormais l'HORLOGE et non
+// le rythme des tics : un onglet ralenti, une trame perdue ou une alarme
+// servie en retard ne décalent plus l'affichage, alors qu'ils faisaient
+// dériver l'ancien compteur sans jamais le rattraper.
+//
+// `surSeconde` sert aux composants qui sonnent à chaque unité.
 
 import { decalageHorloge } from "@razzia/web/features/game/lib/socket-client"
 import { useEffect, useRef, useState } from "react"
 
-/*
- * L'échéance est une date du SERVEUR : on la ramène à l'horloge locale avant
- * de compter. Sans cette correction, un poste dont l'heure retarde de dix
- * secondes affichait 13, 12, 11 au lieu de 3, 2, 1.
- */
+// L'échéance est une date du SERVEUR : on la ramène à l'horloge locale avant
+// de compter. Sans cette correction, un poste dont l'heure retarde de dix
+// secondes affichait 13, 12, 11 au lieu de 3, 2, 1.
 const restant = (finAt: number) =>
   Math.max(0, Math.ceil((finAt - decalageHorloge() - Date.now()) / 1000))
 

@@ -1,12 +1,10 @@
-/*
- * Métadonnées d'un morceau, à partir d'une URI « spotify:ID[:offset] ».
- *
- * Trois endroits en ont besoin — l'éditeur de quiz, l'écran des réponses, et
- * demain sans doute d'autres — et refaire la requête à chaque fois serait du
- * gaspillage de quota autant que de code. Le cache est au niveau du module :
- * un même morceau revu plusieurs fois dans une soirée n'est demandé qu'une
- * fois, et le passage d'un écran à l'autre est instantané.
- */
+// Métadonnées d'un morceau, à partir d'une URI « spotify:ID[:offset] ».
+//
+// Trois endroits en ont besoin — l'éditeur de quiz, l'écran des réponses, et
+// demain sans doute d'autres — et refaire la requête à chaque fois serait du
+// gaspillage de quota autant que de code. Le cache est au niveau du module :
+// un même morceau revu plusieurs fois dans une soirée n'est demandé qu'une
+// fois, et le passage d'un écran à l'autre est instantané.
 
 import { useEffect, useState } from "react"
 

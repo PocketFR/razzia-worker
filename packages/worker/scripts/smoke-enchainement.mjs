@@ -1,21 +1,20 @@
-/*
- * Enchaîner deux quiz dans la MÊME salle.
- *
- *   node scripts/smoke-enchainement.mjs [base] [motdepasse]
- *
- * Ce qui est vérifié, par ordre d'importance :
- *
- *   1. LA SALLE SURVIT. Même PIN, mêmes joueurs, aucune reconnexion. C'est
- *      toute la raison d'être de la fonctionnalité : en soirée, refaire
- *      scanner le QR à chaque manche est la friction principale.
- *   2. LES DEUX MODES DE SCORE. Conservés, le classement se cumule ;
- *      remis à zéro, chaque manche repart neuve.
- *   3. LES REFUS. Une manche en cours ne se remplace pas, et un joueur ne
- *      peut pas déclencher l'enchaînement.
- */
+// Enchaîner deux quiz dans la MÊME salle.
+//
+//   node scripts/smoke-enchainement.mjs [base] [motdepasse]
+//
+// Ce qui est vérifié, par ordre d'importance :
+//
+//   1. LA SALLE SURVIT. Même PIN, mêmes joueurs, aucune reconnexion. C'est
+//      toute la raison d'être de la fonctionnalité : en soirée, refaire
+//      scanner le QR à chaque manche est la friction principale.
+//   2. LES DEUX MODES DE SCORE. Conservés, le classement se cumule ;
+//      remis à zéro, chaque manche repart neuve.
+//   3. LES REFUS. Une manche en cours ne se remplace pas, et un joueur ne
+//      peut pas déclencher l'enchaînement.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 let echecs = 0
@@ -184,7 +183,10 @@ verifier(
 )
 
 const attenteJoueur = await alice.statut("WAIT")
-verifier("Alice est renvoyée en attente sans se reconnecter", attenteJoueur !== undefined)
+verifier(
+  "Alice est renvoyée en attente sans se reconnecter",
+  attenteJoueur !== undefined,
+)
 
 // ── manche 2 : le score doit se cumuler ────────────────────────────────────
 const fin2 = await jouerUneManche()
@@ -196,11 +198,7 @@ verifier(
 )
 
 const score2 = fin2?.d?.data?.top?.[0]?.points ?? 0
-verifier(
-  "les scores se cumulent",
-  score2 > score1,
-  `${score1} puis ${score2}`,
-)
+verifier("les scores se cumulent", score2 > score1, `${score1} puis ${score2}`)
 
 // ── enchaînement en remettant les scores à zéro ────────────────────────────
 animateur.envoyer("manager:newQuizz", {

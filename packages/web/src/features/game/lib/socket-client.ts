@@ -1,20 +1,18 @@
-/*
- * Client temps réel de razzia, en remplacement de socket.io-client.
- *
- * POURQUOI IL IMITE L'API DE SOCKET.IO. Le serveur est désormais découpé :
- * tout ce qui précède la partie passe en HTTP (/api), et la WebSocket ne sert
- * qu'au jeu, vers le Durable Object de SA partie. Ce découpage est imposé par
- * la plateforme — une WebSocket s'établit vers un objet choisi à la poignée de
- * main, or le client ignore encore sa partie au moment de se connecter.
- *
- * Répercuter ce découpage dans les composants aurait touché une soixantaine de
- * sites d'appel. Il est confiné ici : `emit` aiguille lui-même vers /api ou
- * vers la WebSocket, et fabrique en local l'événement de réponse que le
- * serveur émettait autrefois. Vu des composants, rien n'a changé.
- *
- * La WebSocket s'ouvre PARESSEUSEMENT, quand la partie devient connue :
- * création par l'animateur, PIN résolu côté joueur, ou reconnexion explicite.
- */
+// Client temps réel de razzia, en remplacement de socket.io-client.
+//
+// POURQUOI IL IMITE L'API DE SOCKET.IO. Le serveur est désormais découpé :
+// tout ce qui précède la partie passe en HTTP (/api), et la WebSocket ne sert
+// qu'au jeu, vers le Durable Object de SA partie. Ce découpage est imposé par
+// la plateforme — une WebSocket s'établit vers un objet choisi à la poignée de
+// main, or le client ignore encore sa partie au moment de se connecter.
+//
+// Répercuter ce découpage dans les composants aurait touché une soixantaine de
+// sites d'appel. Il est confiné ici : `emit` aiguille lui-même vers /api ou
+// vers la WebSocket, et fabrique en local l'événement de réponse que le
+// serveur émettait autrefois. Vu des composants, rien n'a changé.
+//
+// La WebSocket s'ouvre PARESSEUSEMENT, quand la partie devient connue :
+// création par l'animateur, PIN résolu côté joueur, ou reconnexion explicite.
 
 import { EVENTS } from "@razzia/common/constants"
 
@@ -28,14 +26,12 @@ const RECONNEXION = new Set<string>([
   EVENTS.MANAGER.RECONNECT,
 ])
 
-/*
- * Écart entre l'horloge du serveur et celle du navigateur, en millisecondes.
- *
- * Les échéances de manche sont des dates absolues du serveur. Les comparer
- * telles quelles à Date.now() donne un décompte faux d'autant que les deux
- * horloges divergent — ce qui n'a rien d'exceptionnel sur un poste dont
- * l'heure n'est pas synchronisée.
- */
+// Écart entre l'horloge du serveur et celle du navigateur, en millisecondes.
+//
+// Les échéances de manche sont des dates absolues du serveur. Les comparer
+// telles quelles à Date.now() donne un décompte faux d'autant que les deux
+// horloges divergent — ce qui n'a rien d'exceptionnel sur un poste dont
+// l'heure n'est pas synchronisée.
 let decalage = 0
 
 export const decalageHorloge = () => decalage
@@ -50,13 +46,13 @@ export class RazziaSocket {
   private role: "manager" | "player" = "player"
   private ferme = false
   private tentatives = 0
-  /* Messages émis avant que la WebSocket ne soit ouverte. Le cas est la
-     règle, pas l'exception : viser() ouvre la connexion et l'appelant émet
-     dans la foulée — manager:reconnect en tête, qui se perdait, laissant
-     l'animateur devant une page morte après un rechargement. */
+  // Messages émis avant que la WebSocket ne soit ouverte. Le cas est la
+  // règle, pas l'exception : viser() ouvre la connexion et l'appelant émet
+  // dans la foulée — manager:reconnect en tête, qui se perdait, laissant
+  // l'animateur devant une page morte après un rechargement.
   private enAttente: string[] = []
-  /* Dernier numéro de statut appliqué. Remis à zéro à chaque ouverture : le
-     serveur rejoue alors l'écran courant, dont le numéro est antérieur. */
+  // Dernier numéro de statut appliqué. Remis à zéro à chaque ouverture : le
+  // serveur rejoue alors l'écran courant, dont le numéro est antérieur.
   private dernierSeq = 0
 
   configurer(clientId: string) {
@@ -75,15 +71,13 @@ export class RazziaSocket {
     this.ecouteurs.get(evenement)?.delete(fn)
   }
 
-  /*
-   * « Connecté » veut dire UTILISABLE, pas « une WebSocket est ouverte ».
-   *
-   * La distinction est née du découpage : les écrans d'administration ne
-   * passent que par HTTP, et aucune partie n'y est encore connue — il n'y a
-   * donc aucun objet à qui parler, et rien à attendre. Les faire dépendre
-   * d'une WebSocket les laissait sur un chargement perpétuel, puisqu'elle ne
-   * s'ouvre jamais là.
-   */
+  // « Connecté » veut dire UTILISABLE, pas « une WebSocket est ouverte ».
+  //
+  // La distinction est née du découpage : les écrans d'administration ne
+  // passent que par HTTP, et aucune partie n'y est encore connue — il n'y a
+  // donc aucun objet à qui parler, et rien à attendre. Les faire dépendre
+  // d'une WebSocket les laissait sur un chargement perpétuel, puisqu'elle ne
+  // s'ouvre jamais là.
   connect() {
     this.ferme = false
 
@@ -167,7 +161,7 @@ export class RazziaSocket {
         localStorage.removeItem(CLE_JETON)
       }
     } catch {
-      /* navigation privée : la session ne survivra pas au rechargement */
+      /* Navigation privée : la session ne survivra pas au rechargement */
     }
   }
 
@@ -181,7 +175,7 @@ export class RazziaSocket {
       ...(options.body ? { "content-type": "application/json" } : {}),
       ...((options.headers as Record<string, string>) ?? {}),
     }
-    const jeton = this.jeton
+    const { jeton } = this
 
     if (jeton) {
       entetes.authorization = `Bearer ${jeton}`
@@ -224,10 +218,11 @@ export class RazziaSocket {
         return true
 
       case EVENTS.QUIZZ.GET:
-        void this.appel(`/quizz/${charge as string}`).then(({ statut, corps }) =>
-          statut === 200
-            ? this.local(EVENTS.QUIZZ.DATA, corps)
-            : this.local(EVENTS.QUIZZ.ERROR, corps.error),
+        void this.appel(`/quizz/${charge as string}`).then(
+          ({ statut, corps }) =>
+            statut === 200
+              ? this.local(EVENTS.QUIZZ.DATA, corps)
+              : this.local(EVENTS.QUIZZ.ERROR, corps.error),
         )
 
         return true
@@ -359,10 +354,7 @@ export class RazziaSocket {
         return true
 
       case EVENTS.BRANDING.CLEAR:
-        void this.brandingEcrit(
-          `/branding/image/${charge as string}`,
-          "DELETE",
-        )
+        void this.brandingEcrit(`/branding/image/${charge as string}`, "DELETE")
 
         return true
 
@@ -415,13 +407,11 @@ export class RazziaSocket {
     }
   }
 
-  /*
-   * Les trois écritures de branding suivent le même déroulé : écrire, dire au
-   * formulaire que c'est fait, puis RELIRE. La relecture n'est pas une
-   * précaution de principe — c'est elle qui rapporte la nouvelle date de
-   * modification, dont dépend l'adresse versionnée de l'image ; sans elle
-   * l'aperçu resterait sur la version précédente, servie depuis le cache.
-   */
+  // Les trois écritures de branding suivent le même déroulé : écrire, dire au
+  // formulaire que c'est fait, puis RELIRE. La relecture n'est pas une
+  // précaution de principe — c'est elle qui rapporte la nouvelle date de
+  // modification, dont dépend l'adresse versionnée de l'image ; sans elle
+  // l'aperçu resterait sur la version précédente, servie depuis le cache.
   private async brandingEcrit(
     chemin: string,
     method: "PUT" | "DELETE",
@@ -526,7 +516,10 @@ export class RazziaSocket {
     const { statut, corps } = await this.appel(`/pin/${inviteCode}`)
 
     if (statut !== 200) {
-      this.local(EVENTS.GAME.ERROR_MESSAGE, corps.error ?? "errors:game.notFound")
+      this.local(
+        EVENTS.GAME.ERROR_MESSAGE,
+        corps.error ?? "errors:game.notFound",
+      )
 
       return
     }
@@ -596,15 +589,13 @@ export class RazziaSocket {
         return
       }
 
-      /*
-       * Statuts dépassés, écartés.
-       *
-       * Une connexion qui se débloque délivre d'un coup tout ce qu'elle
-       * retenait. Rejouer ces écrans les uns après les autres donnait une
-       * cascade illisible — questions, résultats et classements défilant en
-       * une seconde. Seul le dernier compte : les autres décrivent un passé
-       * que personne n'a besoin de revoir.
-       */
+      // Statuts dépassés, écartés.
+      //
+      // Une connexion qui se débloque délivre d'un coup tout ce qu'elle
+      // retenait. Rejouer ces écrans les uns après les autres donnait une
+      // cascade illisible — questions, résultats et classements défilant en
+      // une seconde. Seul le dernier compte : les autres décrivent un passé
+      // que personne n'a besoin de revoir.
       if (trame.e === EVENTS.GAME.STATUS) {
         const seq = (trame.d as { seq?: number })?.seq
 
@@ -638,24 +629,22 @@ export class RazziaSocket {
     })
   }
 
-  /*
-   * Reconnexion à délai croissant, plafonnée — l'amont réessayait sans fin.
-   *
-   * MAIS ON ABANDONNE quand la partie a disparu, et c'est tout l'objet du
-   * détour par /api/game. Le navigateur ne montre pas le code HTTP d'une
-   * ouverture de WebSocket refusée : un 404 arrive comme une fermeture 1006,
-   * indiscernable d'une coupure réseau. Or les deux appellent des conduites
-   * opposées — on retente une coupure, jamais une salle effacée.
-   *
-   * Sans cette distinction, un onglet laissé ouvert sur une partie terminée
-   * rouvre une WebSocket toutes les quinze secondes pour toujours. Observé
-   * en production : une à deux requêtes par heure toute la nuit, personne ne
-   * jouant, chacune instanciant un Durable Object pour se faire refuser.
-   *
-   * La question n'est posée qu'après quelques échecs. Une reconnexion
-   * ordinaire, celle d'un téléphone qui change de réseau au milieu d'une
-   * question, réussit bien avant et ne coûte donc rien de plus.
-   */
+  // Reconnexion à délai croissant, plafonnée — l'amont réessayait sans fin.
+  //
+  // MAIS ON ABANDONNE quand la partie a disparu, et c'est tout l'objet du
+  // détour par /api/game. Le navigateur ne montre pas le code HTTP d'une
+  // ouverture de WebSocket refusée : un 404 arrive comme une fermeture 1006,
+  // indiscernable d'une coupure réseau. Or les deux appellent des conduites
+  // opposées — on retente une coupure, jamais une salle effacée.
+  //
+  // Sans cette distinction, un onglet laissé ouvert sur une partie terminée
+  // rouvre une WebSocket toutes les quinze secondes pour toujours. Observé
+  // en production : une à deux requêtes par heure toute la nuit, personne ne
+  // jouant, chacune instanciant un Durable Object pour se faire refuser.
+  //
+  // La question n'est posée qu'après quelques échecs. Une reconnexion
+  // ordinaire, celle d'un téléphone qui change de réseau au milieu d'une
+  // question, réussit bien avant et ne coûte donc rien de plus.
   private static readonly AVANT_DE_DEMANDER = 3
 
   private reessayer() {

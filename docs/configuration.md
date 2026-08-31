@@ -30,12 +30,12 @@ npx wrangler d1 execute razzia --remote \
 
 Onglet **Paramètres** de `/manager`. Quatre valeurs :
 
-| Clé | Rôle |
-| --- | --- |
-| `MISTRAL_API_KEY` | Génération de quiz par IA. |
-| `MISTRAL_MODEL` | Modèle utilisé, `mistral-large-latest` par défaut. |
-| `SPOTIFY_CLIENT_ID` | Recherche de morceaux, métadonnées, lecture. |
-| `SPOTIFY_CLIENT_SECRET` | Idem. Expire tous les 180 jours. |
+| Clé                     | Rôle                                               |
+| ----------------------- | -------------------------------------------------- |
+| `MISTRAL_API_KEY`       | Génération de quiz par IA.                         |
+| `MISTRAL_MODEL`         | Modèle utilisé, `mistral-large-latest` par défaut. |
+| `SPOTIFY_CLIENT_ID`     | Recherche de morceaux, métadonnées, lecture.       |
+| `SPOTIFY_CLIENT_SECRET` | Idem. Expire tous les 180 jours.                   |
 
 Trois règles gouvernent cet écran :
 
@@ -63,20 +63,20 @@ enregistrées et invaliderait le mot de passe animateur.**
 
 ## Ce que contient la base
 
-| Table | Contenu |
-| --- | --- |
-| `quizz` | Les quiz, en JSON. |
-| `results` | Le classement de chaque manche terminée. |
+| Table      | Contenu                                           |
+| ---------- | ------------------------------------------------- |
+| `quizz`    | Les quiz, en JSON.                                |
+| `results`  | Le classement de chaque manche terminée.          |
 | `settings` | Mot de passe animateur, clés API scellées, thème. |
-| `games` | L'index PIN → partie, purgé chaque nuit. |
-| `branding` | Logo, icône et fond, en binaire. |
+| `games`    | L'index PIN → partie, purgé chaque nuit.          |
+| `branding` | Logo, icône et fond, en binaire.                  |
 
 L'état vivant d'une partie ne s'y trouve pas : il vit dans le stockage du
 Durable Object et disparaît avec la salle.
 
 ## Sauvegarde
 
-D1 propose *Time Travel*, une restauration à la minute près, toujours active et
+D1 propose _Time Travel_, une restauration à la minute près, toujours active et
 sans configuration — 7 jours sur le plan gratuit, 30 sur le payant. La
 restauration porte sur la base entière, jamais sur une table ou une ligne.
 

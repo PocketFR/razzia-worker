@@ -37,10 +37,10 @@ export interface ServerToClientEvents {
   connect: () => void
 
   // Game events
-  /* seq croît strictement à chaque statut émis. Il sert au client à écarter
-     ce qui est déjà dépassé : une connexion qui se débloque délivre d'un
-     coup tout ce qu'elle retenait, et rejouer ces écrans les uns après les
-     autres donnait une cascade illisible. */
+  // seq croît strictement à chaque statut émis. Il sert au client à écarter
+  // ce qui est déjà dépassé : une connexion qui se débloque délivre d'un
+  // coup tout ce qu'elle retenait, et rejouer ces écrans les uns après les
+  // autres donnait une cascade illisible.
   [EVENTS.GAME.STATUS]: (_data: {
     name: Status
     data: StatusDataMap[Status]
@@ -54,13 +54,15 @@ export interface ServerToClientEvents {
   [EVENTS.GAME.AUDIO_CUE]: (_data: { id: string; depart: number }) => void
   [EVENTS.GAME.COOLDOWN]: (_count: number) => void
   [EVENTS.GAME.RESET]: (_message: string) => void
-  /* Null remet le compteur à néant : c'est ce qui se passe quand la salle
-     revient en attente entre deux quiz, l'avancement du précédent n'ayant
-     plus aucun sens. */
-  [EVENTS.GAME.UPDATE_QUESTION]: (_data: null | {
-    current: number
-    total: number
-  }) => void
+  // Null remet le compteur à néant : c'est ce qui se passe quand la salle
+  // revient en attente entre deux quiz, l'avancement du précédent n'ayant
+  // plus aucun sens.
+  [EVENTS.GAME.UPDATE_QUESTION]: (
+    _data: null | {
+      current: number
+      total: number
+    },
+  ) => void
   [EVENTS.GAME.PLAYER_ANSWER]: (_count: number) => void
 
   // Player events
@@ -69,8 +71,8 @@ export interface ServerToClientEvents {
     gameId: string
     status: { name: Status; data: StatusDataMap[Status] }
     player: { username: string; points: number }
-    /* Null tant que la manche n'a pas démarré : le salon d'attente ne doit
-       pas afficher « 1 / 20 », il n'y a pas encore de question en cours. */
+    // Null tant que la manche n'a pas démarré : le salon d'attente ne doit
+    // pas afficher « 1 / 20 », il n'y a pas encore de question en cours.
     currentQuestion: GameUpdateQuestion | null
   }) => void
   [EVENTS.PLAYER.UPDATE_LEADERBOARD]: (_data: { leaderboard: Player[] }) => void
@@ -137,9 +139,9 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.START_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.ABORT_QUIZ]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.NEXT_QUESTION]: (_message: MessageGameId) => void
-  /* Enchaîne un autre quiz dans la MÊME salle : le PIN, le QR et les joueurs
-     connectés sont conservés. resetScores décide si le classement repart de
-     zéro ou se cumule sur la soirée. */
+  // Enchaîne un autre quiz dans la MÊME salle : le PIN, le QR et les joueurs
+  // connectés sont conservés. resetScores décide si le classement repart de
+  // zéro ou se cumule sur la soirée.
   [EVENTS.MANAGER.NEW_QUIZZ]: (
     _message: MessageWithoutStatus<{ quizzId: string; resetScores: boolean }>,
   ) => void

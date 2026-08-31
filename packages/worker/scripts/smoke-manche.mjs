@@ -1,24 +1,23 @@
-/*
- * Déroule une manche entière contre un wrangler dev local.
- *
- *   node scripts/smoke-manche.mjs [base] [motdepasse]
- *
- * Trois choses sont vérifiées, dans cet ordre d'importance :
- *
- *   1. LE RYTHME. Chaque phase doit durer ce qu'elle annonce. C'est le seul
- *      contrôle qui attrape une alarme mal reprogrammée.
- *   2. LES ÉCHÉANCES. Le serveur n'égrène plus les secondes : chaque phase
- *      temporisée doit porter un endsAt cohérent avec sa durée, sans quoi le
- *      client n'aurait rien à décompter.
- *   3. L'ÉTAT PERSISTÉ. Une reconnexion en cours de manche doit rendre
- *      l'écran personnel du joueur, pas celui de tout le monde.
- *
- * Le quiz est fabriqué pour ce test, avec des durées courtes : les quiz réels
- * tournent à 30 s par question, ce qui rendrait l'épreuve interminable.
- */
+// Déroule une manche entière contre un wrangler dev local.
+//
+//   node scripts/smoke-manche.mjs [base] [motdepasse]
+//
+// Trois choses sont vérifiées, dans cet ordre d'importance :
+//
+//   1. LE RYTHME. Chaque phase doit durer ce qu'elle annonce. C'est le seul
+//      contrôle qui attrape une alarme mal reprogrammée.
+//   2. LES ÉCHÉANCES. Le serveur n'égrène plus les secondes : chaque phase
+//      temporisée doit porter un endsAt cohérent avec sa durée, sans quoi le
+//      client n'aurait rien à décompter.
+//   3. L'ÉTAT PERSISTÉ. Une reconnexion en cours de manche doit rendre
+//      l'écran personnel du joueur, pas celui de tout le monde.
+//
+// Le quiz est fabriqué pour ce test, avec des durées courtes : les quiz réels
+// tournent à 30 s par question, ce qui rendrait l'épreuve interminable.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 let echecs = 0
@@ -65,12 +64,10 @@ const connecter = async (gameId, clientId, role) => {
     })
   })
 
-  /*
-   * Consulte D'ABORD ce qui est déjà arrivé. Sans cela, une attente posée
-   * après coup manque l'événement et échoue alors que le serveur a bien
-   * répondu — c'est ce qui a fait échouer trois contrôles au premier essai.
-   * Une trame consommée est marquée, pour ne pas satisfaire deux attentes.
-   */
+  // Consulte D'ABORD ce qui est déjà arrivé. Sans cela, une attente posée
+  // après coup manque l'événement et échoue alors que le serveur a bien
+  // répondu — c'est ce qui a fait échouer trois contrôles au premier essai.
+  // Une trame consommée est marquée, pour ne pas satisfaire deux attentes.
   const attendre = (test, delai = 15000) => {
     const deja = recus.find((t) => !t.pris && test(t))
 
@@ -125,7 +122,7 @@ const question = (q) => ({
   question: q,
   answers: ["Bonne", "Mauvaise", "Autre"],
   solutions: [0],
-  cooldown: 3, // minimum imposé par le schéma
+  cooldown: 3, // Minimum imposé par le schéma
   time: 4,
 })
 
@@ -163,7 +160,11 @@ verifier("SHOW_START diffusé", debut !== undefined)
 verifier("le sujet est annoncé", debut?.d?.data?.subject === "Manche de test")
 
 const avant = await animateur.attendre((t) => t.e === "game:startCooldown")
-verifier("SHOW_START dure 3 s", environ(avant.a - t0, 3000), `${avant.a - t0} ms`)
+verifier(
+  "SHOW_START dure 3 s",
+  environ(avant.a - t0, 3000),
+  `${avant.a - t0} ms`,
+)
 verifier(
   "l'échéance d'avant-partie est annoncée",
   environ(avant.d?.endsAt - Date.now(), 3000),
@@ -222,7 +223,10 @@ verifier("Alice a bon", resAlice?.d?.data?.correct === true)
 verifier("elle marque des points", resAlice?.d?.data?.myPoints > 0)
 
 const resBob = await bob.statut("SHOW_RESULT")
-verifier("Bob n'a pas répondu, donc pas de point", resBob?.d?.data?.myPoints === 0)
+verifier(
+  "Bob n'a pas répondu, donc pas de point",
+  resBob?.d?.data?.myPoints === 0,
+)
 
 // ── reconnexion en cours de manche ─────────────────────────────────────────
 alice.fermer()
@@ -413,7 +417,6 @@ verifier(
   (await eveBis.attendre((t) => t.e === "game:audioCue", 1500)) === undefined,
 )
 
-
 // ── rattrapage d'une alarme en retard ────────────────────────────────────
 // L'alarme est le SEUL moteur de la manche, et la documentation prévient
 // qu'elle peut être servie avec jusqu'à une minute de retard. Une partie
@@ -469,7 +472,6 @@ verifier(
   repriseTardive?.d?.status?.name !== "SELECT_ANSWER",
   String(repriseTardive?.d?.status?.name),
 )
-
 
 // ── question sans limite de temps ─────────────────────────────────────────
 // C'est le cas le plus favorable à l'hibernation : aucune alarme n'est armée,

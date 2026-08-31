@@ -11,10 +11,10 @@ export const EVENTS = {
     UPDATE_QUESTION: "game:updateQuestion",
     PLAYER_ANSWER: "game:playerAnswer",
     CREATE: "game:create",
-    /* Amorce de lecture, envoyée au SEUL animateur à l'annonce de la
-       question. Le média audio n'accompagne pas SHOW_QUESTION — il ferait
-       démarrer un lecteur deux fois — et n'arrive qu'avec SELECT_ANSWER,
-       trop tard pour couvrir l'annonce. */
+    // Amorce de lecture, envoyée au SEUL animateur à l'annonce de la
+    // question. Le média audio n'accompagne pas SHOW_QUESTION — il ferait
+    // démarrer un lecteur deux fois — et n'arrive qu'avec SELECT_ANSWER,
+    // trop tard pour couvrir l'annonce.
     AUDIO_CUE: "game:audioCue",
   },
   PLAYER: {
@@ -62,8 +62,8 @@ export const EVENTS = {
     GENERATE: "quizz:generate",
     GENERATED: "quizz:generated",
   },
-  /* Branding : couleurs, nom, police et les trois images. Même aiguillage
-     que les clés API — l'événement part vers /api par le shim client. */
+  // Branding : couleurs, nom, police et les trois images. Même aiguillage
+  // que les clés API — l'événement part vers /api par le shim client.
   BRANDING: {
     GET: "branding:get",
     DATA: "branding:data",
@@ -74,9 +74,9 @@ export const EVENTS = {
     SAVED: "branding:saved",
     ERROR: "branding:error",
   },
-  /* Clés API. Comme le reste, l'événement passe par le shim client, qui
-     l'aiguille vers /api — les composants n'ont pas à connaître le jeton
-     de session ni la forme du transport. */
+  // Clés API. Comme le reste, l'événement passe par le shim client, qui
+  // l'aiguille vers /api — les composants n'ont pas à connaître le jeton
+  // de session ni la forme du transport.
   SETTINGS: {
     GET: "settings:get",
     DATA: "settings:data",

@@ -1,36 +1,34 @@
-/*
- * Point d'entrée du Worker razzia.
- *
- * POURQUOI HTTP ET WEBSOCKET SONT SÉPARÉS — ce n'est pas un choix de style,
- * c'est une conséquence du modèle Durable Object.
- *
- * En amont, socket.io portait TOUT sur une seule connexion : authentification
- * de l'animateur, liste des quiz, vérification du PIN, puis la partie
- * elle-même. Un seul processus Node détenait tout, la room servant à trier.
- *
- * Ici chaque partie est un objet distinct, et une WebSocket s'établit vers UN
- * objet, choisi au moment de la poignée de main. Or au moment où le client se
- * connecte, il ne sait pas encore à quelle partie il appartient : c'est
- * justement ce que « vérifier le PIN » ou « créer une partie » doit lui
- * apprendre. La connexion ne peut donc pas précéder la partie.
- *
- * Deux issues seulement, et une seule tient :
- *   - un objet « central » unique qui recevrait toutes les connexions, puis
- *     redistribuerait — on retrouve le goulot d'étranglement et le point de
- *     panne uniques qu'on cherchait à quitter ;
- *   - tout ce qui précède la partie passe en HTTP, la WebSocket ne servant
- *     qu'au jeu, vers l'objet de SA partie.
- *
- * D'où ce découpage :
- *   /api/*  sans état, servi par le Worker sur D1 — authentification, quiz,
- *           résultats, vérification du PIN, création de partie ;
- *   /ws     la partie en cours, vers le Durable Object nommé par gameId ;
- *   /spotify/*  métadonnées d'un morceau et retour d'autorisation ;
- *   le reste, les assets de packages/web (jamais vus par ce code).
- *
- * Effet de bord appréciable : la consultation des quiz et des résultats ne
- * réveille plus aucun Durable Object.
- */
+// Point d'entrée du Worker razzia.
+//
+// POURQUOI HTTP ET WEBSOCKET SONT SÉPARÉS — ce n'est pas un choix de style,
+// c'est une conséquence du modèle Durable Object.
+//
+// En amont, socket.io portait TOUT sur une seule connexion : authentification
+// de l'animateur, liste des quiz, vérification du PIN, puis la partie
+// elle-même. Un seul processus Node détenait tout, la room servant à trier.
+//
+// Ici chaque partie est un objet distinct, et une WebSocket s'établit vers UN
+// objet, choisi au moment de la poignée de main. Or au moment où le client se
+// connecte, il ne sait pas encore à quelle partie il appartient : c'est
+// justement ce que « vérifier le PIN » ou « créer une partie » doit lui
+// apprendre. La connexion ne peut donc pas précéder la partie.
+//
+// Deux issues seulement, et une seule tient :
+//   - un objet « central » unique qui recevrait toutes les connexions, puis
+//     redistribuerait — on retrouve le goulot d'étranglement et le point de
+//     panne uniques qu'on cherchait à quitter ;
+//   - tout ce qui précède la partie passe en HTTP, la WebSocket ne servant
+//     qu'au jeu, vers l'objet de SA partie.
+//
+// D'où ce découpage :
+//   /api/*  sans état, servi par le Worker sur D1 — authentification, quiz,
+//           résultats, vérification du PIN, création de partie ;
+//   /ws     la partie en cours, vers le Durable Object nommé par gameId ;
+//   /spotify/*  métadonnées d'un morceau et retour d'autorisation ;
+//   le reste, les assets de packages/web (jamais vus par ce code).
+//
+// Effet de bord appréciable : la consultation des quiz et des résultats ne
+// réveille plus aucun Durable Object.
 
 import { routerApi } from "./api"
 import { estImage, estSvg, lireImage, themePublic } from "./services/branding"
@@ -42,15 +40,15 @@ export interface Env {
   ASSETS: Fetcher
   DB: D1Database
   GAME_ROOM: DurableObjectNamespace
-  /* Secret. Ne sert jamais telle quelle : deux clés en sont dérivées, une
-     pour signer les sessions, une pour chiffrer les clés API. */
+  // Secret. Ne sert jamais telle quelle : deux clés en sont dérivées, une
+  // pour signer les sessions, une pour chiffrer les clés API.
   RAZZIA_MASTER_KEY: string
 
-  /* Clés de quizia. Servent de valeurs par défaut : à l'étape 7, une valeur
-     saisie dans l'interface les surchargera. SPOTIFY_CLIENT_ID n'est pas un
-     secret — le flux PKCE l'expose au navigateur. */
-  /* Délai de grâce avant suppression d'une salle vide, en millisecondes.
-     Défaut : deux heures. Les tests le raccourcissent à quelques secondes. */
+  // Clés de quizia. Servent de valeurs par défaut : à l'étape 7, une valeur
+  // saisie dans l'interface les surchargera. SPOTIFY_CLIENT_ID n'est pas un
+  // secret — le flux PKCE l'expose au navigateur.
+  // Délai de grâce avant suppression d'une salle vide, en millisecondes.
+  // Défaut : deux heures. Les tests le raccourcissent à quelques secondes.
   GRACE_MS?: string
 
   MISTRAL_API_KEY?: string
@@ -65,19 +63,17 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   })
 
-/*
- * Balayage quotidien des parties anciennes.
- *
- * Le nettoyage par alarme ne suffit pas, et pour une raison structurelle :
- * /api/game écrit la ligne AVANT qu'aucun Durable Object n'existe. Si
- * personne ne se connecte jamais — l'animateur crée une partie puis ferme
- * son onglet — aucun objet n'est créé, aucune alarme n'est armée, et cette
- * ligne resterait indéfiniment. Aucun objet ne peut la voir.
- *
- * L'horizon est volontairement bien plus long que la grâce de deux heures :
- * ce balayage ne doit jamais devancer une salle encore vivante, seulement
- * ramasser ce que personne ne réclamera plus.
- */
+// Balayage quotidien des parties anciennes.
+//
+// Le nettoyage par alarme ne suffit pas, et pour une raison structurelle :
+// /api/game écrit la ligne AVANT qu'aucun Durable Object n'existe. Si
+// personne ne se connecte jamais — l'animateur crée une partie puis ferme
+// son onglet — aucun objet n'est créé, aucune alarme n'est armée, et cette
+// ligne resterait indéfiniment. Aucun objet ne peut la voir.
+//
+// L'horizon est volontairement bien plus long que la grâce de deux heures :
+// ce balayage ne doit jamais devancer une salle encore vivante, seulement
+// ramasser ce que personne ne réclamera plus.
 const RETENTION_MS = 24 * 60 * 60 * 1000
 
 export default {
@@ -120,13 +116,11 @@ export default {
   },
 } satisfies ExportedHandler<Env>
 
-/*
- * Le branding servi au navigateur, avant toute authentification : les joueurs
- * voient l'écran d'accueil sans se connecter à quoi que ce soit.
- *
- * Rien de confidentiel n'y passe — un logo et des couleurs sont publics par
- * construction, ils s'affichent sur l'écran de la soirée.
- */
+// Le branding servi au navigateur, avant toute authentification : les joueurs
+// voient l'écran d'accueil sans se connecter à quoi que ce soit.
+//
+// Rien de confidentiel n'y passe — un logo et des couleurs sont publics par
+// construction, ils s'affichent sur l'écran de la soirée.
 async function routerBranding(
   request: Request,
   env: Env,

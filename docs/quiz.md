@@ -58,17 +58,17 @@ autre.
 }
 ```
 
-| Champ | Rôle |
-| --- | --- |
-| `subject` | Le titre du quiz. |
-| `question` | L'énoncé. |
-| `answers` | De 2 à 4 réponses. |
-| `solutions` | Les index des bonnes réponses, à partir de 0. Plusieurs valeurs pour une question à réponses multiples. |
-| `media` | Facultatif. `type` vaut `image`, `video` ou `audio` ; `url` porte l'adresse. |
-| `cooldown` | Secondes d'affichage de l'énoncé avant les réponses (3 à 15). |
-| `time` | Secondes pour répondre (5 à 120). |
-| `maxPoints` | Points d'une bonne réponse. 1000 par défaut. |
-| `penalty` | Points retirés à une mauvaise réponse. Aucune par défaut ; le total d'un joueur ne descend jamais sous zéro, et une question sans réponse n'est pas pénalisée. |
+| Champ       | Rôle                                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subject`   | Le titre du quiz.                                                                                                                                              |
+| `question`  | L'énoncé.                                                                                                                                                      |
+| `answers`   | De 2 à 4 réponses.                                                                                                                                             |
+| `solutions` | Les index des bonnes réponses, à partir de 0. Plusieurs valeurs pour une question à réponses multiples.                                                        |
+| `media`     | Facultatif. `type` vaut `image`, `video` ou `audio` ; `url` porte l'adresse.                                                                                   |
+| `cooldown`  | Secondes d'affichage de l'énoncé avant les réponses (3 à 15).                                                                                                  |
+| `time`      | Secondes pour répondre (5 à 120).                                                                                                                              |
+| `maxPoints` | Points d'une bonne réponse. 1000 par défaut.                                                                                                                   |
+| `penalty`   | Points retirés à une mauvaise réponse. Aucune par défaut ; le total d'un joueur ne descend jamais sous zéro, et une question sans réponse n'est pas pénalisée. |
 
 L'`id` est attribué à l'enregistrement, il n'a pas à figurer dans le fichier.
 

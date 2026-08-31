@@ -1,19 +1,17 @@
-/*
- * Branche le lecteur Spotify sur le déroulement de la partie.
- *
- * Le morceau démarre dès l'ÉNONCÉ, quelques secondes avant l'ouverture des
- * réponses, sur un événement game:audioCue adressé à l'animateur SEUL — le
- * média sonore n'accompagne pas SHOW_QUESTION, qui est diffusé à tous et
- * livrerait la réponse.
- *
- * La surcouche devait, elle, précharger tout le quiz à la création puis
- * recouper par l'intitulé de la question, avec un repli quand les deux
- * divergeaient. Tout cela disparaît.
- *
- * Le repli sur SELECT_ANSWER reste, pour un seul cas mais un cas réel :
- * l'animateur qui se reconnecte en cours de question a manqué l'amorce, qui
- * ne sera pas rejouée.
- */
+// Branche le lecteur Spotify sur le déroulement de la partie.
+//
+// Le morceau démarre dès l'ÉNONCÉ, quelques secondes avant l'ouverture des
+// réponses, sur un événement game:audioCue adressé à l'animateur SEUL — le
+// média sonore n'accompagne pas SHOW_QUESTION, qui est diffusé à tous et
+// livrerait la réponse.
+//
+// La surcouche devait, elle, précharger tout le quiz à la création puis
+// recouper par l'intitulé de la question, avec un repli quand les deux
+// divergeaient. Tout cela disparaît.
+//
+// Le repli sur SELECT_ANSWER reste, pour un seul cas mais un cas réel :
+// l'animateur qui se reconnecte en cours de question a manqué l'amorce, qui
+// ne sera pas rejouée.
 
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
@@ -49,14 +47,12 @@ export const useLecteurSpotify = (clientId: string | null) => {
     nouvelleQuestion()
   })
 
-  /*
-   * Le premier geste de l'animateur débloque l'audio.
-   *
-   * Sans lui, tout paraît fonctionner — lecteur prêt, commandes acceptées en
-   * 204 — et rien ne sort des enceintes. N'importe quel geste convient ;
-   * en pratique c'est le clic sur « Démarrer la partie », soit juste avant
-   * la première question.
-   */
+  // Le premier geste de l'animateur débloque l'audio.
+  //
+  // Sans lui, tout paraît fonctionner — lecteur prêt, commandes acceptées en
+  // 204 — et rien ne sort des enceintes. N'importe quel geste convient ;
+  // en pratique c'est le clic sur « Démarrer la partie », soit juste avant
+  // la première question.
   useEffect(() => {
     if (!clientId) {
       return

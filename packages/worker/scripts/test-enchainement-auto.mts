@@ -1,17 +1,15 @@
-/*
- * Enchaînement automatique : la séquence à DEUX attentes.
- *
- *   npx tsx scripts/test-enchainement-auto.mts
- *
- * Le défaut vérifié ici a été trouvé en soirée d'essai : la partie se figeait
- * sur les classements. Ma première version tenait le minuteur dans un
- * useEffect dépendant du statut ; or afficher le classement CHANGE le statut,
- * ce qui relançait l'effet et déclenchait son nettoyage — supprimant la
- * seconde attente, celle qui devait passer à la question suivante.
- *
- * La logique est reproduite ici hors de React, à l'identique du hook : c'est
- * l'enchaînement qui est testé, pas le rendu.
- */
+// Enchaînement automatique : la séquence à DEUX attentes.
+//
+//   npx tsx scripts/test-enchainement-auto.mts
+//
+// Le défaut vérifié ici a été trouvé en soirée d'essai : la partie se figeait
+// sur les classements. Ma première version tenait le minuteur dans un
+// useEffect dépendant du statut ; or afficher le classement CHANGE le statut,
+// ce qui relançait l'effet et déclenchait son nettoyage — supprimant la
+// seconde attente, celle qui devait passer à la question suivante.
+//
+// La logique est reproduite ici hors de React, à l'identique du hook : c'est
+// l'enchaînement qui est testé, pas le rendu.
 
 const DELAI_MS = 10000
 const TOUS_LES = 5
@@ -32,7 +30,7 @@ const verifier = (nom: string, ok: boolean, detail = "") => {
 /** Horloge pilotée : aucune attente réelle, on avance le temps à la main. */
 const faireHorloge = () => {
   let maintenant = 0
-  const taches: { a: number; fn: () => void; id: number }[] = []
+  const taches: Array<{ a: number; fn: () => void; id: number }> = []
   let suivant = 1
 
   return {
@@ -64,10 +62,10 @@ const faireHorloge = () => {
 
 /** Le moteur du hook, isolé de React. */
 const faireMoteur = (horloge: ReturnType<typeof faireHorloge>) => {
-  const emis: { e: string }[] = []
+  const emis: Array<{ e: string }> = []
   let minuteur: number | null = null
   let actif = true
-  let gameId: string | null = "partie"
+  const gameId: string | null = "partie"
   let avancement: { current: number; total: number } | null = null
 
   const annuler = () => {

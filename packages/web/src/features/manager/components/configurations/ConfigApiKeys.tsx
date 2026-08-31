@@ -1,19 +1,17 @@
-/*
- * Saisie des clés API.
- *
- * Le secret Spotify expire tous les 180 jours : le renouveler ne doit pas
- * demander la ligne de commande ni un redéploiement. D'où cet écran.
- *
- * LES SECRETS NE SONT JAMAIS PRÉ-REMPLIS. Le serveur ne les renvoie pas, et
- * c'est délibéré : personne n'a besoin de relire une clé Mistral, alors que
- * l'afficher dans un champ l'exposerait à qui passe derrière l'écran — en
- * soirée, précisément. Un champ laissé vide signifie donc « ne pas changer »,
- * et non « effacer » ; c'est le bouton dédié qui efface.
- *
- * Pas de Card ici : le contenu d'un onglet est déjà dans celle de
- * Configurations, et l'imbriquer lui imposait son max-w-80 — d'où le
- * débordement constaté au premier essai en navigateur.
- */
+// Saisie des clés API.
+//
+// Le secret Spotify expire tous les 180 jours : le renouveler ne doit pas
+// demander la ligne de commande ni un redéploiement. D'où cet écran.
+//
+// LES SECRETS NE SONT JAMAIS PRÉ-REMPLIS. Le serveur ne les renvoie pas, et
+// c'est délibéré : personne n'a besoin de relire une clé Mistral, alors que
+// l'afficher dans un champ l'exposerait à qui passe derrière l'écran — en
+// soirée, précisément. Un champ laissé vide signifie donc « ne pas changer »,
+// et non « effacer » ; c'est le bouton dédié qui efface.
+//
+// Pas de Card ici : le contenu d'un onglet est déjà dans celle de
+// Configurations, et l'imbriquer lui imposait son max-w-80 — d'où le
+// débordement constaté au premier essai en navigateur.
 
 import { EVENTS } from "@razzia/common/constants"
 import type { CleApi } from "@razzia/common/types/game/socket"
@@ -29,9 +27,9 @@ import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
-/* Noms techniques, identiques dans toutes les langues : ce sont ceux de la
-   documentation de Mistral et de Spotify, les traduire ne rendrait service à
-   personne — on ne les retrouverait plus dans leurs tableaux de bord. */
+// Noms techniques, identiques dans toutes les langues : ce sont ceux de la
+// documentation de Mistral et de Spotify, les traduire ne rendrait service à
+// personne — on ne les retrouverait plus dans leurs tableaux de bord.
 const LIBELLES: Record<string, string> = {
   MISTRAL_API_KEY: "Mistral · API key",
   MISTRAL_MODEL: "Mistral · model",

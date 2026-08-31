@@ -1,14 +1,12 @@
-/*
- * Sémantique de « connecté » du client temps réel.
- *
- * Le piège vérifié ici a été trouvé en production, pas par les tests : sur
- * les écrans d'administration aucune WebSocket ne s'ouvre — il n'y a pas
- * encore de partie —, et gater l'interface sur son ouverture laissait un
- * chargement perpétuel. « Connecté » doit vouloir dire UTILISABLE.
- *
- * Il vit ici plutôt que dans packages/web pour rejoindre les autres suites :
- * c'est le seul endroit du dépôt où tsx est disponible.
- */
+// Sémantique de « connecté » du client temps réel.
+//
+// Le piège vérifié ici a été trouvé en production, pas par les tests : sur
+// les écrans d'administration aucune WebSocket ne s'ouvre — il n'y a pas
+// encore de partie —, et gater l'interface sur son ouverture laissait un
+// chargement perpétuel. « Connecté » doit vouloir dire UTILISABLE.
+//
+// Il vit ici plutôt que dans packages/web pour rejoindre les autres suites :
+// c'est le seul endroit du dépôt où tsx est disponible.
 import assert from "node:assert"
 
 // Un faux WebSocket qui n'aboutit jamais tout seul : c'est exactement le cas
@@ -22,32 +20,58 @@ class FauxWS {
     this.readyState = 0
     this.ecouteurs = {}
   }
-  addEventListener(n, f) { (this.ecouteurs[n] ??= []).push(f) }
-  close() { this.readyState = 3; this.emettre("close") }
+  addEventListener(n, f) {
+    ;(this.ecouteurs[n] ??= []).push(f)
+  }
+  close() {
+    this.readyState = 3
+    this.emettre("close")
+  }
   send() {}
-  emettre(n, ev = {}) { for (const f of this.ecouteurs[n] ?? []) f(ev) }
-  ouvrir() { this.readyState = 1; this.emettre("open") }
+  emettre(n, ev = {}) {
+    for (const f of this.ecouteurs[n] ?? []) {
+      f(ev)
+    }
+  }
+  ouvrir() {
+    this.readyState = 1
+    this.emettre("open")
+  }
 }
 
 globalThis.WebSocket = FauxWS
-globalThis.location = { protocol: "https:", host: "razzia.example", origin: "https://razzia.example" }
+globalThis.location = {
+  protocol: "https:",
+  host: "razzia.example",
+  origin: "https://razzia.example",
+}
 globalThis.localStorage = {
   _: {},
-  getItem(k) { return this._[k] ?? null },
-  setItem(k, v) { this._[k] = v },
-  removeItem(k) { delete this._[k] },
+  getItem(k) {
+    return this._[k] ?? null
+  },
+  setItem(k, v) {
+    this._[k] = v
+  },
+  removeItem(k) {
+    delete this._[k]
+  },
 }
 globalThis.fetch = async () => ({ status: 200, json: async () => ({}) })
 
-const { RazziaSocket } = await import(
-  "../../web/src/features/game/lib/socket-client"
-)
+const { RazziaSocket } =
+  await import("../../web/src/features/game/lib/socket-client")
 
 let passes = 0
 let echecs = 0
 const verifier = (nom, ok, detail = "") => {
-  if (ok) { passes++; console.log(`  ok ${nom}`) }
-  else { echecs++; console.log(`  ÉCHEC ${nom}${detail ? ` — ${detail}` : ""}`) }
+  if (ok) {
+    passes++
+    console.log(`  ok ${nom}`)
+  } else {
+    echecs++
+    console.log(`  ÉCHEC ${nom}${detail ? ` — ${detail}` : ""}`)
+  }
 }
 
 // ── écran d'administration : aucune partie, donc aucune WebSocket ─────────
@@ -59,7 +83,7 @@ s.on("connect", () => connects++)
 
 s.connect()
 
-verifier("utilisable sans partie", s.connected === true)
+verifier("utilisable sans partie", s.connected)
 verifier("l'événement connect est émis", connects === 1)
 verifier("aucune WebSocket ouverte pour rien", FauxWS.dernier === undefined)
 
@@ -79,14 +103,8 @@ tardif.connect()
 let recus = 0
 tardif.on("connect", () => recus++)
 
-verifier(
-  "l'événement est perdu, c'est attendu",
-  recus === 0,
-)
-verifier(
-  "mais l'état reste constatable",
-  tardif.connected === true,
-)
+verifier("l'événement est perdu, c'est attendu", recus === 0)
+verifier("mais l'état reste constatable", tardif.connected)
 
 // ── entrée en partie : une vraie WebSocket ────────────────────────────────
 s.viser("partie-1")
@@ -98,7 +116,7 @@ verifier(
 )
 
 FauxWS.dernier.ouvrir()
-verifier("connecté une fois ouverte", s.connected === true)
+verifier("connecté une fois ouverte", s.connected)
 
 // ── coupure subie en partie : l'interface doit le savoir ──────────────────
 let deconnexions = 0
@@ -106,7 +124,7 @@ s.on("disconnect", () => deconnexions++)
 
 FauxWS.dernier.close()
 verifier("une coupure en partie est signalée", deconnexions === 1)
-verifier("et l'état passe à déconnecté", s.connected === false)
+verifier("et l'état passe à déconnecté", !s.connected)
 
 // ── sortie de partie : on redevient utilisable, sans cible ────────────────
 const t = new RazziaSocket()
@@ -122,7 +140,7 @@ t.disconnect()
 verifier("un départ volontaire ne crie pas à la coupure", deconnexionsT === 0)
 
 t.connect()
-verifier("revenir en administration redevient utilisable", t.connected === true)
+verifier("revenir en administration redevient utilisable", t.connected)
 verifier(
   "sans rouvrir de WebSocket vers la partie quittée",
   FauxWS.dernier.readyState === 3,
@@ -146,7 +164,10 @@ globalThis.fetch = async (url) => {
   if (String(url).includes("/api/game/")) {
     interrogations += 1
 
-    return { status: 404, json: async () => ({ error: "errors:game.notFound" }) }
+    return {
+      status: 404,
+      json: async () => ({ error: "errors:game.notFound" }),
+    }
   }
 
   return { status: 200, json: async () => ({}) }
@@ -156,7 +177,9 @@ const efface = new RazziaSocket()
 efface.configurer("client-4")
 
 let remise = null
-efface.on("game:reset", (m) => { remise = m })
+efface.on("game:reset", (m) => {
+  remise = m
+})
 efface.viser("partie-effacee")
 
 const souffler = () => new Promise((r) => vraiSetTimeout(r, 5))
@@ -195,13 +218,17 @@ verifier(
 
 // Le doute profite à la reconnexion : un appel qui échoue lui-même ne prouve
 // pas que la salle a disparu — c'est le cas d'une vraie coupure réseau.
-globalThis.fetch = async () => { throw new Error("réseau coupé") }
+globalThis.fetch = async () => {
+  throw new Error("réseau coupé")
+}
 
 const coupe = new RazziaSocket()
 coupe.configurer("client-5")
 
 let remiseCoupe = null
-coupe.on("game:reset", (m) => { remiseCoupe = m })
+coupe.on("game:reset", (m) => {
+  remiseCoupe = m
+})
 coupe.viser("partie-vivante")
 
 for (let i = 0; i < 6; i++) {

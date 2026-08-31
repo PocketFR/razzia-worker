@@ -1,28 +1,27 @@
-/*
- * Vérification du branding modifiable, contre un wrangler dev local.
- *
- *   node scripts/smoke-branding.mjs [base] [motdepasse]
- *
- * Deux points valent à eux seuls le script.
- *
- * LE REPLI SUR LES FICHIERS LIVRÉS : tant que rien n'est enregistré, la route
- * doit laisser passer /branding/theme.json du build. Servir un thème vide à
- * la place effacerait le branding de l'installation — une régression qui ne
- * se verrait qu'à l'œil, sur l'écran d'accueil.
- *
- * LE FOND D'ÉCRAN À TAILLE RÉELLE : D1 plafonne une ligne à 2 Mo, et celui
- * livré aujourd'hui pèse 1,6 Mo. Un test avec une image de dix pixels ne
- * prouverait rien du seul cas qui risque de casser.
- *
- * Le script REND LA BASE COMME IL L'A TROUVÉE : il relit l'état de départ et
- * le repose à la fin, y compris en cas d'échec.
- */
+// Vérification du branding modifiable, contre un wrangler dev local.
+//
+//   node scripts/smoke-branding.mjs [base] [motdepasse]
+//
+// Deux points valent à eux seuls le script.
+//
+// LE REPLI SUR LES FICHIERS LIVRÉS : tant que rien n'est enregistré, la route
+// doit laisser passer /branding/theme.json du build. Servir un thème vide à
+// la place effacerait le branding de l'installation — une régression qui ne
+// se verrait qu'à l'œil, sur l'écran d'accueil.
+//
+// LE FOND D'ÉCRAN À TAILLE RÉELLE : D1 plafonne une ligne à 2 Mo, et celui
+// livré aujourd'hui pèse 1,6 Mo. Un test avec une image de dix pixels ne
+// prouverait rien du seul cas qui risque de casser.
+//
+// Le script REND LA BASE COMME IL L'A TROUVÉE : il relit l'état de départ et
+// le repose à la fin, y compris en cas d'échec.
 
 import fs from "node:fs"
 import path from "node:path"
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0
@@ -71,15 +70,18 @@ const entetes = {
   "content-type": "application/json",
 }
 
-/* Le téléversement passe en corps binaire brut : décoder du base64 dans le
-   Worker coûtait 216 ms de temps processeur pour le fond d'écran, quand le
-   plan gratuit en accorde 10 par requête. */
+// Le téléversement passe en corps binaire brut : décoder du base64 dans le
+// Worker coûtait 216 ms de temps processeur pour le fond d'écran, quand le
+// plan gratuit en accorde 10 par requête.
 const envoyerImage = async (nom, mime, octets) =>
   fetch(`${base}/api/branding/image/${nom}`, {
     method: "PUT",
     headers: { authorization: `Bearer ${jeton}`, "content-type": mime },
     body: octets,
-  }).then(async (r) => ({ statut: r.status, corps: await r.json().catch(() => ({})) }))
+  }).then(async (r) => ({
+    statut: r.status,
+    corps: await r.json().catch(() => ({})),
+  }))
 
 const api = async (chemin, options = {}) => {
   const r = await fetch(`${base}/api${chemin}`, {
@@ -116,10 +118,17 @@ try {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ theme: { appName: "Pirate" } }),
   }).then((r) => r.status)
-  verifier("écriture sans jeton : 401", ecritureNue === 401, `reçu ${ecritureNue}`)
+  verifier(
+    "écriture sans jeton : 401",
+    ecritureNue === 401,
+    `reçu ${ecritureNue}`,
+  )
 
   console.log("— repli sur les fichiers livrés")
-  await api("/branding", { method: "PUT", body: JSON.stringify({ theme: null }) })
+  await api("/branding", {
+    method: "PUT",
+    body: JSON.stringify({ theme: null }),
+  })
   for (const nom of ["logo", "favicon", "background"]) {
     await api(`/branding/image/${nom}`, { method: "DELETE" })
   }
@@ -165,7 +174,9 @@ try {
       theme: { appName: "Essai", sounds: { answersMusic: false } },
     }),
   })
-  const avecSons = await fetch(`${base}/branding/theme.json`).then((r) => r.json())
+  const avecSons = await fetch(`${base}/branding/theme.json`).then((r) =>
+    r.json(),
+  )
   verifier(
     "le réglage des sons survit à l'aller-retour",
     avecSons.sounds?.answersMusic === false,
@@ -181,25 +192,39 @@ try {
 
   const sansCorps = await api("/branding", { method: "PUT", body: "{}" })
   verifier("thème absent refusé", sansCorps.statut === 400)
-  verifier("clé i18n connue", cleExiste(sansCorps.corps.error), sansCorps.corps.error)
+  verifier(
+    "clé i18n connue",
+    cleExiste(sansCorps.corps.error),
+    sansCorps.corps.error,
+  )
 
   console.log("— images")
   // 1×1 transparent.
   const png =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
-  const envoi = await envoyerImage("logo", "image/png", Buffer.from(png, "base64"))
+  const envoi = await envoyerImage(
+    "logo",
+    "image/png",
+    Buffer.from(png, "base64"),
+  )
   verifier("logo téléversé", envoi.statut === 200, JSON.stringify(envoi.corps))
 
   const apres = await api("/branding")
   const meta = apres.corps.images.find((i) => i.nom === "logo")
-  verifier("l'image est annoncée", Boolean(meta), JSON.stringify(apres.corps.images))
+  verifier(
+    "l'image est annoncée",
+    Boolean(meta),
+    JSON.stringify(apres.corps.images),
+  )
 
-  const adresse = (await fetch(`${base}/branding/theme.json`).then((r) => r.json()))
-    .logo
+  const adresse = (
+    await fetch(`${base}/branding/theme.json`).then((r) => r.json())
+  ).logo
   verifier(
     "l'adresse est versionnée",
-    typeof adresse === "string" && adresse.startsWith("/branding/asset/logo?v="),
+    typeof adresse === "string" &&
+      adresse.startsWith("/branding/asset/logo?v="),
     adresse,
   )
 
@@ -239,7 +264,11 @@ try {
     "image/tiff",
     Buffer.from(png, "base64"),
   )
-  verifier("format inconnu refusé", mauvaisType.statut === 400, `reçu ${mauvaisType.statut}`)
+  verifier(
+    "format inconnu refusé",
+    mauvaisType.statut === 400,
+    `reçu ${mauvaisType.statut}`,
+  )
   verifier(
     "clé i18n connue",
     cleExiste(mauvaisType.corps.error),
@@ -288,8 +317,16 @@ try {
       `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`,
     ),
   )
-  verifier("SVG porteur de script refusé", svgArme.statut === 400, `reçu ${svgArme.statut}`)
-  verifier("clé i18n connue", cleExiste(svgArme.corps.error), svgArme.corps.error)
+  verifier(
+    "SVG porteur de script refusé",
+    svgArme.statut === 400,
+    `reçu ${svgArme.statut}`,
+  )
+  verifier(
+    "clé i18n connue",
+    cleExiste(svgArme.corps.error),
+    svgArme.corps.error,
+  )
 
   const svgIntact = await fetch(`${base}/branding/asset/logo`).then((r) =>
     r.arrayBuffer(),
@@ -308,7 +345,11 @@ try {
     "image/png",
     Buffer.from(png, "base64"),
   )
-  verifier("nom d'image inconnu refusé", inconnue.statut === 404, `reçu ${inconnue.statut}`)
+  verifier(
+    "nom d'image inconnu refusé",
+    inconnue.statut === 404,
+    `reçu ${inconnue.statut}`,
+  )
 
   console.log("— le fond d'écran à sa taille réelle")
   // Le vrai fichier livré, pas une vignette : c'est la ligne D1 la plus
@@ -331,24 +372,48 @@ try {
     `${reluOctets.length} contre ${fond.length}`,
   )
 
-  const trop = await envoyerImage("logo", "image/png", Buffer.alloc(1_900_000, 7))
-  verifier("au-delà du plafond : 413", trop.statut === 413, `reçu ${trop.statut}`)
+  const trop = await envoyerImage(
+    "logo",
+    "image/png",
+    Buffer.alloc(1_900_000, 7),
+  )
+  verifier(
+    "au-delà du plafond : 413",
+    trop.statut === 413,
+    `reçu ${trop.statut}`,
+  )
   verifier("clé i18n connue", cleExiste(trop.corps.error), trop.corps.error)
 
   console.log("— retour en arrière")
   const efface = await api("/branding/image/logo", { method: "DELETE" })
   verifier("image effacée", efface.statut === 200)
 
-  const disparue = await fetch(`${base}/branding/asset/logo`).then((r) => r.status)
-  verifier("l'image effacée n'est plus servie", disparue === 404, `reçu ${disparue}`)
+  const disparue = await fetch(`${base}/branding/asset/logo`).then(
+    (r) => r.status,
+  )
+  verifier(
+    "l'image effacée n'est plus servie",
+    disparue === 404,
+    `reçu ${disparue}`,
+  )
 
-  const rendue = (await fetch(`${base}/branding/theme.json`).then((r) => r.json()))
-    .logo
-  verifier("l'adresse du thème reprend la main", rendue === "/autre.svg", rendue)
+  const rendue = (
+    await fetch(`${base}/branding/theme.json`).then((r) => r.json())
+  ).logo
+  verifier(
+    "l'adresse du thème reprend la main",
+    rendue === "/autre.svg",
+    rendue,
+  )
 
-  await api("/branding", { method: "PUT", body: JSON.stringify({ theme: null }) })
+  await api("/branding", {
+    method: "PUT",
+    body: JSON.stringify({ theme: null }),
+  })
   await api("/branding/image/background", { method: "DELETE" })
-  const revenu = await fetch(`${base}/branding/theme.json`).then((r) => r.json())
+  const revenu = await fetch(`${base}/branding/theme.json`).then((r) =>
+    r.json(),
+  )
   verifier(
     "la remise à zéro rend les fichiers livrés",
     revenu.appName !== "Essai" && Boolean(revenu.appName),

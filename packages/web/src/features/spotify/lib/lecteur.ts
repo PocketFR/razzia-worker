@@ -1,13 +1,11 @@
-/*
- * Lecteur Spotify Web Playback, dans l'onglet de l'animateur.
- *
- * POURQUOI DANS CET ONGLET — le jukebox vivait dans un onglet séparé pilotant
- * Music Assistant. Deux défauts rédhibitoires, constatés sur tablette
- * Android : les navigateurs mettent en veille un onglet qu'on ne regarde
- * pas, ce qui fait décrocher la lecture ; et la chaîne librespot vers FFmpeg
- * vers flux ajoutait une latence sensible. Le SDK dans l'onglet actif
- * supprime les deux.
- */
+// Lecteur Spotify Web Playback, dans l'onglet de l'animateur.
+//
+// POURQUOI DANS CET ONGLET — le jukebox vivait dans un onglet séparé pilotant
+// Music Assistant. Deux défauts rédhibitoires, constatés sur tablette
+// Android : les navigateurs mettent en veille un onglet qu'on ne regarde
+// pas, ce qui fait décrocher la lecture ; et la chaîne librespot vers FFmpeg
+// vers flux ajoutait une latence sensible. Le SDK dans l'onglet actif
+// supprime les deux.
 
 import { jeton, oublierSession } from "./session"
 
@@ -196,7 +194,7 @@ export const jouer = async (clientId: string, id: string, depart: number) => {
           Authorization: `Bearer ${t}`,
           "Content-Type": "application/json",
         },
-        // position_ms évite la séquence muet puis saut du jukebox : Spotify
+        // Position_ms évite la séquence muet puis saut du jukebox : Spotify
         // démarre directement au bon endroit.
         body: JSON.stringify({
           uris: [`spotify:track:${id}`],
@@ -237,7 +235,7 @@ export const arreter = async (clientId: string) => {
       { method: "PUT", headers: { Authorization: `Bearer ${t}` } },
     )
   } catch {
-    /* sans conséquence */
+    /* Sans conséquence */
   }
 }
 

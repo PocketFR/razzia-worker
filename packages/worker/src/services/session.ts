@@ -1,29 +1,27 @@
-/*
- * Session animateur, sans état côté serveur.
- *
- * En amont, Manager tenait un Set de clientId en mémoire : la session vivait
- * dans le processus. Un Worker n'a pas de processus qui dure — l'isolat qui
- * répond à la requête suivante peut être ailleurs dans le monde, et n'aura
- * jamais vu ce Set. Stocker les sessions en D1 marcherait, au prix d'une
- * lecture de base à CHAQUE appel authentifié.
- *
- * Un jeton signé évite les deux : le porteur prouve qu'il a connu le mot de
- * passe, et la vérification est purement locale.
- *
- * Le format est délibérément minimal — <expiration>.<signature base64url> —
- * parce qu'il n'y a rien d'autre à transporter : il n'existe qu'un seul rôle
- * d'animateur, partageant un unique mot de passe. Pas d'identité à représenter,
- * donc pas de JWT.
- *
- * La clé maîtresse ne sert jamais directement : deux clés distinctes en sont
- * dérivées, une pour signer les sessions, une pour chiffrer les clés API
- * (étape 7). Réutiliser la même pour deux usages est le genre de raccourci qui
- * transforme une faiblesse d'un mécanisme en faiblesse de l'autre.
- */
+// Session animateur, sans état côté serveur.
+//
+// En amont, Manager tenait un Set de clientId en mémoire : la session vivait
+// dans le processus. Un Worker n'a pas de processus qui dure — l'isolat qui
+// répond à la requête suivante peut être ailleurs dans le monde, et n'aura
+// jamais vu ce Set. Stocker les sessions en D1 marcherait, au prix d'une
+// lecture de base à CHAQUE appel authentifié.
+//
+// Un jeton signé évite les deux : le porteur prouve qu'il a connu le mot de
+// passe, et la vérification est purement locale.
+//
+// Le format est délibérément minimal — <expiration>.<signature base64url> —
+// parce qu'il n'y a rien d'autre à transporter : il n'existe qu'un seul rôle
+// d'animateur, partageant un unique mot de passe. Pas d'identité à représenter,
+// donc pas de JWT.
+//
+// La clé maîtresse ne sert jamais directement : deux clés distinctes en sont
+// dérivées, une pour signer les sessions, une pour chiffrer les clés API
+// (étape 7). Réutiliser la même pour deux usages est le genre de raccourci qui
+// transforme une faiblesse d'un mécanisme en faiblesse de l'autre.
 
 const encodeur = new TextEncoder()
 
-const DUREE_MS = 12 * 60 * 60 * 1000 // une soirée, largement
+const DUREE_MS = 12 * 60 * 60 * 1000 // Une soirée, largement
 
 const base64url = (octets: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(octets)))

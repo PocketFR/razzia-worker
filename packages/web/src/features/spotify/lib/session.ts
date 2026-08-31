@@ -1,14 +1,12 @@
-/*
- * Session Spotify du navigateur — flux PKCE.
- *
- * Reprend razzia-spotify.js. PKCE est prévu pour les clients sans secret :
- * le navigateur seul obtient les jetons, et le jeton de renouvellement
- * conservé localement permet de repartir indéfiniment. Une autorisation, puis
- * plus rien tant que le stockage n'est pas purgé.
- *
- * Le SDK exige un compte PREMIUM et un contexte sécurisé — crypto.subtle est
- * nécessaire au code_challenge. En HTTP local, l'autorisation échouera.
- */
+// Session Spotify du navigateur — flux PKCE.
+//
+// Reprend razzia-spotify.js. PKCE est prévu pour les clients sans secret :
+// le navigateur seul obtient les jetons, et le jeton de renouvellement
+// conservé localement permet de repartir indéfiniment. Une autorisation, puis
+// plus rien tant que le stockage n'est pas purgé.
+//
+// Le SDK exige un compte PREMIUM et un contexte sécurisé — crypto.subtle est
+// nécessaire au code_challenge. En HTTP local, l'autorisation échouera.
 
 const CLE = "razzia_spotify"
 const SCOPES = "streaming user-read-email user-read-private"
@@ -123,13 +121,11 @@ export const autoriser = async (clientId: string) => {
     {
       client_id: clientId,
       response_type: "code",
-      /*
-       * Cette adresse doit figurer À L'IDENTIQUE dans la console développeur
-       * Spotify, qui refuse l'autorisation sans même rediriger si elle n'y est
-       * pas — et LA MÊME VALEUR doit être renvoyée à l'échange du code, dans
-       * la page de rappel. Les changer séparément casse le flux sans qu'aucun
-       * test ne puisse le voir : il passe par un domaine tiers.
-       */
+      // Cette adresse doit figurer À L'IDENTIQUE dans la console développeur
+      // Spotify, qui refuse l'autorisation sans même rediriger si elle n'y est
+      // pas — et LA MÊME VALEUR doit être renvoyée à l'échange du code, dans
+      // la page de rappel. Les changer séparément casse le flux sans qu'aucun
+      // test ne puisse le voir : il passe par un domaine tiers.
       redirect_uri: `${location.origin}/spotify/callback`,
       scope: SCOPES,
       code_challenge_method: "S256",

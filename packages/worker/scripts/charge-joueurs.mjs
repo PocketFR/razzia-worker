@@ -1,30 +1,29 @@
-/*
- * Combien de joueurs une salle encaisse-t-elle, et avec quel retard ?
- *
- *   node scripts/charge-joueurs.mjs [base] [N,N,N] [motdepasse]
- *
- * Le scénario reproduit le seul instant qui compte : le buzzer. Tout le monde
- * répond EN MÊME TEMPS, et on mesure le temps que l'objet met à écouler la
- * salve.
- *
- * CE QU'ON CHERCHE À VOIR — pas un chiffre absolu, mais une FORME. Chaque
- * réponse fait faire trois choses proportionnelles au nombre de joueurs :
- * relire l'état complet, le réécrire, et rediffuser le compteur à toutes les
- * sockets. Trois fois O(N) par réponse, donc O(N²) par question. Si le coût
- * par réponse grimpe avec N, la forme est confirmée ; s'il reste plat, mon
- * analyse était fausse.
- *
- * LES VALEURS ABSOLUES SONT PESSIMISTES et ne valent pas pour la production :
- * workerd et les N clients se partagent ici le même processeur, ce qui n'est
- * pas le cas quand les joueurs sont sur leurs téléphones. C'est la pente qui
- * se transporte, pas l'ordonnée.
- */
+// Combien de joueurs une salle encaisse-t-elle, et avec quel retard ?
+//
+//   node scripts/charge-joueurs.mjs [base] [N,N,N] [motdepasse]
+//
+// Le scénario reproduit le seul instant qui compte : le buzzer. Tout le monde
+// répond EN MÊME TEMPS, et on mesure le temps que l'objet met à écouler la
+// salve.
+//
+// CE QU'ON CHERCHE À VOIR — pas un chiffre absolu, mais une FORME. Chaque
+// réponse fait faire trois choses proportionnelles au nombre de joueurs :
+// relire l'état complet, le réécrire, et rediffuser le compteur à toutes les
+// sockets. Trois fois O(N) par réponse, donc O(N²) par question. Si le coût
+// par réponse grimpe avec N, la forme est confirmée ; s'il reste plat, mon
+// analyse était fausse.
+//
+// LES VALEURS ABSOLUES SONT PESSIMISTES et ne valent pas pour la production :
+// workerd et les N clients se partagent ici le même processeur, ce qui n'est
+// pas le cas quand les joueurs sont sur leurs téléphones. C'est la pente qui
+// se transporte, pas l'ordonnée.
 
 const base = process.argv[2] ?? "http://localhost:8787"
 const paliers = (process.argv[3] ?? "10,25,50,100")
   .split(",")
   .map((n) => parseInt(n, 10))
-const motDePasse = process.argv[4] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[4] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 const auth = await fetch(`${base}/api/manager/auth`, {
@@ -43,8 +42,8 @@ const entetes = {
   "content-type": "application/json",
 }
 
-/* Une seule question, et longue : on veut que la salve entière tienne dans la
-   fenêtre de réponse, sans que l'alarme vienne clore la phase au milieu. */
+// Une seule question, et longue : on veut que la salve entière tienne dans la
+// fenêtre de réponse, sans que l'alarme vienne clore la phase au milieu.
 const { id: quizzId } = await fetch(`${base}/api/quizz`, {
   method: "POST",
   headers: entetes,
@@ -100,7 +99,9 @@ const connecter = (gameId, clientId, role) =>
           return new Promise((r) => {
             attentes.push({
               test: (t) => {
-                if (t.pris || !test(t)) return false
+                if (t.pris || !test(t)) {
+                  return false
+                }
                 t.pris = true
 
                 return true
@@ -171,16 +172,14 @@ const palier = async (n) => {
     })
   }
 
-  /*
-   * La fin de la salve, c'est le dernier joueur servi — et non le compteur
-   * atteignant N.
-   *
-   * Le détecteur guettait d'abord ce compteur, ce qui a cessé d'avoir un sens
-   * le jour où les diffusions rapprochées ont été regroupées : les valeurs
-   * intermédiaires ne partent plus, et l'attente expirait sur un NaN. Un banc
-   * d'essai qui dépend du détail qu'on optimise mesure l'optimisation, pas le
-   * système.
-   */
+  // La fin de la salve, c'est le dernier joueur servi — et non le compteur
+  // atteignant N.
+  //
+  // Le détecteur guettait d'abord ce compteur, ce qui a cessé d'avoir un sens
+  // le jour où les diffusions rapprochées ont été regroupées : les valeurs
+  // intermédiaires ne partent plus, et l'attente expirait sur un NaN. Un banc
+  // d'essai qui dépend du détail qu'on optimise mesure l'optimisation, pas le
+  // système.
   const personnels = (await Promise.all(attentesPersonnelles))
     .filter(Boolean)
     .map((t) => t.a - t0)

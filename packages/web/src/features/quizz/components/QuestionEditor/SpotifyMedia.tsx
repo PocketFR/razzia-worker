@@ -1,23 +1,21 @@
-/*
- * Édition d'un morceau Spotify dans l'éditeur de quiz.
- *
- * Reprend razzia-media.js, y compris sa disposition : logo, mention Premium,
- * pochette et métadonnées à gauche, écoute / décalage / application à droite,
- * puis la recherche et ses résultats.
- *
- * L'IDENTIFIANT EST OPTIONNEL dans l'URI reconnue, et c'est délibéré : le
- * bloc doit apparaître dès qu'on tape « spotify: », AVANT de savoir quel
- * morceau on veut — c'est justement là qu'on a besoin de la recherche. Une
- * expression exigeant les 22 caractères laissait l'animateur devant un champ
- * texte sans aucun moyen de trouver un titre.
- *
- * CE QUI DISPARAÎT AVEC LA SURCOUCHE. Elle ne pouvait pas écrire dans l'état
- * de React : changer un morceau exigeait de cliquer « Supprimer » pour faire
- * réapparaître le champ, d'y écrire par le setter natif — une affectation
- * directe de .value étant perdue au premier rendu — puis de recliquer
- * « Audio », avec restauration si la séquence était interrompue. Ici,
- * updateQuestion fait le tout en un appel.
- */
+// Édition d'un morceau Spotify dans l'éditeur de quiz.
+//
+// Reprend razzia-media.js, y compris sa disposition : logo, mention Premium,
+// pochette et métadonnées à gauche, écoute / décalage / application à droite,
+// puis la recherche et ses résultats.
+//
+// L'IDENTIFIANT EST OPTIONNEL dans l'URI reconnue, et c'est délibéré : le
+// bloc doit apparaître dès qu'on tape « spotify: », AVANT de savoir quel
+// morceau on veut — c'est justement là qu'on a besoin de la recherche. Une
+// expression exigeant les 22 caractères laissait l'animateur devant un champ
+// texte sans aucun moyen de trouver un titre.
+//
+// CE QUI DISPARAÎT AVEC LA SURCOUCHE. Elle ne pouvait pas écrire dans l'état
+// de React : changer un morceau exigeait de cliquer « Supprimer » pour faire
+// réapparaître le champ, d'y écrire par le setter natif — une affectation
+// directe de .value étant perdue au premier rendu — puis de recliquer
+// « Audio », avec restauration si la séquence était interrompue. Ici,
+// updateQuestion fait le tout en un appel.
 
 import type { QuestionMedia } from "@razzia/common/types/game"
 import Button from "@razzia/web/components/Button"
@@ -38,8 +36,8 @@ import { Pause, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-/* L'identifiant est optionnel : « spotify: » seul est une URI valide en
-   cours de saisie, que le bloc doit reconnaître pour offrir la recherche. */
+// L'identifiant est optionnel : « spotify: » seul est une URI valide en
+// cours de saisie, que le bloc doit reconnaître pour offrir la recherche.
 /* Réexportée : l'éditeur s'en sert pour décider d'afficher ce cadre. */
 export { URI_SPOTIFY }
 
@@ -47,7 +45,12 @@ const mmss = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
 
 const decrire = (p: Piste) =>
-  [p.artiste, p.album, p.annee ? String(p.annee) : "", p.duree ? mmss(p.duree) : ""]
+  [
+    p.artiste,
+    p.album,
+    p.annee ? String(p.annee) : "",
+    p.duree ? mmss(p.duree) : "",
+  ]
     .filter(Boolean)
     .join(" · ")
 
@@ -110,16 +113,14 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
     }
   }
 
-  /*
-   * Écoute par le SDK plutôt qu'un lien vers open.spotify.com.
-   *
-   * Le lien obligeait à quitter l'éditeur pour vérifier un morceau, et
-   * n'honorait pas le décalage de la même façon. Ici on entend exactement ce
-   * que les joueurs entendront, décalage compris, sans changer de page.
-   *
-   * Le clic sert d'activation audio : les navigateurs exigent un geste avant
-   * tout son, et c'est celui-là.
-   */
+  // Écoute par le SDK plutôt qu'un lien vers open.spotify.com.
+  //
+  // Le lien obligeait à quitter l'éditeur pour vérifier un morceau, et
+  // n'honorait pas le décalage de la même façon. Ici on entend exactement ce
+  // que les joueurs entendront, décalage compris, sans changer de page.
+  //
+  // Le clic sert d'activation audio : les navigateurs exigent un geste avant
+  // tout son, et c'est celui-là.
   const basculerEcoute = async () => {
     if (!clientId || !id) {
       return
@@ -153,7 +154,9 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
     <div className="border-accent text-foreground bg-background w-full max-w-xl rounded-xl border p-3 text-left">
       <div className="flex items-start justify-between gap-2">
         <img src="/spotify.svg" alt="Spotify" className="h-8 w-auto" />
-        <span className="text-xs opacity-50">{t("question.spotify.premium")}</span>
+        <span className="text-xs opacity-50">
+          {t("question.spotify.premium")}
+        </span>
       </div>
 
       <div className="mt-3 flex items-center gap-3">
@@ -193,7 +196,9 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
             <Button
               size="sm"
               className="bg-accent text-foreground size-9 p-0"
-              title={t(ecoute ? "question.spotify.stop" : "question.spotify.listen")}
+              title={t(
+                ecoute ? "question.spotify.stop" : "question.spotify.listen",
+              )}
               onClick={() => void basculerEcoute()}
             >
               {ecoute ? (

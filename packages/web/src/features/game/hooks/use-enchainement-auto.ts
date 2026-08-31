@@ -1,27 +1,28 @@
-/*
- * Enchaînement automatique des questions.
- *
- * Portage de razzia-auto.js, dont il faut reprendre la mécanique EXACTE.
- *
- * POURQUOI PAS UN useEffect, qui semblait naturel. La séquence des questions
- * de classement enchaîne DEUX attentes : afficher le classement, puis passer
- * à la question suivante. Or afficher le classement change le statut, ce qui
- * relance l'effet et déclenche son nettoyage — lequel annulait la seconde
- * attente. La partie se figeait alors sur le classement.
- *
- * Le minuteur vit donc dans une référence, hors du cycle de rendu, et n'est
- * annulé que sur les deux événements qui l'invalident réellement : une
- * nouvelle question — l'animateur a cliqué lui-même — et la fin de partie.
- *
- * LA RÈGLE DU CLASSEMENT est celle de l'amont : toutes les cinq questions ET
- * systématiquement après la dernière. Sans ce « et », un quiz de quatorze
- * questions n'afficherait jamais de classement final, le compte ne tombant
- * pas juste.
- */
+// Enchaînement automatique des questions.
+//
+// Portage de razzia-auto.js, dont il faut reprendre la mécanique EXACTE.
+//
+// POURQUOI PAS UN useEffect, qui semblait naturel. La séquence des questions
+// de classement enchaîne DEUX attentes : afficher le classement, puis passer
+// à la question suivante. Or afficher le classement change le statut, ce qui
+// relance l'effet et déclenche son nettoyage — lequel annulait la seconde
+// attente. La partie se figeait alors sur le classement.
+//
+// Le minuteur vit donc dans une référence, hors du cycle de rendu, et n'est
+// annulé que sur les deux événements qui l'invalident réellement : une
+// nouvelle question — l'animateur a cliqué lui-même — et la fin de partie.
+//
+// LA RÈGLE DU CLASSEMENT est celle de l'amont : toutes les cinq questions ET
+// systématiquement après la dernière. Sans ce « et », un quiz de quatorze
+// questions n'afficherait jamais de classement final, le compte ne tombant
+// pas juste.
 
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
-import { useEvent, useSocket } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useEvent,
+  useSocket,
+} from "@razzia/web/features/game/contexts/socket-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const DELAI_MS = 10000
@@ -78,7 +79,7 @@ export const useEnchainementAuto = (gameId: string | null) => {
       try {
         localStorage.setItem(CLE, valeur ? "1" : "0")
       } catch {
-        /* navigation privée : le réglage ne survivra pas au rechargement */
+        /* Navigation privée : le réglage ne survivra pas au rechargement */
       }
 
       // Décocher rend la main tout de suite, sans attendre la fin d'une

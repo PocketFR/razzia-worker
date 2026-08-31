@@ -1,31 +1,29 @@
-/*
- * Clés API : stockage chiffré et lecture par requête.
- *
- * POURQUOI PAS `wrangler secret` — c'était le premier réflexe, et il ne tient
- * pas : le secret Spotify expire tous les 180 jours, et le renouveler
- * exigerait alors la ligne de commande et un redéploiement. On veut pouvoir
- * le changer depuis un navigateur, en soirée, sans outillage.
- *
- * D'où ce dispositif à trois règles.
- *
- * 1. CHIFFRÉES AU REPOS. Les valeurs sensibles sont scellées en AES-GCM avec
- *    une clé dérivée de la clé maîtresse — laquelle reste, elle, un vrai
- *    secret Worker et ne tourne jamais. Une fuite de la base D1 seule ne
- *    livre donc rien.
- *
- * 2. EN ÉCRITURE SEULE. Aucune valeur secrète ne ressort jamais par l'API :
- *    l'interface n'affiche que « définie, modifiée le … ». Renvoyer une clé
- *    Mistral pour la pré-remplir dans un champ serait l'exposer sans rien y
- *    gagner, alors que personne n'a besoin de la relire.
- *
- * 3. REPLI SUR LA LIAISON. À la lecture : la valeur en base si elle existe,
- *    sinon celle du binding Worker. Le premier déploiement fonctionne donc
- *    sans passer par l'interface, et la rotation s'y fait ensuite.
- *
- * SPOTIFY_CLIENT_ID fait exception et n'est pas chiffré : le flux PKCE
- * l'expose de toute façon au navigateur, le sceller donnerait l'illusion
- * d'une protection inexistante.
- */
+// Clés API : stockage chiffré et lecture par requête.
+//
+// POURQUOI PAS `wrangler secret` — c'était le premier réflexe, et il ne tient
+// pas : le secret Spotify expire tous les 180 jours, et le renouveler
+// exigerait alors la ligne de commande et un redéploiement. On veut pouvoir
+// le changer depuis un navigateur, en soirée, sans outillage.
+//
+// D'où ce dispositif à trois règles.
+//
+// 1. CHIFFRÉES AU REPOS. Les valeurs sensibles sont scellées en AES-GCM avec
+//    une clé dérivée de la clé maîtresse — laquelle reste, elle, un vrai
+//    secret Worker et ne tourne jamais. Une fuite de la base D1 seule ne
+//    livre donc rien.
+//
+// 2. EN ÉCRITURE SEULE. Aucune valeur secrète ne ressort jamais par l'API :
+//    l'interface n'affiche que « définie, modifiée le … ». Renvoyer une clé
+//    Mistral pour la pré-remplir dans un champ serait l'exposer sans rien y
+//    gagner, alors que personne n'a besoin de la relire.
+//
+// 3. REPLI SUR LA LIAISON. À la lecture : la valeur en base si elle existe,
+//    sinon celle du binding Worker. Le premier déploiement fonctionne donc
+//    sans passer par l'interface, et la rotation s'y fait ensuite.
+//
+// SPOTIFY_CLIENT_ID fait exception et n'est pas chiffré : le flux PKCE
+// l'expose de toute façon au navigateur, le sceller donnerait l'illusion
+// d'une protection inexistante.
 
 import type { Env } from "../index"
 import { deriverCle } from "./session"

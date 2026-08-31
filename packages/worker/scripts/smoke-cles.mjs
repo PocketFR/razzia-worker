@@ -1,15 +1,14 @@
-/*
- * Clés API : chiffrement, repli et confidentialité.
- *
- *   node scripts/smoke-cles.mjs [base] [motdepasse]
- *
- * Le contrôle qui compte le plus est le dernier : AUCUNE valeur secrète ne
- * doit ressortir par l'API, quelle que soit la route. Une clé Mistral
- * renvoyée pour pré-remplir un champ serait exposée pour rien.
- */
+// Clés API : chiffrement, repli et confidentialité.
+//
+//   node scripts/smoke-cles.mjs [base] [motdepasse]
+//
+// Le contrôle qui compte le plus est le dernier : AUCUNE valeur secrète ne
+// doit ressortir par l'API, quelle que soit la route. Une clé Mistral
+// renvoyée pour pré-remplir un champ serait exposée pour rien.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0
@@ -82,7 +81,10 @@ const etat = await lire()
 const spotify = parNom(etat, "SPOTIFY_CLIENT_SECRET")
 verifier("la clé est marquée définie", spotify?.definie === true)
 verifier("elle vient désormais de la base", spotify?.origine === "base")
-verifier("sa date de modification est connue", typeof spotify?.modifiee === "number")
+verifier(
+  "sa date de modification est connue",
+  typeof spotify?.modifiee === "number",
+)
 
 // ── LE contrôle : le secret ne ressort jamais ──────────────────────────────
 verifier(

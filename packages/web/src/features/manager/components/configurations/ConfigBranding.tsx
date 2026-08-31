@@ -1,20 +1,18 @@
-/*
- * L'apparence de l'application, modifiable depuis l'interface.
- *
- * Le mécanisme existait déjà côté navigateur — main.tsx lit
- * /branding/theme.json au démarrage et pose les variables CSS — mais ce
- * fichier était FIGÉ AU BUILD. Changer une couleur demandait un déploiement,
- * ce qui est beaucoup pour une couleur.
- *
- * Le formulaire est donc en deux moitiés, qui n'ont pas la même nature :
- * ce qui tient dans le thème (nom, couleurs, police, adresses) s'enregistre
- * en bloc au bouton du bas, tandis que chaque image part À SON ENVOI. Les
- * mêler aurait voulu dire garder plusieurs mégaoctets en mémoire jusqu'au
- * clic final, et perdre le tout sur une erreur de saisie dans un champ texte.
- *
- * Une image téléversée l'emporte sur l'adresse du même nom : il fallait
- * trancher, et l'inverse aurait donné un fichier accepté qui ne s'affiche pas.
- */
+// L'apparence de l'application, modifiable depuis l'interface.
+//
+// Le mécanisme existait déjà côté navigateur — main.tsx lit
+// /branding/theme.json au démarrage et pose les variables CSS — mais ce
+// fichier était FIGÉ AU BUILD. Changer une couleur demandait un déploiement,
+// ce qui est beaucoup pour une couleur.
+//
+// Le formulaire est donc en deux moitiés, qui n'ont pas la même nature :
+// ce qui tient dans le thème (nom, couleurs, police, adresses) s'enregistre
+// en bloc au bouton du bas, tandis que chaque image part À SON ENVOI. Les
+// mêler aurait voulu dire garder plusieurs mégaoctets en mémoire jusqu'au
+// clic final, et perdre le tout sur une erreur de saisie dans un champ texte.
+//
+// Une image téléversée l'emporte sur l'adresse du même nom : il fallait
+// trancher, et l'inverse aurait donné un fichier accepté qui ne s'affiche pas.
 
 import { EVENTS } from "@razzia/common/constants"
 import type { BrandingData, BrandingTheme } from "@razzia/common/types/manager"
@@ -239,7 +237,9 @@ const ConfigBranding = () => {
 
             return (
               <div key={nom} className="flex flex-col gap-1">
-                <span className="font-semibold">{t(`branding.image.${nom}`)}</span>
+                <span className="font-semibold">
+                  {t(`branding.image.${nom}`)}
+                </span>
 
                 <span className="text-xs opacity-60">
                   {televersee

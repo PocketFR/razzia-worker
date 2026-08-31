@@ -112,9 +112,12 @@ const GameWrapper = ({
                   )}
 
                   <Button
-                    className={clsx("hover:bg-accent bg-white px-4 text-black", {
-                      "pointer-events-none": isDisabled,
-                    })}
+                    className={clsx(
+                      "hover:bg-accent bg-white px-4 text-black",
+                      {
+                        "pointer-events-none": isDisabled,
+                      },
+                    )}
                     onClick={handleNext}
                   >
                     {t(next)}

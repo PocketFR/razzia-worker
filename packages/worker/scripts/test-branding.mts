@@ -1,18 +1,16 @@
-/*
- * Le contrôle du contenu d'un SVG, et le dépliage des couleurs courtes.
- *
- *   npx tsx scripts/test-branding.mts
- *
- * Ces deux fonctions sont pures : elles se vérifient sans serveur, ce qui
- * permet d'aligner beaucoup de cas — et l'examen d'un SVG ne vaut que par le
- * nombre de formes qu'il connaît.
- *
- * RAPPEL, parce qu'il décide de la lecture de ces tests : cet examen n'est
- * pas une preuve d'innocuité. Une analyse par expressions régulières sur du
- * XML se contourne. La garantie tient à la Content-Security-Policy posée au
- * service, éprouvée elle par smoke-branding ; ce qui suit écarte l'accident
- * et le fichier ramassé n'importe où.
- */
+// Le contrôle du contenu d'un SVG, et le dépliage des couleurs courtes.
+//
+//   npx tsx scripts/test-branding.mts
+//
+// Ces deux fonctions sont pures : elles se vérifient sans serveur, ce qui
+// permet d'aligner beaucoup de cas — et l'examen d'un SVG ne vaut que par le
+// nombre de formes qu'il connaît.
+//
+// RAPPEL, parce qu'il décide de la lecture de ces tests : cet examen n'est
+// pas une preuve d'innocuité. Une analyse par expressions régulières sur du
+// XML se contourne. La garantie tient à la Content-Security-Policy posée au
+// service, éprouvée elle par smoke-branding ; ce qui suit écarte l'accident
+// et le fichier ramassé n'importe où.
 
 import { dangerDuSvg } from "../src/services/branding"
 import { pourPastille } from "../../web/src/features/manager/lib/couleur"
@@ -40,8 +38,11 @@ const PROPRE = `<?xml version="1.0" encoding="UTF-8"?>
 </svg>`
 
 console.log("— un SVG ordinaire passe")
-verifier("le logo type est accepté", dangerDuSvg(octets(PROPRE)) === null,
-  String(dangerDuSvg(octets(PROPRE))))
+verifier(
+  "le logo type est accepté",
+  dangerDuSvg(octets(PROPRE)) === null,
+  String(dangerDuSvg(octets(PROPRE))),
+)
 
 // Le piège des faux positifs : « font-family » contient « on », et une
 // déclaration d'espace de noms contient « http:// ». Ni l'un ni l'autre ne
@@ -51,8 +52,11 @@ const COURANT = `<svg xmlns="http://www.w3.org/2000/svg"
   <text font-family="Rubik" stroke-linejoin="round">Bonjour</text>
   <image xlink:href="data:image/png;base64,iVBORw0KGgo="/>
 </svg>`
-verifier("espaces de noms et font-family ne déclenchent rien",
-  dangerDuSvg(octets(COURANT)) === null, String(dangerDuSvg(octets(COURANT))))
+verifier(
+  "espaces de noms et font-family ne déclenchent rien",
+  dangerDuSvg(octets(COURANT)) === null,
+  String(dangerDuSvg(octets(COURANT))),
+)
 
 console.log("— ce qui doit être refusé")
 const refuse = (nom: string, contenu: string) =>
@@ -86,18 +90,31 @@ verifier(
 )
 
 console.log("— couleurs hexadécimales courtes")
-verifier("#555 devient #555555", pourPastille("#555") === "#555555",
-  pourPastille("#555"))
+verifier(
+  "#555 devient #555555",
+  pourPastille("#555") === "#555555",
+  pourPastille("#555"),
+)
 verifier("#000 devient #000000", pourPastille("#000") === "#000000")
-verifier("#AbC déplie en gardant la casse", pourPastille("#AbC") === "#AAbbCC",
-  pourPastille("#AbC"))
-verifier("une couleur longue est rendue telle quelle",
-  pourPastille("#ff9900") === "#ff9900")
-verifier("un nom de couleur retombe sur le noir",
-  pourPastille("red") === "#000000")
+verifier(
+  "#AbC déplie en gardant la casse",
+  pourPastille("#AbC") === "#AAbbCC",
+  pourPastille("#AbC"),
+)
+verifier(
+  "une couleur longue est rendue telle quelle",
+  pourPastille("#ff9900") === "#ff9900",
+)
+verifier(
+  "un nom de couleur retombe sur le noir",
+  pourPastille("red") === "#000000",
+)
 verifier("une valeur vide retombe sur le noir", pourPastille("") === "#000000")
-verifier("une forme à quatre chiffres n'est pas dépliée à tort",
-  pourPastille("#5555") === "#000000", pourPastille("#5555"))
+verifier(
+  "une forme à quatre chiffres n'est pas dépliée à tort",
+  pourPastille("#5555") === "#000000",
+  pourPastille("#5555"),
+)
 
 console.log(`\n${passes} tests passés, ${echecs} échec(s)`)
 process.exit(echecs ? 1 : 0)

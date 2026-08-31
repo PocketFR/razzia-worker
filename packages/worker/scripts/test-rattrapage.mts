@@ -1,17 +1,15 @@
-/*
- * Rattrapage des phases en retard.
- *
- *   npx tsx scripts/test-rattrapage.mts
- *
- * L'alarme est le SEUL moteur d'une manche, et Cloudflare prévient qu'elle
- * peut être servie avec jusqu'à une minute de retard. Sans rattrapage, une
- * alarme tardive fige la partie sur son écran — animateur compris — et rien
- * ne vient la débloquer. C'est le bug observé en soirée.
- *
- * Le retard ne se simule pas contre un serveur local, où l'alarme part à
- * l'heure : la boucle est donc éprouvée ici, sur la machine à états seule,
- * en posant des échéances déjà dépassées.
- */
+// Rattrapage des phases en retard.
+//
+//   npx tsx scripts/test-rattrapage.mts
+//
+// L'alarme est le SEUL moteur d'une manche, et Cloudflare prévient qu'elle
+// peut être servie avec jusqu'à une minute de retard. Sans rattrapage, une
+// alarme tardive fige la partie sur son écran — animateur compris — et rien
+// ne vient la débloquer. C'est le bug observé en soirée.
+//
+// Le retard ne se simule pas contre un serveur local, où l'alarme part à
+// l'heure : la boucle est donc éprouvée ici, sur la machine à états seule,
+// en posant des échéances déjà dépassées.
 
 import {
   avancer,
@@ -53,7 +51,14 @@ const faireContexte = (): ContextePartie =>
       questions: [question("Une ?"), question("Deux ?")],
     },
     players: [
-      { id: "a", clientId: "a", connected: true, username: "A", points: 0, streak: 0 },
+      {
+        id: "a",
+        clientId: "a",
+        connected: true,
+        username: "A",
+        points: 0,
+        streak: 0,
+      },
     ],
     manche: mancheNeuve(),
   }) as unknown as ContextePartie
@@ -137,7 +142,7 @@ const rattraper = (ctx: ContextePartie, em: Emetteur) => {
   const em = faireEmetteur([])
 
   demarrer(ctx, em)
-  const phase = ctx.manche.phase
+  const { phase } = ctx.manche
 
   verifier("aucune transition prématurée", rattraper(ctx, em) === 0)
   verifier("la phase est inchangée", ctx.manche.phase === phase)

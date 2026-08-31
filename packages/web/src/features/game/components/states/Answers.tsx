@@ -57,9 +57,9 @@ const Answers = ({
     sfxPop()
   }
 
-  /* Elle ne se superpose jamais au média de la question : un blind test
-     Spotify est de type « audio », et se passe très bien d'un fond sonore
-     par-dessus. C'était déjà la règle en amont, elle ne change pas. */
+  // Elle ne se superpose jamais au média de la question : un blind test
+  // Spotify est de type « audio », et se passe très bien d'un fond sonore
+  // par-dessus. C'était déjà la règle en amont, elle ne change pas.
   const mediaSonore: QuestionMediaType[] = [
     MEDIA_TYPES.AUDIO,
     MEDIA_TYPES.VIDEO,

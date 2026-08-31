@@ -30,8 +30,7 @@ Ce que ce fork ajoute :
 ## Prérequis
 
 - Un compte **Cloudflare** (le plan gratuit suffit).
-- **Node 22** et **pnpm 10**. Pas node 26 : wrangler y part en erreur de
-  segmentation dès le premier appel à l'API.
+- **Node 22 ou plus récent** et **pnpm 10**. Éprouvé jusqu'à node 26.
 - Un **jeton d'API Cloudflare** : modèle « Modifier les Workers de Cloudflare »,
   auquel il faut **ajouter** la permission « D1 : Modifier » — elle n'y est pas
   incluse, et c'est l'oubli le plus fréquent.
@@ -60,7 +59,7 @@ Détails, options et pièges : [docs/deploiement.md](docs/deploiement.md).
 
 ## Après le déploiement
 
-1. Déclarer `https://<votre-domaine>/spotify/callback` dans les *Redirect URIs*
+1. Déclarer `https://<votre-domaine>/spotify/callback` dans les _Redirect URIs_
    de votre application Spotify. Cette adresse est comparée à l'identique ;
    sans elle la connexion échoue sans message exploitable.
 2. Ouvrir `/manager`, se connecter avec le mot de passe affiché par le script,

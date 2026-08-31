@@ -1,37 +1,35 @@
-/*
- * GameRoom — une instance par partie, adressée par gameId.
- *
- * Remplace à la fois le Registry (qui cherchait la partie dans un tableau en
- * mémoire) et la room socket.io (qui triait les sockets d'un processus
- * partagé) : ici, toutes les sockets attachées SONT celles de cette partie.
- *
- * DEUX RÈGLES QUI GOUVERNENT TOUT LE FICHIER
- *
- * 1. Aucun setTimeout, aucun setInterval. Un Durable Object ne peut pas
- *    hiberner tant qu'une minuterie est armée — rien ne permettrait de
- *    recréer le rappel après réveil. Le rythme des manches passera
- *    exclusivement par storage.setAlarm() (étape 4).
- *
- * 2. JAMAIS D'ATTENTE EXTÉRIEURE ENTRE LIRE ET ÉCRIRE. Un await sur le
- *    stockage de l'objet retient les autres événements ; un await sur un
- *    service extérieur — D1 en fait partie — ouvre la porte et laisse
- *    d'autres messages s'intercaler. Lire l'état, attendre D1, puis
- *    réécrire, c'est écraser tout ce que ces messages ont enregistré entre
- *    temps : une réponse de joueur disparue, une manche qui n'avance plus.
- *    Toute suite lire-modifier-écrire doit donc être SYNCHRONE, et les
- *    lectures D1 la précéder.
- *
- * 3. Aucun état durable dans un champ d'instance. Après hibernation le
- *    constructeur rejoue et la mémoire repart à zéro. Tout ce qui doit
- *    survivre vit dans ctx.storage.kv (synchrone sur les objets SQLite) ;
- *    ce qui est attaché à une socket vit dans son serializeAttachment().
- *
- * LES JOUEURS SONT IDENTIFIÉS PAR clientId, PAS PAR SOCKET. L'amont utilisait
- * socket.id, qui change à chaque reconnexion — d'où son updateSocketId et le
- * remaniement de la carte des statuts. Le clientId, lui, est stable et
- * persisté côté navigateur : le joueur redevient lui-même sans rien
- * transposer, et toute une classe de bugs de reconnexion disparaît.
- */
+// GameRoom — une instance par partie, adressée par gameId.
+//
+// Remplace à la fois le Registry (qui cherchait la partie dans un tableau en
+// mémoire) et la room socket.io (qui triait les sockets d'un processus
+// partagé) : ici, toutes les sockets attachées SONT celles de cette partie.
+//
+// DEUX RÈGLES QUI GOUVERNENT TOUT LE FICHIER
+//
+// 1. Aucun setTimeout, aucun setInterval. Un Durable Object ne peut pas
+//    hiberner tant qu'une minuterie est armée — rien ne permettrait de
+//    recréer le rappel après réveil. Le rythme des manches passera
+//    exclusivement par storage.setAlarm() (étape 4).
+//
+// 2. JAMAIS D'ATTENTE EXTÉRIEURE ENTRE LIRE ET ÉCRIRE. Un await sur le
+//    stockage de l'objet retient les autres événements ; un await sur un
+//    service extérieur — D1 en fait partie — ouvre la porte et laisse
+//    d'autres messages s'intercaler. Lire l'état, attendre D1, puis
+//    réécrire, c'est écraser tout ce que ces messages ont enregistré entre
+//    temps : une réponse de joueur disparue, une manche qui n'avance plus.
+//    Toute suite lire-modifier-écrire doit donc être SYNCHRONE, et les
+//    lectures D1 la précéder.
+//
+// 3. Aucun état durable dans un champ d'instance. Après hibernation le
+//    constructeur rejoue et la mémoire repart à zéro. Tout ce qui doit
+//    survivre vit dans ctx.storage.kv (synchrone sur les objets SQLite) ;
+//    ce qui est attaché à une socket vit dans son serializeAttachment().
+//
+// LES JOUEURS SONT IDENTIFIÉS PAR clientId, PAS PAR SOCKET. L'amont utilisait
+// socket.id, qui change à chaque reconnexion — d'où son updateSocketId et le
+// remaniement de la carte des statuts. Le clientId, lui, est stable et
+// persisté côté navigateur : le joueur redevient lui-même sans rien
+// transposer, et toute une classe de bugs de reconnexion disparaît.
 
 import { EVENTS } from "@razzia/common/constants"
 import type { GameResult, Player, QuizzWithId } from "@razzia/common/types/game"
@@ -58,13 +56,16 @@ export interface Attachement {
   role: "manager" | "player"
 }
 
-type Statut = { name: string; data: unknown }
+interface Statut {
+  name: string
+  data: unknown
+}
 
 interface EtatPartie {
   gameId: string
-  /* Conservé ici pour pouvoir REDONNER le PIN à l'animateur : l'amont ne le
-     renvoyait pas à la reconnexion, si bien qu'un rafraîchissement de page
-     dans la salle d'attente lui faisait perdre le code et le QR. */
+  // Conservé ici pour pouvoir REDONNER le PIN à l'animateur : l'amont ne le
+  // renvoyait pas à la reconnexion, si bien qu'un rafraîchissement de page
+  // dans la salle d'attente lui faisait perdre le code et le QR.
   inviteCode: string
   quizz: QuizzWithId
   managerClientId: string
@@ -72,18 +73,18 @@ interface EtatPartie {
   manche: Manche
   /* Numéro d'ordre des statuts, strictement croissant. */
   seq: number
-  /* Échéance de suppression, armée quand la dernière socket se ferme et
-     désarmée dès qu'une connexion revient. Null tant que quelqu'un est là. */
+  // Échéance de suppression, armée quand la dernière socket se ferme et
+  // désarmée dès qu'une connexion revient. Null tant que quelqu'un est là.
   finDeGrace: number | null
-  /* Diffusion regroupée de l'effectif — même mécanisme que le compteur de
-     réponses, voir `effectif`. Au niveau de la partie et non de la manche :
-     on entre et on sort d'une salle à tout moment, y compris entre deux
-     quiz, alors qu'une manche remet son compteur à zéro. */
+  // Diffusion regroupée de l'effectif — même mécanisme que le compteur de
+  // réponses, voir `effectif`. Au niveau de la partie et non de la manche :
+  // on entre et on sort d'une salle à tout moment, y compris entre deux
+  // quiz, alors qu'une manche remet son compteur à zéro.
   effectifEnvoyeA: number
   effectifDu: number | null
-  /* Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
-     et devait les transposer à chaque retour ; indexés par clientId, ils
-     survivent d'eux-mêmes. */
+  // Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
+  // et devait les transposer à chaque retour ; indexés par clientId, ils
+  // survivent d'eux-mêmes.
   dernierStatut: Statut | null
   statutAnimateur: Statut | null
   statutsJoueurs: Record<string, Statut>
@@ -91,29 +92,25 @@ interface EtatPartie {
 
 const CLE = "partie"
 
-/*
- * Le pas de regroupement du compteur de réponses.
- *
- * 250 ms : assez court pour qu'un compteur qui monte reste vivant à l'œil,
- * assez long pour transformer N² envois en une poignée. Le raccourcir rendrait
- * le regroupement inopérant sans rien gagner de visible ; l'allonger ferait
- * traîner l'affichage sans rien gagner de plus.
- */
+// Le pas de regroupement du compteur de réponses.
+//
+// 250 ms : assez court pour qu'un compteur qui monte reste vivant à l'œil,
+// assez long pour transformer N² envois en une poignée. Le raccourcir rendrait
+// le regroupement inopérant sans rien gagner de visible ; l'allonger ferait
+// traîner l'affichage sans rien gagner de plus.
 const PALIER_COMPTEUR = 250
 
-/*
- * Délai de grâce après le départ du dernier participant.
- *
- * Deux heures peuvent sembler démesurées pour du ménage. C'est délibéré, et
- * ça tient à une asymétrie : supprimer une salle vivante fait tout rescanner
- * et perd les scores cumulés, alors qu'une salle morte ne coûte qu'un objet
- * hiberné — donc rien en durée facturée — et une ligne dans une table dont
- * l'espace de PIN fait un million.
- *
- * S'y ajoute que sur mobile les déconnexions sont la NORME : un écran qui se
- * verrouille ferme la WebSocket. Une pause, un téléphone à recharger, un
- * changement de pièce ne doivent pas emporter la partie.
- */
+// Délai de grâce après le départ du dernier participant.
+//
+// Deux heures peuvent sembler démesurées pour du ménage. C'est délibéré, et
+// ça tient à une asymétrie : supprimer une salle vivante fait tout rescanner
+// et perd les scores cumulés, alors qu'une salle morte ne coûte qu'un objet
+// hiberné — donc rien en durée facturée — et une ligne dans une table dont
+// l'espace de PIN fait un million.
+//
+// S'y ajoute que sur mobile les déconnexions sont la NORME : un écran qui se
+// verrouille ferme la WebSocket. Une pause, un téléphone à recharger, un
+// changement de pièce ne doivent pas emporter la partie.
 const GRACE_PAR_DEFAUT_MS = 2 * 60 * 60 * 1000
 
 export class GameRoom implements DurableObject {
@@ -128,7 +125,7 @@ export class GameRoom implements DurableObject {
   // ── État ────────────────────────────────────────────────────────────────
 
   private lire(): EtatPartie | null {
-    return (this.ctx.storage.kv.get(CLE) as EtatPartie | undefined) ?? null
+    return this.ctx.storage.kv.get(CLE) ?? null
   }
 
   private ecrire(etat: EtatPartie) {
@@ -136,16 +133,14 @@ export class GameRoom implements DurableObject {
     this.reprogrammer(etat)
   }
 
-  /*
-   * Un Durable Object n'a QU'UNE alarme — setAlarm écrase la précédente — et
-   * il lui faut ici deux minuteries : le rythme des manches et l'expiration
-   * de la salle. L'alarme devient donc un ordonnanceur : on arme toujours la
-   * plus proche des deux échéances, et le réveil regarde laquelle est due.
-   *
-   * Les deux échéances vivent dans l'état, jamais en mémoire : c'est ce qui
-   * permet de les recalculer après hibernation. Reprogrammer à chaque
-   * écriture garantit qu'aucune ne peut être oubliée.
-   */
+  // Un Durable Object n'a QU'UNE alarme — setAlarm écrase la précédente — et
+  // il lui faut ici deux minuteries : le rythme des manches et l'expiration
+  // de la salle. L'alarme devient donc un ordonnanceur : on arme toujours la
+  // plus proche des deux échéances, et le réveil regarde laquelle est due.
+  //
+  // Les deux échéances vivent dans l'état, jamais en mémoire : c'est ce qui
+  // permet de les recalculer après hibernation. Reprogrammer à chaque
+  // écriture garantit qu'aucune ne peut être oubliée.
   private reprogrammer(etat: EtatPartie) {
     const echeances = [
       etat.manche.finDePhase,
@@ -257,19 +252,17 @@ export class GameRoom implements DurableObject {
 
     const { 0: client, 1: server } = new WebSocketPair()
 
-    /*
-     * acceptWebSocket et non server.accept() : c'est la variante hibernante.
-     * Avec accept(), l'objet resterait en mémoire tant que la socket est
-     * ouverte, et serait facturé en durée pour toute la soirée.
-     *
-     * LES ÉTIQUETTES SONT UNE OPTIMISATION, pas une commodité. Sans elles,
-     * écrire à un joueur précis oblige à parcourir toutes les sockets en
-     * désérialisant l'attachement de chacune — donc N désérialisations pour
-     * un seul destinataire, à chaque réponse reçue. C'était, après le
-     * regroupement du compteur, le dernier coût proportionnel au nombre de
-     * joueurs sur le chemin d'une réponse. getWebSockets(étiquette) les rend
-     * directement.
-     */
+    // AcceptWebSocket et non server.accept() : c'est la variante hibernante.
+    // Avec accept(), l'objet resterait en mémoire tant que la socket est
+    // ouverte, et serait facturé en durée pour toute la soirée.
+    //
+    // LES ÉTIQUETTES SONT UNE OPTIMISATION, pas une commodité. Sans elles,
+    // écrire à un joueur précis oblige à parcourir toutes les sockets en
+    // désérialisant l'attachement de chacune — donc N désérialisations pour
+    // un seul destinataire, à chaque réponse reçue. C'était, après le
+    // regroupement du compteur, le dernier coût proportionnel au nombre de
+    // joueurs sur le chemin d'une réponse. getWebSockets(étiquette) les rend
+    // directement.
     this.ctx.acceptWebSocket(server, [clientId, roleReel])
     server.serializeAttachment({
       clientId,
@@ -282,14 +275,12 @@ export class GameRoom implements DurableObject {
       this.ecrire(etat)
     }
 
-    /*
-     * L'heure du serveur, en tout premier.
-     *
-     * Les échéances voyagent en dates absolues, et le client les comparait à
-     * SA propre horloge. Un poste en retard de dix secondes affichait donc un
-     * compte à rebours de 13, 12, 11 là où il fallait 3, 2, 1. Le décalage se
-     * mesure une fois, ici, et s'applique à toutes les échéances.
-     */
+    // L'heure du serveur, en tout premier.
+    //
+    // Les échéances voyagent en dates absolues, et le client les comparait à
+    // SA propre horloge. Un poste en retard de dix secondes affichait donc un
+    // compte à rebours de 13, 12, 11 là où il fallait 3, 2, 1. Le décalage se
+    // mesure une fois, ici, et s'applique à toutes les échéances.
     this.envoyer(server, "time", { now: Date.now() })
 
     // L'écran à restituer est le statut PERSONNEL s'il y en a un — un joueur
@@ -336,25 +327,23 @@ export class GameRoom implements DurableObject {
 
     this.envoyer(server, EVENTS.GAME.TOTAL_PLAYERS, etat.players.length)
 
-    /*
-     * REJOUER CE QUI NE SE REJOUE PAS TOUT SEUL.
-     *
-     * Un client reconnecté recevait son dernier STATUT, mais aucun des
-     * événements survenus pendant la coupure. Or plusieurs mécanismes ne
-     * vivent que d'événements, jamais du statut :
-     *
-     *   - game:updateQuestion remet à zéro le drapeau « en lecture » du
-     *     lecteur Spotify. Sans lui, ce drapeau reste armé et le repli de
-     *     lecture est ignoré pour toute la suite de la manche — le morceau
-     *     ne change plus, alors que tout le reste continue ;
-     *   - game:audioCue ne part qu'à l'annonce de la question. L'animateur
-     *     qui décroche au mauvais moment reste sans musique jusqu'à la
-     *     question suivante.
-     *
-     * Une coupure de WebSocket n'a rien d'exceptionnel : un écran qui se
-     * verrouille suffit. La reconnexion doit donc remettre le client à
-     * niveau, pas seulement lui rendre son écran.
-     */
+    // REJOUER CE QUI NE SE REJOUE PAS TOUT SEUL.
+    //
+    // Un client reconnecté recevait son dernier STATUT, mais aucun des
+    // événements survenus pendant la coupure. Or plusieurs mécanismes ne
+    // vivent que d'événements, jamais du statut :
+    //
+    //   - game:updateQuestion remet à zéro le drapeau « en lecture » du
+    //     lecteur Spotify. Sans lui, ce drapeau reste armé et le repli de
+    //     lecture est ignoré pour toute la suite de la manche — le morceau
+    //     ne change plus, alors que tout le reste continue ;
+    //   - game:audioCue ne part qu'à l'annonce de la question. L'animateur
+    //     qui décroche au mauvais moment reste sans musique jusqu'à la
+    //     question suivante.
+    //
+    // Une coupure de WebSocket n'a rien d'exceptionnel : un écran qui se
+    // verrouille suffit. La reconnexion doit donc remettre le client à
+    // niveau, pas seulement lui rendre son écran.
     if (avancement) {
       this.envoyer(server, EVENTS.GAME.UPDATE_QUESTION, avancement)
     }
@@ -396,32 +385,30 @@ export class GameRoom implements DurableObject {
         this.diffuser(EVENTS.GAME.STATUS, { name, data, seq: ++etat.seq })
       },
 
-      /*
-       * LE COMPTEUR DE RÉPONSES, REGROUPÉ. C'est ce qui décide de la taille
-       * qu'une salle peut atteindre.
-       *
-       * Il partait à chaque réponse, vers chaque socket : N² envois par
-       * question. Mesuré au banc d'essai, une salve de quatre cents joueurs
-       * mettait 10,7 s à s'écouler, et le dernier à répondre attendait
-       * autant avant de voir son écran changer.
-       *
-       * La règle a deux moitiés, et les deux comptent :
-       *
-       *   CLAIRSEMÉ, ON DIFFUSE TOUT DE SUITE. Une réponse qui arrive plus
-       *   de 250 ms après la dernière diffusion part immédiatement. C'est le
-       *   cas ordinaire d'une petite soirée, où rien ne change.
-       *
-       *   DENSE, ON REGROUPE. Sous les 250 ms, la diffusion est retenue et
-       *   une échéance est posée. Le compteur monte alors par paquets — ce
-       *   qui est indiscernable à l'œil, personne ne lisant « 47, 48, 49 »
-       *   sur un écran de télévision.
-       *
-       * L'échéance passe par l'alarme, jamais par un minuteur : une
-       * minuterie armée empêcherait l'hibernation, et c'est la règle
-       * fondatrice de cet objet. Elle n'est posée QUE lorsqu'une diffusion a
-       * été retenue, donc une question où les réponses s'égrènent n'en
-       * coûte aucune.
-       */
+      // LE COMPTEUR DE RÉPONSES, REGROUPÉ. C'est ce qui décide de la taille
+      // qu'une salle peut atteindre.
+      //
+      // Il partait à chaque réponse, vers chaque socket : N² envois par
+      // question. Mesuré au banc d'essai, une salve de quatre cents joueurs
+      // mettait 10,7 s à s'écouler, et le dernier à répondre attendait
+      // autant avant de voir son écran changer.
+      //
+      // La règle a deux moitiés, et les deux comptent :
+      //
+      //   CLAIRSEMÉ, ON DIFFUSE TOUT DE SUITE. Une réponse qui arrive plus
+      //   de 250 ms après la dernière diffusion part immédiatement. C'est le
+      //   cas ordinaire d'une petite soirée, où rien ne change.
+      //
+      //   DENSE, ON REGROUPE. Sous les 250 ms, la diffusion est retenue et
+      //   une échéance est posée. Le compteur monte alors par paquets — ce
+      //   qui est indiscernable à l'œil, personne ne lisant « 47, 48, 49 »
+      //   sur un écran de télévision.
+      //
+      // L'échéance passe par l'alarme, jamais par un minuteur : une
+      // minuterie armée empêcherait l'hibernation, et c'est la règle
+      // fondatrice de cet objet. Elle n'est posée QUE lorsqu'une diffusion a
+      // été retenue, donc une question où les réponses s'égrènent n'en
+      // coûte aucune.
       compteur: (valeur) => {
         const maintenant = Date.now()
         // `?? 0` : une salle créée avant ce regroupement n'a pas le champ, et
@@ -512,6 +499,7 @@ export class GameRoom implements DurableObject {
         return
 
       case EVENTS.PLAYER.LEAVE:
+
       case EVENTS.MANAGER.LEAVE:
         await this.quitter(qui)
 
@@ -615,7 +603,7 @@ export class GameRoom implements DurableObject {
         .catch((e) => console.error("suppression du PIN impossible :", e)),
     )
 
-    // deleteAll efface aussi l'alarme : rien ne rappellera cet objet.
+    // DeleteAll efface aussi l'alarme : rien ne rappellera cet objet.
     await this.ctx.storage.deleteAll()
     console.log(`salle ${etat.inviteCode} supprimée`)
   }
@@ -1093,19 +1081,17 @@ export class GameRoom implements DurableObject {
     }
   }
 
-  /*
-   * L'effectif de la salle, diffusé à tous — mais pas à chaque arrivée.
-   *
-   * Même mécanisme que le compteur de réponses, et pour la même raison : une
-   * diffusion par arrivée, vers chaque socket, fait N² envois pour remplir
-   * une salle. Mesuré en production avant ce regroupement, six cents
-   * personnes qui scannent le QR code en même temps mettaient 21,6 s à
-   * entrer — de loin le pire chiffre du système une fois le chemin des
-   * réponses assaini.
-   *
-   * Le cas ordinaire ne change pas : des arrivées espacées de plus de 250 ms
-   * partent chacune immédiatement.
-   */
+  // L'effectif de la salle, diffusé à tous — mais pas à chaque arrivée.
+  //
+  // Même mécanisme que le compteur de réponses, et pour la même raison : une
+  // diffusion par arrivée, vers chaque socket, fait N² envois pour remplir
+  // une salle. Mesuré en production avant ce regroupement, six cents
+  // personnes qui scannent le QR code en même temps mettaient 21,6 s à
+  // entrer — de loin le pire chiffre du système une fois le chemin des
+  // réponses assaini.
+  //
+  // Le cas ordinaire ne change pas : des arrivées espacées de plus de 250 ms
+  // partent chacune immédiatement.
   private effectif(etat: EtatPartie) {
     const maintenant = Date.now()
 

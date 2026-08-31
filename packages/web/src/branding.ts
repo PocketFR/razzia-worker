@@ -82,19 +82,17 @@ export const applyBranding = (theme: BrandingTheme | null): void => {
   }
 }
 
-/*
- * La musique d'attente pendant qu'on répond, éteinte par défaut.
- *
- * Le défaut est le point qui mérite d'être dit : l'amont la jouait toujours,
- * et l'ancienne installation la faisait taire en montant un fichier
- * silencieux par-dessus — c'est dire si elle était voulue. Elle est donc
- * éteinte tant que personne ne l'allume, et l'interrupteur est dans l'onglet
- * Apparence.
- *
- * Elle voyage avec le thème parce que c'est LE canal public de configuration :
- * ce réglage concerne d'abord l'appareil des joueurs, qui ne s'authentifient
- * jamais et n'ont accès à rien d'autre.
- */
+// La musique d'attente pendant qu'on répond, éteinte par défaut.
+//
+// Le défaut est le point qui mérite d'être dit : l'amont la jouait toujours,
+// et l'ancienne installation la faisait taire en montant un fichier
+// silencieux par-dessus — c'est dire si elle était voulue. Elle est donc
+// éteinte tant que personne ne l'allume, et l'interrupteur est dans l'onglet
+// Apparence.
+//
+// Elle voyage avec le thème parce que c'est LE canal public de configuration :
+// ce réglage concerne d'abord l'appareil des joueurs, qui ne s'authentifient
+// jamais et n'ont accès à rien d'autre.
 export const musiqueDesReponsesActive = (): boolean =>
   current?.sounds?.answersMusic === true
 

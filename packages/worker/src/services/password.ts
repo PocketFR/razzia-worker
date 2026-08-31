@@ -1,30 +1,28 @@
-/*
- * Mot de passe animateur : empreinte à clé.
- *
- * L'amont le gardait en clair dans game.json, et la reprise en D1 avait
- * conservé ce choix — incohérent, puisque les clés API de la même table sont
- * scellées alors que le mot de passe qui garde leur écran ne l'était pas.
- *
- * POURQUOI PAS PBKDF2, qui serait la réponse habituelle. Mesuré sur cette
- * plateforme : 10 000 itérations coûtent 8 ms de processeur, 100 000 en
- * coûtent 69, et les 210 000 recommandées 140 — face aux 10 ms accordées par
- * requête au plan gratuit. Le seul réglage qui tiendrait dans le budget est
- * trop faible pour valoir la peine. La plateforme ferme donc cette porte.
- *
- * D'où une empreinte à clé : HMAC-SHA256 sous une clé dérivée de la clé
- * maîtresse, qui joue le rôle de poivre. 0,054 ms, soit deux cents fois sous
- * le budget.
- *
- * CE QUE ÇA PROTÈGE, ET CE QUE ÇA NE PROTÈGE PAS. Contre une fuite de la
- * seule base D1 — le scénario visé, la clé maîtresse vivant dans les secrets
- * Worker, un autre système — c'est solide : sans la clé, l'empreinte ne se
- * force pas hors ligne. Si la clé maîtresse fuit AUSSI, un HMAC est rapide et
- * un mot de passe court tombe vite ; mais à ce moment-là les clés API sont
- * déchiffrables elles aussi, et le mot de passe n'est plus le maillon faible.
- *
- * Le sel reste utile : il évite que deux instances partageant la même clé
- * maîtresse et le même mot de passe produisent la même empreinte.
- */
+// Mot de passe animateur : empreinte à clé.
+//
+// L'amont le gardait en clair dans game.json, et la reprise en D1 avait
+// conservé ce choix — incohérent, puisque les clés API de la même table sont
+// scellées alors que le mot de passe qui garde leur écran ne l'était pas.
+//
+// POURQUOI PAS PBKDF2, qui serait la réponse habituelle. Mesuré sur cette
+// plateforme : 10 000 itérations coûtent 8 ms de processeur, 100 000 en
+// coûtent 69, et les 210 000 recommandées 140 — face aux 10 ms accordées par
+// requête au plan gratuit. Le seul réglage qui tiendrait dans le budget est
+// trop faible pour valoir la peine. La plateforme ferme donc cette porte.
+//
+// D'où une empreinte à clé : HMAC-SHA256 sous une clé dérivée de la clé
+// maîtresse, qui joue le rôle de poivre. 0,054 ms, soit deux cents fois sous
+// le budget.
+//
+// CE QUE ÇA PROTÈGE, ET CE QUE ÇA NE PROTÈGE PAS. Contre une fuite de la
+// seule base D1 — le scénario visé, la clé maîtresse vivant dans les secrets
+// Worker, un autre système — c'est solide : sans la clé, l'empreinte ne se
+// force pas hors ligne. Si la clé maîtresse fuit AUSSI, un HMAC est rapide et
+// un mot de passe court tombe vite ; mais à ce moment-là les clés API sont
+// déchiffrables elles aussi, et le mot de passe n'est plus le maillon faible.
+//
+// Le sel reste utile : il évite que deux instances partageant la même clé
+// maîtresse et le même mot de passe produisent la même empreinte.
 
 import { deriverCle } from "./session"
 

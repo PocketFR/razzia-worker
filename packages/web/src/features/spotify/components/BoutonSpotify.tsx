@@ -1,10 +1,8 @@
-/*
- * Connexion Spotify, dans la configuration de l'animateur.
- *
- * Le bouton n'a de sens qu'AVANT la soirée : il sert autant d'alerte que de
- * remède. Découvrir qu'on n'est pas connecté au moment de lancer le blind
- * test est précisément ce qu'il faut éviter.
- */
+// Connexion Spotify, dans la configuration de l'animateur.
+//
+// Le bouton n'a de sens qu'AVANT la soirée : il sert autant d'alerte que de
+// remède. Découvrir qu'on n'est pas connecté au moment de lancer le blind
+// test est précisément ce qu'il faut éviter.
 
 import {
   autoriser,
@@ -37,7 +35,7 @@ const BoutonSpotify = ({ clientId }: Props) => {
     try {
       await autoriser(clientId)
     } catch {
-      // crypto.subtle manque : le code_challenge PKCE est impossible.
+      // Crypto.subtle manque : le code_challenge PKCE est impossible.
       toast.error(t("spotify.httpsRequired"))
     }
   }

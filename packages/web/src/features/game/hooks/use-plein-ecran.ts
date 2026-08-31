@@ -1,25 +1,23 @@
-/*
- * Plein écran pendant une partie.
- *
- * Reprend razzia-fullscreen.js, qui vivait en surcouche injectée. Il devient
- * un hook : plus besoin d'observer l'URL ni de détourner history.pushState —
- * le composant sait qu'il est dans une partie, c'est sa raison d'être.
- *
- * CE QUI RESTE, PARCE QUE LE NAVIGATEUR L'IMPOSE. requestFullscreen() n'est
- * accepté que pendant l'activation transitoire qui suit un geste ; appelé au
- * montage, il est refusé. D'où deux tentatives : une immédiate, qui exploite
- * le clic ayant mené ici (« Rejoindre », lancement de la partie) et qui
- * passe presque toujours ; puis, en cas de refus, une au prochain geste.
- * Ce second filet couvre l'arrivée par rechargement ou lien direct.
- *
- * ET IL REVIENT. Sortir par Échap ne met pas fin à la partie, alors que
- * l'écran resterait diminué jusqu'au bout : toute sortie réarme l'attente
- * d'un geste. Le retour ne peut pas être immédiat, faute d'activation à
- * consommer au moment d'Échap.
- *
- * Sans effet sur iPhone : Safari iOS n'implémente l'API que pour les
- * balises <video>. L'appel est absent, on n'insiste pas.
- */
+// Plein écran pendant une partie.
+//
+// Reprend razzia-fullscreen.js, qui vivait en surcouche injectée. Il devient
+// un hook : plus besoin d'observer l'URL ni de détourner history.pushState —
+// le composant sait qu'il est dans une partie, c'est sa raison d'être.
+//
+// CE QUI RESTE, PARCE QUE LE NAVIGATEUR L'IMPOSE. requestFullscreen() n'est
+// accepté que pendant l'activation transitoire qui suit un geste ; appelé au
+// montage, il est refusé. D'où deux tentatives : une immédiate, qui exploite
+// le clic ayant mené ici (« Rejoindre », lancement de la partie) et qui
+// passe presque toujours ; puis, en cas de refus, une au prochain geste.
+// Ce second filet couvre l'arrivée par rechargement ou lien direct.
+//
+// ET IL REVIENT. Sortir par Échap ne met pas fin à la partie, alors que
+// l'écran resterait diminué jusqu'au bout : toute sortie réarme l'attente
+// d'un geste. Le retour ne peut pas être immédiat, faute d'activation à
+// consommer au moment d'Échap.
+//
+// Sans effet sur iPhone : Safari iOS n'implémente l'API que pour les
+// balises <video>. L'appel est absent, on n'insiste pas.
 
 import { useEffect } from "react"
 

@@ -1,15 +1,14 @@
-/*
- * Mot de passe animateur : empreinte à clé et conversion du clair hérité.
- *
- *   node scripts/smoke-motdepasse.mjs [base] [motdepasse]
- *
- * Le contrôle qui compte est la CONVERSION : la base reprise du game.json
- * contient le mot de passe en clair, et l'animateur ne doit rien remarquer.
- * Une conversion ratée le mettrait dehors de sa propre instance.
- */
+// Mot de passe animateur : empreinte à clé et conversion du clair hérité.
+//
+//   node scripts/smoke-motdepasse.mjs [base] [motdepasse]
+//
+// Le contrôle qui compte est la CONVERSION : la base reprise du game.json
+// contient le mot de passe en clair, et l'animateur ne doit rien remarquer.
+// Une conversion ratée le mettrait dehors de sa propre instance.
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
+const motDePasse =
+  process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0
@@ -42,7 +41,10 @@ verifier("un jeton est émis", typeof premiere.corps.token === "string")
 // doit échouer — ce qui prouve que l'empreinte est exploitable dans les deux
 // sens, et pas seulement qu'on a écrasé la valeur par n'importe quoi.
 const seconde = await connexion(motDePasse)
-verifier("le mot de passe fonctionne toujours après conversion", seconde.statut === 200)
+verifier(
+  "le mot de passe fonctionne toujours après conversion",
+  seconde.statut === 200,
+)
 
 const mauvaise = await connexion("PasLeBon")
 verifier("un mauvais mot de passe est refusé", mauvaise.statut === 401)

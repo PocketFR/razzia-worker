@@ -1,20 +1,18 @@
-/*
- * Création d'un quiz par IA, dans l'onglet « quiz » du manager.
- *
- * Le formulaire existait déjà, mais comme page autonome servie par quizia sur
- * /ia — avec son propre champ « mot de passe manager », puisqu'une page nue
- * n'a pas de session. Ici la session vient d'être vérifiée par le routeur
- * d'API : redemander le mot de passe n'aurait rien protégé de plus, et aurait
- * fait ressaisir en soirée un secret qu'on garde justement long.
- *
- * Le moteur, lui, n'est pas dupliqué : les deux formulaires appellent la même
- * `genererQuiz` côté serveur, seule l'authentification diffère.
- *
- * LE COMPTE RENDU EST RECOMPOSÉ ICI, à partir des nombres renvoyés par le
- * serveur, et non affiché tel quel : quizia parle français et l'application
- * se traduit en six langues. Les messages d'ÉCHEC échappent à la règle — trop
- * variés pour être énumérés, ils restent tels que le serveur les rédige.
- */
+// Création d'un quiz par IA, dans l'onglet « quiz » du manager.
+//
+// Le formulaire existait déjà, mais comme page autonome servie par quizia sur
+// /ia — avec son propre champ « mot de passe manager », puisqu'une page nue
+// n'a pas de session. Ici la session vient d'être vérifiée par le routeur
+// d'API : redemander le mot de passe n'aurait rien protégé de plus, et aurait
+// fait ressaisir en soirée un secret qu'on garde justement long.
+//
+// Le moteur, lui, n'est pas dupliqué : les deux formulaires appellent la même
+// `genererQuiz` côté serveur, seule l'authentification diffère.
+//
+// LE COMPTE RENDU EST RECOMPOSÉ ICI, à partir des nombres renvoyés par le
+// serveur, et non affiché tel quel : quizia parle français et l'application
+// se traduit en six langues. Les messages d'ÉCHEC échappent à la règle — trop
+// variés pour être énumérés, ils restent tels que le serveur les rédige.
 
 import { EVENTS } from "@razzia/common/constants"
 import type { ResultatGeneration } from "@razzia/common/types/manager"
@@ -110,9 +108,7 @@ const ConfigCreateQuizzIa = ({ onClose }: Props) => {
           />
         </label>
 
-        {enCours && (
-          <p className="text-sm opacity-70">{t("ia.generating")}</p>
-        )}
+        {enCours && <p className="text-sm opacity-70">{t("ia.generating")}</p>}
 
         {resultat && (
           <p
@@ -142,9 +138,7 @@ const ConfigCreateQuizzIa = ({ onClose }: Props) => {
                     {q.start ? ` @${q.start}s` : ""}
                   </p>
                 )}
-                <p className="text-xs opacity-60">
-                  → {q.a[q.s] ?? "?"}
-                </p>
+                <p className="text-xs opacity-60">→ {q.a[q.s] ?? "?"}</p>
               </li>
             ))}
           </ol>

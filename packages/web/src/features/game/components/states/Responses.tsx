@@ -27,19 +27,17 @@ const Responses = ({
     volume: 0.2,
   })
 
-  /*
-   * La musique d'attente est partie d'ici, et pas seulement rendue
-   * facultative.
-   *
-   * Trois effets la pilotaient : le premier l'arrêtait, le deuxième la
-   * lançait, le troisième l'arrêtait encore. Les effets s'exécutant dans
-   * l'ordre au montage, le dernier avait le dernier mot : elle démarrait pour
-   * être coupée dans la foulée. Le résultat audible était un couac, jamais un
-   * fond sonore — pour 1,2 Mo téléchargés sur chaque appareil.
-   *
-   * Reste ce que cet écran veut réellement faire entendre : le jingle de
-   * résultat.
-   */
+  // La musique d'attente est partie d'ici, et pas seulement rendue
+  // facultative.
+  //
+  // Trois effets la pilotaient : le premier l'arrêtait, le deuxième la
+  // lançait, le troisième l'arrêtait encore. Les effets s'exécutant dans
+  // l'ordre au montage, le dernier avait le dernier mot : elle démarrait pour
+  // être coupée dans la foulée. Le résultat audible était un couac, jamais un
+  // fond sonore — pour 1,2 Mo téléchargés sur chaque appareil.
+  //
+  // Reste ce que cet écran veut réellement faire entendre : le jingle de
+  // résultat.
   useEffect(() => {
     sfxResults()
 

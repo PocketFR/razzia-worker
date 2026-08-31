@@ -1,13 +1,11 @@
-/*
- * Enchaîner un quiz sans défaire la salle.
- *
- * Affiché sous le podium, côté animateur. Le PIN, le QR et les joueurs
- * connectés survivent au changement : c'est tout l'intérêt, et c'est ce que
- * l'ancienne pile ne permettait pas — il fallait recréer une partie, donc
- * refaire scanner tout le monde entre deux manches.
- *
- * La liste des quiz arrive déjà par manager:config, il n'y a rien à charger.
- */
+// Enchaîner un quiz sans défaire la salle.
+//
+// Affiché sous le podium, côté animateur. Le PIN, le QR et les joueurs
+// connectés survivent au changement : c'est tout l'intérêt, et c'est ce que
+// l'ancienne pile ne permettait pas — il fallait recréer une partie, donc
+// refaire scanner tout le monde entre deux manches.
+//
+// La liste des quiz arrive déjà par manager:config, il n'y a rien à charger.
 
 import { EVENTS } from "@razzia/common/constants"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"

@@ -1,29 +1,27 @@
-/*
- * Portage sur D1 de packages/socket/src/services/config.ts.
- *
- * Le module amont est une couche fichiers : readJson, listage de dossier,
- * writeFileSync, unlinkSync. Il est remplacé en entier, mais en conservant les
- * MÊMES NOMS et la même sémantique, y compris les messages d'erreur — c'est ce
- * qui permet à handlers/* et services/* de continuer à l'appeler sans savoir
- * que le stockage a changé.
- *
- * DEUX ÉCARTS INÉVITABLES, tous deux imposés par la plateforme :
- *
- *   1. TOUT DEVIENT ASYNCHRONE. D1 n'expose aucune API synchrone, là où fs en
- *      offrait une. Les appelants doivent donc awaiter. C'est la divergence la
- *      plus contagieuse du portage, et il n'existe aucun moyen de l'éviter.
- *
- *   2. IL N'Y A PLUS D'ENVIRONNEMENT AMBIANT. Un Worker reçoit ses liaisons par
- *      requête ; un module ne peut pas lire CONFIG_PATH au chargement. D'où la
- *      fabrique ci-dessous, qui prend la base une fois et rend les fonctions
- *      amont : les sites d'appel gardent leur forme, `config.getQuizz()`.
- *
- * Deux comportements de l'amont disparaissent avec les fichiers :
- *   - la réparation à la lecture (getQuizz réécrivait le fichier pour y poser
- *     un id manquant) n'a plus lieu d'être, l'id étant une colonne ;
- *   - normalizeFilename et la déduplication de noms non plus, puisque rien
- *     n'est nommé par son sujet.
- */
+// Portage sur D1 de packages/socket/src/services/config.ts.
+//
+// Le module amont est une couche fichiers : readJson, listage de dossier,
+// writeFileSync, unlinkSync. Il est remplacé en entier, mais en conservant les
+// MÊMES NOMS et la même sémantique, y compris les messages d'erreur — c'est ce
+// qui permet à handlers/* et services/* de continuer à l'appeler sans savoir
+// que le stockage a changé.
+//
+// DEUX ÉCARTS INÉVITABLES, tous deux imposés par la plateforme :
+//
+//   1. TOUT DEVIENT ASYNCHRONE. D1 n'expose aucune API synchrone, là où fs en
+//      offrait une. Les appelants doivent donc awaiter. C'est la divergence la
+//      plus contagieuse du portage, et il n'existe aucun moyen de l'éviter.
+//
+//   2. IL N'Y A PLUS D'ENVIRONNEMENT AMBIANT. Un Worker reçoit ses liaisons par
+//      requête ; un module ne peut pas lire CONFIG_PATH au chargement. D'où la
+//      fabrique ci-dessous, qui prend la base une fois et rend les fonctions
+//      amont : les sites d'appel gardent leur forme, `config.getQuizz()`.
+//
+// Deux comportements de l'amont disparaissent avec les fichiers :
+//   - la réparation à la lecture (getQuizz réécrivait le fichier pour y poser
+//     un id manquant) n'a plus lieu d'être, l'id étant une colonne ;
+//   - normalizeFilename et la déduplication de noms non plus, puisque rien
+//     n'est nommé par son sujet.
 
 import type {
   GameResult,
@@ -38,10 +36,10 @@ import { nanoid } from "nanoid"
 export type Acces = "ok" | "mauvais" | "defaut" | "absent"
 
 export interface ConfigService {
-  /* Rend un verdict, jamais le mot de passe : le faire circuler n'apportait
-     rien et multipliait les endroits où il pouvait fuir. */
+  // Rend un verdict, jamais le mot de passe : le faire circuler n'apportait
+  // rien et multipliait les endroits où il pouvait fuir.
   verifierAcces(_maitresse: string, _saisi: string): Promise<Acces>
-  getQuizzMeta(): Promise<{ id: string; subject: string }[]>
+  getQuizzMeta(): Promise<Array<{ id: string; subject: string }>>
   getQuizzById(id: string): Promise<QuizzWithId>
   getQuizz(): Promise<QuizzWithId[]>
   saveQuizz(data: unknown): Promise<{ id: string }>

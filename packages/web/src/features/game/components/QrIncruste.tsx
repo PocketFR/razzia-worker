@@ -1,17 +1,15 @@
-/*
- * QR et PIN gardés à portée pendant la partie.
- *
- * Reprend razzia-qr.js. L'écran d'accueil les affiche en grand, puis
- * disparaît au lancement — or c'est justement en cours de partie qu'un
- * retardataire arrive et demande le code. La surcouche allait jusqu'à CLONER
- * le SVG du QR avant sa disparition, faute de connaître le PIN autrement ;
- * ici il est dans le magasin.
- *
- * Un clic le fait DISPARAÎTRE complètement, comme la surcouche : sur un
- * écran de télévision il empiète sur les réponses, et un simple
- * estompement ne suffit pas à le faire oublier. La zone reste cliquable pour
- * le rappeler — c'est le compromis qu'avait retenu razzia-qr.js.
- */
+// QR et PIN gardés à portée pendant la partie.
+//
+// Reprend razzia-qr.js. L'écran d'accueil les affiche en grand, puis
+// disparaît au lancement — or c'est justement en cours de partie qu'un
+// retardataire arrive et demande le code. La surcouche allait jusqu'à CLONER
+// le SVG du QR avant sa disparition, faute de connaître le PIN autrement ;
+// ici il est dans le magasin.
+//
+// Un clic le fait DISPARAÎTRE complètement, comme la surcouche : sur un
+// écran de télévision il empiète sur les réponses, et un simple
+// estompement ne suffit pas à le faire oublier. La zone reste cliquable pour
+// le rappeler — c'est le compromis qu'avait retenu razzia-qr.js.
 
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { STATUS } from "@razzia/common/types/game/status"

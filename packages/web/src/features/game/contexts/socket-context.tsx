@@ -12,14 +12,12 @@ import React, {
 import { socketClient as brut } from "@razzia/web/features/game/lib/socket-client"
 import { v7 as uuid } from "uuid"
 
-/*
- * socket.io-client est remplacé par RazziaSocket, qui en imite la surface
- * utile (on/off/emit/connect/disconnect/connected). Le typage reste celui de
- * l'amont : les composants ne voient aucune différence, et c'est voulu — le
- * découpage HTTP/WebSocket est confiné au shim.
- */
-/* Les trois événements de cycle de vie ne viennent pas du serveur : ils sont
-   fabriqués par le shim. Les déclarer évite de les faire passer en force. */
+// Socket.io-client est remplacé par RazziaSocket, qui en imite la surface
+// utile (on/off/emit/connect/disconnect/connected). Le typage reste celui de
+// l'amont : les composants ne voient aucune différence, et c'est voulu — le
+// découpage HTTP/WebSocket est confiné au shim.
+// Les trois événements de cycle de vie ne viennent pas du serveur : ils sont
+// fabriqués par le shim. Les déclarer évite de les faire passer en force.
 interface EvenementsVie {
   connect: () => void
   disconnect: () => void
@@ -28,7 +26,7 @@ interface EvenementsVie {
 
 type EvenementsEntrants = ServerToClientEvents & EvenementsVie
 
-type TypedSocket = {
+interface TypedSocket {
   on: <E extends keyof EvenementsEntrants>(
     _e: E,
     _fn: EvenementsEntrants[E],
@@ -104,17 +102,15 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Connection error:", err.message)
     })
 
-    /*
-     * RATTRAPAGE INDISPENSABLE, et c'est un piège d'ordonnancement de React.
-     *
-     * Ce provider est le PARENT du composant qui appelle connect(), et les
-     * effets s'exécutent de l'enfant vers le parent : connect() a donc déjà
-     * eu lieu quand on arrive ici, et son événement s'est perdu faute
-     * d'écouteur. Sans cette relecture, isConnected restait faux à jamais et
-     * toute la partie administration s'immobilisait sur un chargement.
-     *
-     * S'abonner ne suffit pas : il faut aussi CONSTATER l'état courant.
-     */
+    // RATTRAPAGE INDISPENSABLE, et c'est un piège d'ordonnancement de React.
+    //
+    // Ce provider est le PARENT du composant qui appelle connect(), et les
+    // effets s'exécutent de l'enfant vers le parent : connect() a donc déjà
+    // eu lieu quand on arrive ici, et son événement s'est perdu faute
+    // d'écouteur. Sans cette relecture, isConnected restait faux à jamais et
+    // toute la partie administration s'immobilisait sur un chargement.
+    //
+    // S'abonner ne suffit pas : il faut aussi CONSTATER l'état courant.
     setIsConnected(socketClient.connected)
 
     return () => {

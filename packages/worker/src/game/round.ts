@@ -1,34 +1,32 @@
-/*
- * Déroulement d'une manche, en machine à états pilotée par alarmes.
- *
- * L'amont écrit ce déroulement en séquence linéaire :
- *
- *     broadcast(SHOW_START) ; await sleep(3)
- *     emit(START_COOLDOWN)  ; await cooldown.start(3)
- *     broadcast(SHOW_PREPARED) ; await sleep(2)
- *     broadcast(SHOW_QUESTION) ; await sleep(question.cooldown)
- *     broadcast(SELECT_ANSWER) ; await cooldown.start(question.time)
- *     showResults()
- *
- * C'est limpide à lire, et impossible à porter tel quel : un Durable Object
- * ne peut pas hiberner tant qu'une minuterie est armée, et une attente longue
- * le maintient en mémoire — donc facturé — pendant toute la soirée.
- *
- * La séquence est donc retournée : chaque étape s'achève en posant une alarme,
- * et le réveil enchaîne sur la suivante. Entre deux, l'objet dort.
- *
- * COOLDOWNTIMER EST SUPPRIMÉ, PAS PORTÉ. Il émettait un tic par seconde, ce
- * qui aurait signifié un réveil par seconde : l'hibernation n'aurait plus rien
- * économisé. Le serveur annonce désormais une DATE DE FIN, et le client tient
- * le décompte. Il n'y a plus de dérive non plus — le compteur suivait le
- * rythme des tics, pas l'horloge.
- *
- * L'ALARME PEUT ÊTRE EN RETARD : la documentation annonce des délais possibles
- * jusqu'à une minute. Deux précautions en découlent — l'affichage ne dépend
- * jamais du réveil, seulement de `finDePhase` déjà connue du client ; et les
- * calculs de points repartent des dates enregistrées, jamais de l'instant du
- * déclenchement.
- */
+// Déroulement d'une manche, en machine à états pilotée par alarmes.
+//
+// L'amont écrit ce déroulement en séquence linéaire :
+//
+//     broadcast(SHOW_START) ; await sleep(3)
+//     emit(START_COOLDOWN)  ; await cooldown.start(3)
+//     broadcast(SHOW_PREPARED) ; await sleep(2)
+//     broadcast(SHOW_QUESTION) ; await sleep(question.cooldown)
+//     broadcast(SELECT_ANSWER) ; await cooldown.start(question.time)
+//     showResults()
+//
+// C'est limpide à lire, et impossible à porter tel quel : un Durable Object
+// ne peut pas hiberner tant qu'une minuterie est armée, et une attente longue
+// le maintient en mémoire — donc facturé — pendant toute la soirée.
+//
+// La séquence est donc retournée : chaque étape s'achève en posant une alarme,
+// et le réveil enchaîne sur la suivante. Entre deux, l'objet dort.
+//
+// COOLDOWNTIMER EST SUPPRIMÉ, PAS PORTÉ. Il émettait un tic par seconde, ce
+// qui aurait signifié un réveil par seconde : l'hibernation n'aurait plus rien
+// économisé. Le serveur annonce désormais une DATE DE FIN, et le client tient
+// le décompte. Il n'y a plus de dérive non plus — le compteur suivait le
+// rythme des tics, pas l'horloge.
+//
+// L'ALARME PEUT ÊTRE EN RETARD : la documentation annonce des délais possibles
+// jusqu'à une minute. Deux précautions en découlent — l'affichage ne dépend
+// jamais du réveil, seulement de `finDePhase` déjà connue du client ; et les
+// calculs de points repartent des dates enregistrées, jamais de l'instant du
+// déclenchement.
 
 import {
   EVENTS,
@@ -70,8 +68,8 @@ export interface Manche {
   finDePhase: number | null
   debutReponses: number
   reponses: Answer[]
-  /* Date du dernier compteur de réponses diffusé, et échéance du prochain
-     quand une diffusion a été retenue. Voir `compteur` dans l'émetteur. */
+  // Date du dernier compteur de réponses diffusé, et échéance du prochain
+  // quand une diffusion a été retenue. Voir `compteur` dans l'émetteur.
   compteurEnvoyeA: number
   compteurDu: number | null
   classement: Player[]
@@ -103,18 +101,16 @@ export interface Emetteur {
   statutJoueur(_clientId: string, _nom: string, _donnees: unknown): void
   programmer(_quand: number): void
   annulerAlarme(): void
-  /*
-   * Le compteur de réponses, diffusé à tout le monde — mais pas à chaque
-   * réponse.
-   *
-   * C'était LE point qui bornait la taille d'une salle. Diffuser le compteur
-   * à chacune des N réponses, vers chacune des N sockets, fait N² envois par
-   * question : mesuré, le coût d'une réponse passait de 4,5 ms à dix joueurs
-   * à 26,7 ms à quatre cents, et la salve entière de 45 ms à 10,7 s.
-   *
-   * L'émetteur regroupe donc les diffusions rapprochées. Voir l'implantation
-   * dans game-room.ts pour la règle exacte.
-   */
+  // Le compteur de réponses, diffusé à tout le monde — mais pas à chaque
+  // réponse.
+  //
+  // C'était LE point qui bornait la taille d'une salle. Diffuser le compteur
+  // à chacune des N réponses, vers chacune des N sockets, fait N² envois par
+  // question : mesuré, le coût d'une réponse passait de 4,5 ms à dix joueurs
+  // à 26,7 ms à quatre cents, et la salve entière de 45 ms à 10,7 s.
+  //
+  // L'émetteur regroupe donc les diffusions rapprochées. Voir l'implantation
+  // dans game-room.ts pour la règle exacte.
   compteur(_valeur: number): void
 }
 
@@ -124,12 +120,10 @@ export interface ContextePartie {
   manche: Manche
 }
 
-/*
- * Recopiés de utils/game.ts plutôt qu'importés : ce module amont tire aussi
- * Registry et Game, donc socket.io et fs, qui n'existent pas sur Workers.
- * Les règles de score, elles, viennent bien de services/scoring — celui-là ne
- * dépend que de @razzia/common, et doit rester partagé avec l'amont.
- */
+// Recopiés de utils/game.ts plutôt qu'importés : ce module amont tire aussi
+// Registry et Game, donc socket.io et fs, qui n'existent pas sur Workers.
+// Les règles de score, elles, viennent bien de services/scoring — celui-là ne
+// dépend que de @razzia/common, et doit rester partagé avec l'amont.
 const ordreVersPoints = (
   index: number,
   totalJoueurs: number,
