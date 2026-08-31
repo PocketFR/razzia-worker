@@ -1,142 +1,86 @@
 <p align="center">
   <img width="450" height="120" align="center" src=".github/logo.svg">
-  <br>
-  <div align="center">
-    <img alt="Visitor Badge" src="https://api.visitorbadge.io/api/visitors?path=https://github.com/Ralex91/Razzia/edit/main/README.md&countColor=%23FF9900">
-    <img src="https://img.shields.io/docker/pulls/ralex91/razzia?style=for-the-badge&color=FF9900" alt="Docker Pulls">
-  </div>
 </p>
 
-## 🧩 What is this project?
+## Ce que c'est
 
-Razzia is a straightforward and open-source quiz platform, allowing users to host it on their own server for smaller events.
+Une plateforme de quiz temps réel — blind test, culture générale — où l'animateur
+projette les questions et les joueurs répondent depuis leur téléphone, sans rien
+installer.
 
-> **Disclaimer**: Razzia is an independent, open-source software project. It is not affiliated with, endorsed by, or sponsored by any third-party quiz platform or service. Any resemblance to other quiz platforms is purely incidental.
+C'est un **fork de [Razzia](https://github.com/Ralex91/Razzia)** (MIT), porté du
+serveur Node d'origine vers **Cloudflare Workers et Durable Objects**. Le portage
+a refait trois choses — le transport, le stockage, l'ordonnancement des manches —
+et laissé le reste aussi proche de l'amont que possible.
 
-<p align="center">
-  <img width="30%" src=".github/previews/1.png" alt="Login">
-  <img width="30%" src=".github/previews/2.png" alt="Manager Room">
-  <img width="30%" src=".github/previews/3.png" alt="Question Screen">
-</p>
+Ce que ce fork ajoute :
 
-## ⚙️ Prerequisites
+- **Hébergement sur le plan gratuit de Cloudflare.** Une soirée consomme quelques
+  pour cent des quotas journaliers ; l'hibernation fait qu'un objet ne coûte que
+  les secondes où il travaille vraiment.
+- **Génération de quiz par IA** à partir d'une phrase, avec les morceaux résolus
+  sur Spotify et les questions de culture générale sourcées.
+- **Lecture Spotify** intégrée côté animateur, via le Web Playback SDK.
+- **Apparence modifiable depuis l'interface** : nom, couleurs, police, logo,
+  fond — sans redéployer.
+- **Clés API saisies dans le navigateur**, chiffrées au repos. Le secret Spotify
+  expire tous les 180 jours : le renouveler ne doit pas demander la ligne de
+  commande.
 
-Choose one of the following deployment methods:
+## Prérequis
 
-### Without Docker
+- Un compte **Cloudflare** (le plan gratuit suffit).
+- **Node 22** et **pnpm 10**. Pas node 26 : wrangler y part en erreur de
+  segmentation dès le premier appel à l'API.
+- Un **jeton d'API Cloudflare** : modèle « Modifier les Workers de Cloudflare »,
+  auquel il faut **ajouter** la permission « D1 : Modifier » — elle n'y est pas
+  incluse, et c'est l'oubli le plus fréquent.
+- Facultatif : un domaine géré par Cloudflare. Sans lui, l'adresse
+  `workers.dev` fournie gratuitement fait l'affaire.
 
-- Node.js : version 24 or higher
-- PNPM : version 10.16 or higher (learn more [here](https://pnpm.io/))
+## Déploiement
 
-### With Docker
-
-- Docker and Docker Compose
-
-## 📖 Getting Started
-
-Choose your deployment method:
-
-### 🐳 Using Docker (Recommended)
-
-Using Docker Compose (recommended):
-You can find the docker compose configuration in the repository:
-[docker-compose.yml](/compose.yml)
-
-```bash
-docker compose up -d
-```
-
-Or using Docker directly:
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -v ./config:/app/config \
-  ralex91/razzia:latest
-```
-
-The image is also published on the GitHub Container Registry, if you prefer using it instead of Docker Hub:
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -v ./config:/app/config \
-  ghcr.io/ralex91/razzia:latest
-```
-
-**Configuration Volume:**
-The `-v ./config:/app/config` option mounts a local `config` folder to persist your game settings and quizzes. This allows you to:
-
-- Edit your configuration files directly on your host machine
-- Keep your settings when updating the container
-- Easily backup your quizzes and game configuration
-
-The folder will be created automatically on first run with an example quiz to get you started.
-
-The application will be available at http://localhost:3000
-
-### 🛠️ Without Docker
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/Ralex91/Razzia.git
-cd ./Razzia
-```
-
-2. Install dependencies:
-
-```bash
+```sh
+git clone <votre-fork> razzia && cd razzia
 pnpm install
+
+cd packages/worker
+CLOUDFLARE_API_TOKEN=<jeton> \
+CLOUDFLARE_ACCOUNT_ID=<id du compte> \
+DOMAINE=quiz.exemple.fr \
+sh scripts/deployer.sh
 ```
 
-3. Build and start the application:
+Le script est idempotent : il constate l'existant à chaque étape et se rejoue
+sans dommage après un échec. Il crée la base, applique le schéma, pose la clé
+maîtresse, **tire un mot de passe animateur au hasard et l'affiche une seule
+fois**, construit le frontend et déploie.
 
-```bash
-# Development mode
-pnpm dev
+Détails, options et pièges : [docs/deploiement.md](docs/deploiement.md).
 
-# Production mode
-pnpm build
-pnpm start
-```
+## Après le déploiement
 
-## ⚙️ Configuration
+1. Déclarer `https://<votre-domaine>/spotify/callback` dans les *Redirect URIs*
+   de votre application Spotify. Cette adresse est comparée à l'identique ;
+   sans elle la connexion échoue sans message exploitable.
+2. Ouvrir `/manager`, se connecter avec le mot de passe affiché par le script,
+   puis saisir les clés Mistral et Spotify dans l'onglet **Paramètres** — et
+   changer le mot de passe au passage.
+3. Créer un quiz, à la main ou par IA, dans l'onglet **Quiz**.
+4. Lancer une partie : les joueurs rejoignent par QR code ou code à 6 chiffres.
 
-**⚠️ Required:** set a manager password in `config/game.json` before going live.
+## Documentation
 
-```json
-{
-  "managerPassword": "PASSWORD"
-}
-```
+- [Déploiement](docs/deploiement.md) — la procédure complète, et ce qui peut coincer.
+- [Configuration](docs/configuration.md) — mot de passe animateur, clés API, où vit quoi.
+- [Quiz](docs/quiz.md) — éditeur, génération par IA, import/export, format JSON.
+- [Apparence](docs/branding.md) — nom, couleurs, police, images.
+- [Protocole WebSocket](docs/protocole-websocket.md) — pour écrire son propre client, un buzzer physique par exemple.
 
-`managerPassword` **must be changed** from the default `"PASSWORD"` value, otherwise manager access is blocked.
+## Licence
 
-## 📚 Documentation
+MIT, comme l'amont. La mention de copyright de Ralex est conservée dans
+[LICENSE](LICENSE), comme la licence l'exige.
 
-- [Configuration](docs/configuration.md): manager password, via the `config` folder.
-- [Quiz](docs/quiz.md): creating and structuring quizzes.
-- [Branding](docs/branding.md): optional custom theming.
-- [Reverse Proxy](docs/reverse-proxy.md): running behind Traefik, Nginx, Caddy, or another reverse proxy.
-- [WebSocket Protocol](docs/websocket-protocol.md): build a custom client (e.g. an ESP32 physical buzzer).
-
-Full index in [docs/](docs/README.md).
-
-## 🎮 How to Play
-
-1. Access the manager interface at http://localhost:3000/manager
-2. Enter the manager password (defined in `config/game.json`)
-3. Share the game URL (http://localhost:3000) and room code with participants
-4. Wait for players to join
-5. Click the start button to begin the game
-
-## 📝 Contributing
-
-Contributions are welcome! Please read the [CONTRIBUTING.md](.github/CONTRIBUTING.md) guide before submitting a pull request.
-
-For bug reports or feature requests, please [create an issue](https://github.com/Ralex91/Razzia/issues).
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&logscale=&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&logscale=&legend=bottom-right)
+Les questions de culture générale proviennent de l'[Open Trivia
+Database](https://opentdb.com/), sous licence CC BY-SA 4.0.
