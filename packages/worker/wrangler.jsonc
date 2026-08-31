@@ -5,7 +5,8 @@
   "compatibility_date": "2026-08-20",
 
   // La SPA renvoie index.html pour tout chemin inconnu, donc sans cette liste
-  // /ws et /ia n'atteindraient JAMAIS le Worker : les assets répondraient avant.
+  // /ws et /spotify n'atteindraient JAMAIS le Worker : les assets répondraient
+  // avant.
   //
   // Le branding livré vit dans packages/web/public/branding, et sert de
   // repli : le frontend va chercher /branding/theme.json au démarrage, et le
@@ -18,11 +19,6 @@
       "/ws",
       "/api/*",
       "/spotify/*",
-      // /ia ne sert plus que l'adresse de retour Spotify, le temps qu'elle
-      // soit changée dans la console développeur — elle y est comparée à
-      // l'identique, et la déplacer sans prévenir couperait la connexion.
-      "/ia",
-      "/ia/*",
       // Ces deux-là ONT un équivalent statique, et c'est le piège : sans
       // cette ligne les assets répondraient d'abord, et le branding
       // enregistré en base ne serait jamais servi.

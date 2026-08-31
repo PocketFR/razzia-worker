@@ -25,7 +25,7 @@
  *   /api/*  sans état, servi par le Worker sur D1 — authentification, quiz,
  *           résultats, vérification du PIN, création de partie ;
  *   /ws     la partie en cours, vers le Durable Object nommé par gameId ;
- *   /ia/*   quizia — génération et métadonnées Spotify ;
+ *   /spotify/*  métadonnées d'un morceau et retour d'autorisation ;
  *   le reste, les assets de packages/web (jamais vus par ce code).
  *
  * Effet de bord appréciable : la consultation des quiz et des résultats ne
@@ -34,7 +34,7 @@
 
 import { routerApi } from "./api"
 import { estImage, estSvg, lireImage, themePublic } from "./services/branding"
-import { routerIaHerite, routerSpotify } from "./spotify"
+import { routerSpotify } from "./spotify"
 
 export { GameRoom } from "./game-room"
 
@@ -108,16 +108,12 @@ export default {
       return routerSpotify(request, env, url)
     }
 
-    if (url.pathname === "/ia" || url.pathname.startsWith("/ia/")) {
-      return routerIaHerite(request, env, url)
-    }
-
     if (url.pathname.startsWith("/branding/")) {
       return routerBranding(request, env, url)
     }
 
     // Inatteignable en pratique : run_worker_first ne dirige ici que /ws,
-    // /api/*, /spotify/*, /ia/* et /branding/*. Le repli existe pour le développement
+    // /api/*, /spotify/* et /branding/*. Le repli existe pour le développement
     // local et les erreurs de configuration, qui autrement se manifesteraient
     // par une page blanche.
     return env.ASSETS.fetch(request)

@@ -124,17 +124,13 @@ export const autoriser = async (clientId: string) => {
       client_id: clientId,
       response_type: "code",
       /*
-       * Seule adresse encore sous /ia, et ce n'est pas un oubli : Spotify la
-       * compare EXACTEMENT à celles déclarées dans sa console développeur, et
-       * refuse l'autorisation avant même de rediriger si elle n'y figure pas.
-       * La changer ici sans l'avoir déclarée là-bas couperait la connexion en
-       * production, sans qu'aucun test ne puisse le voir — le flux passe par
-       * un domaine tiers.
-       *
-       * /spotify/callback est déjà servie et attend. Une fois déclarée chez
-       * Spotify, il ne reste qu'à changer cette ligne.
+       * Cette adresse doit figurer À L'IDENTIQUE dans la console développeur
+       * Spotify, qui refuse l'autorisation sans même rediriger si elle n'y est
+       * pas — et LA MÊME VALEUR doit être renvoyée à l'échange du code, dans
+       * la page de rappel. Les changer séparément casse le flux sans qu'aucun
+       * test ne puisse le voir : il passe par un domaine tiers.
        */
-      redirect_uri: `${location.origin}/ia/spotify-callback`,
+      redirect_uri: `${location.origin}/spotify/callback`,
       scope: SCOPES,
       code_challenge_method: "S256",
       code_challenge: base64url(new Uint8Array(digest)),

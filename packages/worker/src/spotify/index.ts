@@ -10,6 +10,10 @@
  * ce découpage : il n'y a plus qu'un Worker. Le préfixe n'avait plus de raison
  * d'être, seulement une habitude.
  *
+ * L'adresse de retour OAuth a suivi les autres une fois déclarée chez
+ * Spotify — elle est comparée à l'identique là-bas, et la même valeur doit
+ * être renvoyée à l'échange du code, dans la page de rappel elle-même.
+ *
  * LES IMPLANTATIONS RESTENT DANS quizia/core.ts, et ce n'est pas un oubli :
  * elles partagent avec le générateur le client Spotify et son cache de jeton
  * d'application. Les en extraire dupliquerait ce cache, ou imposerait un
@@ -53,39 +57,6 @@ export async function routerSpotify(
 
   if (chemin === "callback") {
     return pageCallbackSpotify(cles.spotifyId)
-  }
-
-  return new Response("Not found", { status: 404 })
-}
-
-/*
- * L'ancien préfixe, le temps que l'adresse de retour soit changée chez
- * Spotify.
- *
- * Une URL de retour OAuth n'est pas une route comme une autre : Spotify la
- * compare EXACTEMENT à celles déclarées dans la console développeur, et rejette
- * l'autorisation avant même de rediriger si elle n'y figure pas. Déplacer
- * celle-ci sans prévenir couperait la connexion Spotify en production, sans
- * qu'aucun test ne le voie — le flux passe par un domaine tiers.
- *
- * Elle reste donc servie ici, à l'identique, jusqu'à ce que la nouvelle soit
- * déclarée. Le reste de /ia a disparu.
- */
-export async function routerIaHerite(
-  request: Request,
-  env: Env,
-  url: URL,
-): Promise<Response> {
-  if (url.pathname === "/ia/spotify-callback" && request.method === "GET") {
-    const cles = await lireCles(env)
-
-    return pageCallbackSpotify(cles.spotifyId)
-  }
-
-  // Un signet sur l'ancien formulaire de génération mène au manager, où il se
-  // trouve désormais.
-  if (url.pathname === "/ia" || url.pathname === "/ia/") {
-    return Response.redirect(new URL("/manager", url).toString(), 302)
   }
 
   return new Response("Not found", { status: 404 })

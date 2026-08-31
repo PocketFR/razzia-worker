@@ -17,8 +17,7 @@ export interface ManagerConfig {
    Il est STRUCTURÉ et non rédigé côté serveur : quizia parle français, et
    l'application se traduit en six langues. Le serveur renvoie donc les
    nombres, l'interface écrit la phrase. `message` reste là pour les échecs,
-   qui sont trop variés pour être énumérés — et pour la page autonome /ia,
-   qui n'a pas de traductions. */
+   trop variés pour être énumérés. */
 export interface RapportGeneration {
   retenues: number
   sonores: number

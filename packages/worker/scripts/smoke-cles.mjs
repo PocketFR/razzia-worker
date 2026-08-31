@@ -105,7 +105,7 @@ verifier(
 
 // ── la valeur chiffrée est réellement utilisable ───────────────────────────
 // On la relit indirectement : la page de retour OAuth injecte l'identifiant.
-const callback = await fetch(`${base}/ia/spotify-callback`).then((r) => r.text())
+const callback = await fetch(`${base}/spotify/callback`).then((r) => r.text())
 verifier(
   "la clé enregistrée est bien celle employée",
   callback.includes("identifiant-public-de-test"),

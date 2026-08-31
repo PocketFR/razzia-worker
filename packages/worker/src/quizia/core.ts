@@ -1,10 +1,11 @@
 /**
  * razzia-quizia — génération de quiz et métadonnées Spotify.
  *
- * Deux rôles distincts, à proxifier ensemble sur /ia :
- *   - la page de création de quiz par IA (formulaire titre + description) ;
- *   - deux endpoints de lecture, /track/<id> et /search, consommés par la
- *     surcouche injectée dans l'éditeur de quiz de razzia.
+ * Deux rôles distincts, réunis ici parce qu'ils partagent le client Spotify
+ * et son cache de jeton d'application :
+ *   - la génération d'un quiz, servie par /api/quizz/generate ;
+ *   - la lecture de métadonnées, servie par /spotify/track et /spotify/search,
+ *     que l'éditeur et l'écran des réponses consomment.
  *
  * DEUX SOURCES DE VÉRITÉ, JAMAIS LE MODÈLE :
  *
@@ -1195,7 +1196,7 @@ function echec(message) {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        redirect_uri: location.origin + '/ia/spotify-callback',
+        redirect_uri: location.origin + '/spotify/callback',
         client_id: '__SPOTIFY_CLIENT_ID__',
         code_verifier: verifier,
       }),

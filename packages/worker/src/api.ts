@@ -200,8 +200,8 @@ export async function routerApi(
     }
 
     // Avant la sauvegarde ci-dessous, qui exige `!id` : aucune ambiguïté.
-    // La session vient d'être vérifiée plus haut, d'où la génération nue —
-    // la page autonome /ia, elle, demande le mot de passe faute de session.
+    // La session vient d'être vérifiée plus haut, d'où la génération nue.
+    // C'est ici la SEULE porte vers `genererQuiz`, qui ne contrôle rien.
     if (methode === "POST" && id === "generate") {
       const { titre, description } = (await request.json().catch(() => ({}))) as {
         titre?: string

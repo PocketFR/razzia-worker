@@ -175,16 +175,13 @@ verifier(
   retour.texte.slice(0, 60),
 )
 
-// L'ancienne adresse reste servie tant qu'elle est déclarée chez Spotify :
-// une URL de retour OAuth ne se déplace pas unilatéralement.
-const heritee = await brut("/ia/spotify-callback")
-verifier("l'ancienne adresse de retour répond encore", heritee.statut === 200, `reçu ${heritee.statut}`)
-
+// L'ancien préfixe n'est plus servi par le Worker du tout. Les assets
+// répondent donc à sa place ; ce qui compte est qu'aucune donnée n'en sorte.
 const ancienneApi = await brut("/ia/track/4RIrhcdrTiuZNhw5eiGSJP")
 verifier(
-  "mais le reste de /ia a disparu",
-  ancienneApi.statut === 404,
-  `reçu ${ancienneApi.statut}`,
+  "l'ancien préfixe ne rend plus de morceau",
+  !ancienneApi.texte.includes('"ok":true'),
+  ancienneApi.texte.slice(0, 60),
 )
 
 const inconnue = await brut("/spotify/nexistepas")
