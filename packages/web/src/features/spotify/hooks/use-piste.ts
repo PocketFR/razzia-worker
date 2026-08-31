@@ -62,7 +62,7 @@ export const usePisteSpotify = (id: string): EtatPiste => {
     let vivant = true
     setEtat({ piste: null, introuvable: false })
 
-    void fetch(`/ia/track/${id}`, { cache: "no-store" })
+    void fetch(`/spotify/track/${id}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (!vivant) {

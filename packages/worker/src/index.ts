@@ -34,7 +34,7 @@
 
 import { routerApi } from "./api"
 import { estImage, estSvg, lireImage, themePublic } from "./services/branding"
-import { routerQuizia } from "./quizia"
+import { routerIaHerite, routerSpotify } from "./spotify"
 
 export { GameRoom } from "./game-room"
 
@@ -104,8 +104,12 @@ export default {
       return routerApi(request, env, url)
     }
 
+    if (url.pathname.startsWith("/spotify/")) {
+      return routerSpotify(request, env, url)
+    }
+
     if (url.pathname === "/ia" || url.pathname.startsWith("/ia/")) {
-      return routerQuizia(request, env, url)
+      return routerIaHerite(request, env, url)
     }
 
     if (url.pathname.startsWith("/branding/")) {
@@ -113,7 +117,7 @@ export default {
     }
 
     // Inatteignable en pratique : run_worker_first ne dirige ici que /ws,
-    // /api/*, /ia/* et /branding/*. Le repli existe pour le développement
+    // /api/*, /spotify/*, /ia/* et /branding/*. Le repli existe pour le développement
     // local et les erreurs de configuration, qui autrement se manifesteraient
     // par une page blanche.
     return env.ASSETS.fetch(request)

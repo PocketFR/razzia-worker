@@ -157,6 +157,42 @@ verifier(
   JSON.stringify(generationVide.corps),
 )
 
+console.log("— routes Spotify")
+// Elles vivaient sous /ia, héritage du temps où quizia était un conteneur
+// distinct derrière nginx. Ces contrôles vérifient l'aiguillage, pas les
+// appels à Spotify, qui demanderaient de vraies clés.
+const brut = (chemin, options) =>
+  fetch(`${base}${chemin}`, options).then(async (r) => ({
+    statut: r.status,
+    texte: await r.text(),
+  }))
+
+const retour = await brut("/spotify/callback")
+verifier("le retour d'autorisation répond", retour.statut === 200, `reçu ${retour.statut}`)
+verifier(
+  "et c'est bien la page de rappel",
+  retour.texte.includes("Connexion Spotify"),
+  retour.texte.slice(0, 60),
+)
+
+// L'ancienne adresse reste servie tant qu'elle est déclarée chez Spotify :
+// une URL de retour OAuth ne se déplace pas unilatéralement.
+const heritee = await brut("/ia/spotify-callback")
+verifier("l'ancienne adresse de retour répond encore", heritee.statut === 200, `reçu ${heritee.statut}`)
+
+const ancienneApi = await brut("/ia/track/4RIrhcdrTiuZNhw5eiGSJP")
+verifier(
+  "mais le reste de /ia a disparu",
+  ancienneApi.statut === 404,
+  `reçu ${ancienneApi.statut}`,
+)
+
+const inconnue = await brut("/spotify/nexistepas")
+verifier("route Spotify inconnue : 404", inconnue.statut === 404, `reçu ${inconnue.statut}`)
+
+const mauvaiseMethode = await brut("/spotify/search", { method: "POST" })
+verifier("méthode refusée : 405", mauvaiseMethode.statut === 405, `reçu ${mauvaiseMethode.statut}`)
+
 console.log("— écriture")
 const invalide = await appel("/quizz", {
   ...json({ subject: "", questions: [] }),

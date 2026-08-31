@@ -17,6 +17,10 @@
     "run_worker_first": [
       "/ws",
       "/api/*",
+      "/spotify/*",
+      // /ia ne sert plus que l'adresse de retour Spotify, le temps qu'elle
+      // soit changée dans la console développeur — elle y est comparée à
+      // l'identique, et la déplacer sans prévenir couperait la connexion.
       "/ia",
       "/ia/*",
       // Ces deux-là ONT un équivalent statique, et c'est le piège : sans

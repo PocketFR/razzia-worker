@@ -92,7 +92,7 @@ const SpotifyMedia = ({ media, onChange }: Props) => {
     setResultats([])
 
     try {
-      const d = await fetch(`/ia/search?q=${encodeURIComponent(q)}`, {
+      const d = await fetch(`/spotify/search?q=${encodeURIComponent(q)}`, {
         cache: "no-store",
       }).then((r) => r.json())
 
