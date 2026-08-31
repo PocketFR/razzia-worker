@@ -10,10 +10,12 @@
   },
   "interlude": {
     "nobody": "誰も残りませんでした",
+    "out": "脱落しました",
     "pointsChacun_other": "1人あたり{{count}}ポイント",
     "points_other": "{{count}}ポイント",
     "rule_other": "{{count}}問 · 一度でも間違えたら脱落",
     "suddenDeath": "サドンデス",
+    "survived": "お見事！生き残りました",
     "survivors_other": "生き残り{{count}}人",
     "title": "幕間",
     "toWin_other": "{{count}}ポイント獲得のチャンス"

@@ -311,6 +311,23 @@ verifier(
   fin?.d?.data?.points === POT,
   `${fin?.d?.data?.points} au lieu de ${POT}`,
 )
+// Chaque joueur apprend son sort, survivant comme éliminé.
+const verdictAlice = await alice.statut("SHOW_INTERLUDE_END", 4000)
+const verdictChloe = await chloe.statut("SHOW_INTERLUDE_END", 4000)
+
+verifier(
+  "la survivante reçoit son verdict, avec ses points",
+  verdictAlice?.d?.data?.survecu === true &&
+    verdictAlice?.d?.data?.points === POT,
+  JSON.stringify(verdictAlice?.d?.data),
+)
+verifier(
+  "l'éliminée aussi, sans points",
+  verdictChloe?.d?.data?.survecu === false &&
+    verdictChloe?.d?.data?.points === undefined,
+  JSON.stringify(verdictChloe?.d?.data),
+)
+
 verifier(
   "le titre du groupe est repris",
   fin?.d?.data?.titre === "Interlude — qui tiendra ?",

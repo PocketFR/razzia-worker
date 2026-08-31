@@ -10,6 +10,7 @@
   },
   "interlude": {
     "nobody": "Niemand hat durchgehalten",
+    "out": "Du bist ausgeschieden",
     "pointsChacun_one": "{{count}} Punkt pro Person",
     "pointsChacun_other": "{{count}} Punkte pro Person",
     "points_one": "{{count}} Punkt",
@@ -17,6 +18,7 @@
     "rule_one": "{{count}} Frage · ein Fehler und du bist raus",
     "rule_other": "{{count}} Fragen · ein Fehler und du bist raus",
     "suddenDeath": "Sudden Death",
+    "survived": "Bravo! Du hast überlebt",
     "survivors_one": "Als Letzter übrig",
     "survivors_other": "{{count}} Überlebende",
     "title": "Zwischenspiel",

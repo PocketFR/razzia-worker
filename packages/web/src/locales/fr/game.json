@@ -10,6 +10,7 @@
   },
   "interlude": {
     "nobody": "Personne n'a tenu",
+    "out": "Vous avez été éliminé(e)",
     "pointsChacun_one": "{{count}} point chacun",
     "pointsChacun_other": "{{count}} points chacun",
     "points_one": "{{count}} point",
@@ -17,6 +18,7 @@
     "rule_one": "{{count}} question · une erreur et vous êtes éliminé",
     "rule_other": "{{count}} questions · une erreur et vous êtes éliminé",
     "suddenDeath": "Mort subite",
+    "survived": "Bravo ! Vous avez survécu",
     "survivors_one": "Dernier debout",
     "survivors_other": "{{count}} survivants",
     "title": "Interlude",

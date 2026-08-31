@@ -604,6 +604,19 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
         }
       }
 
+      // Le verdict personnel remplace le résultat de la question : à la fin
+      // d'un interlude, ce qui compte n'est pas d'avoir eu juste au dernier
+      // tour mais d'être encore là.
+      for (const joueur of ctx.players) {
+        const survecu = restants.includes(joueur.clientId)
+
+        em.statutJoueur(joueur.clientId, STATUS.SHOW_INTERLUDE_END, {
+          titre: etape.groupe.titre,
+          survecu,
+          points: survecu && part ? part : undefined,
+        })
+      }
+
       em.statutAnimateur(STATUS.SHOW_SURVIVORS, {
         titre: etape.groupe.titre,
         survivants: ctx.players

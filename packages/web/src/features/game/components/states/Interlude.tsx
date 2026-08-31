@@ -20,7 +20,10 @@ const Interlude = ({ data: { titre, points, questions } }: Props) => {
         {titre ?? t("game:interlude.title")}
       </p>
 
-      <p className="text-primary text-4xl font-black tracking-wide uppercase drop-shadow-lg md:text-7xl">
+      <p
+        className="text-4xl font-black tracking-wide uppercase drop-shadow-lg md:text-7xl"
+        style={{ color: "#fa4040" }}
+      >
         {t("game:interlude.suddenDeath")}
       </p>
 

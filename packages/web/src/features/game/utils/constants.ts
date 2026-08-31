@@ -1,6 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import Answers from "@razzia/web/features/game/components/states/Answers"
 import Interlude from "@razzia/web/features/game/components/states/Interlude"
+import InterludeEnd from "@razzia/web/features/game/components/states/InterludeEnd"
 import Leaderboard from "@razzia/web/features/game/components/states/Leaderboard"
 import PlayerFinished from "@razzia/web/features/game/components/states/PlayerFinished"
 import Podium from "@razzia/web/features/game/components/states/Podium"
@@ -36,6 +37,11 @@ export const GAME_STATES = {
 }
 
 export const GAME_STATE_COMPONENTS = {
+  // Les deux écrans d'interlude sont communs : les joueurs vivent l'annonce
+  // et apprennent leur sort, l'animateur voit la même annonce puis la liste
+  // des survivants.
+  [STATUS.SHOW_INTERLUDE]: Interlude,
+  [STATUS.SHOW_INTERLUDE_END]: InterludeEnd,
   [STATUS.SELECT_ANSWER]: Answers,
   [STATUS.SHOW_QUESTION]: Question,
   [STATUS.WAIT]: Wait,
@@ -47,7 +53,6 @@ export const GAME_STATE_COMPONENTS = {
 
 export const GAME_STATE_COMPONENTS_MANAGER = {
   ...GAME_STATE_COMPONENTS,
-  [STATUS.SHOW_INTERLUDE]: Interlude,
   [STATUS.SHOW_ROOM]: Room,
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
@@ -116,6 +121,8 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_RESPONSES]: "common:next",
   [STATUS.SHOW_LEADERBOARD]: "common:next",
   [STATUS.SHOW_INTERLUDE]: "common:next",
+  // Écran de joueur : l'animateur ne le voit jamais, il n'a pas de bouton.
+  [STATUS.SHOW_INTERLUDE_END]: null,
   [STATUS.SHOW_SURVIVORS]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,

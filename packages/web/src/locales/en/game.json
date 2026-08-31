@@ -10,6 +10,7 @@
   },
   "interlude": {
     "nobody": "Nobody made it",
+    "out": "You have been eliminated",
     "pointsChacun_one": "{{count}} point each",
     "pointsChacun_other": "{{count}} points each",
     "points_one": "{{count}} point",
@@ -17,6 +18,7 @@
     "rule_one": "{{count}} question · one mistake and you are out",
     "rule_other": "{{count}} questions · one mistake and you are out",
     "suddenDeath": "Sudden death",
+    "survived": "Well done! You survived",
     "survivors_one": "Last one standing",
     "survivors_other": "{{count}} survivors",
     "title": "Interlude",

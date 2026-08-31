@@ -10,6 +10,7 @@
   },
   "interlude": {
     "nobody": "Nessuno ha resistito",
+    "out": "Sei stato eliminato",
     "pointsChacun_one": "{{count}} punto a testa",
     "pointsChacun_other": "{{count}} punti a testa",
     "points_one": "{{count}} punto",
@@ -17,6 +18,7 @@
     "rule_one": "{{count}} domanda · un errore e sei eliminato",
     "rule_other": "{{count}} domande · un errore e sei eliminato",
     "suddenDeath": "Morte improvvisa",
+    "survived": "Bravo! Sei sopravvissuto",
     "survivors_one": "Ultimo rimasto",
     "survivors_other": "{{count}} superstiti",
     "title": "Interludio",

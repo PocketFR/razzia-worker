@@ -16,6 +16,8 @@ export const STATUS = {
   SHOW_LEADERBOARD: "SHOW_LEADERBOARD",
   // Annonce d'un interlude, avant sa première question.
   SHOW_INTERLUDE: "SHOW_INTERLUDE",
+  // Fin d'un interlude, côté joueur : survécu ou éliminé.
+  SHOW_INTERLUDE_END: "SHOW_INTERLUDE_END",
   /* Fin d'un interlude : la liste de ceux qui restaient debout. */
   SHOW_SURVIVORS: "SHOW_SURVIVORS",
   FINISHED: "FINISHED",
@@ -58,6 +60,13 @@ export interface CommonStatusDataMap {
     titre?: string
     points?: number
     questions: number
+  }
+  // Ce que chaque joueur apprend à la fin d'un interlude. `points` n'est
+  // présent que pour un survivant d'un groupe qui en attribuait.
+  SHOW_INTERLUDE_END: {
+    titre?: string
+    survecu: boolean
+    points?: number
   }
   SHOW_RESULT: {
     correct: boolean
