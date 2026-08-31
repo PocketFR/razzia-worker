@@ -61,8 +61,6 @@ export type Phase = (typeof PHASE)[keyof typeof PHASE]
 const DUREE_DEBUT = 3
 const DUREE_AVANT_PREMIERE = 3
 const DUREE_PREPARATION = 2
-// Assez pour lire trois lignes à voix haute, pas assez pour s'ennuyer.
-const DUREE_INTERLUDE = 5
 
 export interface Manche {
   demarree: boolean
@@ -277,14 +275,16 @@ const entrerAnnonce = (
   groupe: NonNullable<Etape["groupe"]>,
 ) => {
   ctx.manche.phase = PHASE.ANNONCE
-  ctx.manche.finDePhase = dans(DUREE_INTERLUDE)
+  // AUCUNE ALARME : l'annonce attend l'animateur, qui la lit au micro. Un
+  // minuteur l'aurait fait défiler pendant qu'il parle. C'est aussi le cas le
+  // plus favorable à l'hibernation — l'objet dort tant que personne ne clique.
+  ctx.manche.finDePhase = null
 
   em.statutPourTous(STATUS.SHOW_INTERLUDE, {
     titre: groupe.titre,
     points: groupe.points,
     questions: groupe.questions.length,
   })
-  em.programmer(ctx.manche.finDePhase)
 }
 
 const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
@@ -660,6 +660,15 @@ export const questionSuivante = (
 ): boolean => {
   if (!ctx.manche.demarree) {
     return false
+  }
+
+  // Depuis l'annonce d'un interlude, « suivant » veut dire « on y va » et non
+  // « question d'après » : on est déjà sur la première question du groupe, et
+  // l'incrémenter la sauterait.
+  if (ctx.manche.phase === PHASE.ANNONCE) {
+    entrerPreparation(ctx, em)
+
+    return true
   }
 
   if (!etapes(ctx)[ctx.manche.question + 1]) {

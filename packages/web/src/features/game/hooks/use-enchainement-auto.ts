@@ -114,6 +114,24 @@ export const useEnchainementAuto = (gameId: string | null) => {
           return
         }
 
+        // Les deux écrans d'un interlude attendent l'animateur, qui les
+        // commente au micro. En enchaînement automatique il n'y a personne
+        // pour cliquer : sans ces deux-là, la partie s'arrêtait net à
+        // l'annonce, puis à la proclamation des survivants.
+        if (name === STATUS.SHOW_INTERLUDE || name === STATUS.SHOW_SURVIVORS) {
+          if (!actifRef.current || !partieRef.current) {
+            return
+          }
+
+          const partie = partieRef.current
+
+          planifier(() => {
+            socket.emit(EVENTS.MANAGER.NEXT_QUESTION, { gameId: partie })
+          })
+
+          return
+        }
+
         if (name !== STATUS.SHOW_RESPONSES) {
           return
         }

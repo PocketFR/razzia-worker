@@ -230,7 +230,18 @@ verifier(
 const annonceJoueur = await alice.statut("SHOW_INTERLUDE", 3000)
 verifier("les joueurs la voient aussi", annonceJoueur !== undefined)
 
+// Elle ne défile PAS toute seule : l'animateur doit avoir le temps de
+// l'annoncer au micro. C'est la seule façon de le vérifier — attendre, et
+// constater que rien ne bouge.
+const defileSeule = await animateur.statut("SELECT_ANSWER", 4000)
+verifier(
+  "l'annonce attend l'animateur au lieu de défiler",
+  defileSeule === undefined,
+  "la question est arrivée sans qu'on ait cliqué",
+)
+
 // ── interlude, tour 1 : Chloé se trompe ───────────────────────────────────
+suivant()
 const tour1 = await animateur.statut("SELECT_ANSWER", 15000)
 verifier(
   "tour 1 : les trois joueurs sont attendus",

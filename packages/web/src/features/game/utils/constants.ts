@@ -87,6 +87,9 @@ export const MANAGER_SKIP_EVENTS = {
   // La fin d'un interlude se ferme comme un classement : on passe à la suite.
   // Sans cette ligne, le bouton s'affichait — son libellé est déclaré à part —
   // mais n'émettait rien, et la partie restait bloquée sur l'écran.
+  // Depuis l'annonce, « suivant » lance le groupe. Le serveur sait que la
+  // question courante est déjà la bonne et ne l'incrémente pas.
+  [STATUS.SHOW_INTERLUDE]: EVENTS.MANAGER.NEXT_QUESTION,
   [STATUS.SHOW_SURVIVORS]: EVENTS.MANAGER.NEXT_QUESTION,
   // Un libellé sans action donne un bouton inerte, et une partie bloquée sur
   // l'écran — c'est arrivé en ajoutant SHOW_SURVIVORS. Le type l'interdit
@@ -112,8 +115,7 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_RESULT]: null,
   [STATUS.SHOW_RESPONSES]: "common:next",
   [STATUS.SHOW_LEADERBOARD]: "common:next",
-  // L'annonce s'efface d'elle-même au bout de cinq secondes : rien à presser.
-  [STATUS.SHOW_INTERLUDE]: null,
+  [STATUS.SHOW_INTERLUDE]: "common:next",
   [STATUS.SHOW_SURVIVORS]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,
