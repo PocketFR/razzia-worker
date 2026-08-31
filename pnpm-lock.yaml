@@ -109,9 +109,6 @@ importers:
       '@razzia/common':
         specifier: workspace:*
         version: link:../common
-      '@razzia/socket':
-        specifier: workspace:*
-        version: link:../socket
       '@tailwindcss/vite':
         specifier: ^4.3.1
         version: 4.3.1(vite@8.1.0(@types/node@26.0.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4))

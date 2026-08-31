@@ -1,11 +1,7 @@
 {
   "name": "@razzia/socket",
   "type": "module",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "node esbuild.config.js",
-    "start": "node dist/index.cjs"
-  },
+  "scripts": {},
   "license": "ISC",
   "dependencies": {
     "@razzia/common": "workspace:*",
