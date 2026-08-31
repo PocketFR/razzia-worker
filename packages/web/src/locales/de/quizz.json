@@ -3,6 +3,17 @@
   "addQuestion": "Frage hinzufügen",
   "answersCountSuffix": " Antworten",
   "deleteQuestion": "Frage löschen",
+  "groupe": {
+    "add": "Zwischenspiel hinzufügen",
+    "addQuestion": "Frage",
+    "explain": "Wer falsch antwortet, scheidet für den Rest des Zwischenspiels aus. Es endet, wenn die Fragen aufgebraucht sind oder weniger als zwei Spieler übrig sind.",
+    "points": "Punkte, die die Überlebenden teilen",
+    "summary_one": "{{count}} K.-o.-Frage",
+    "summary_other": "{{count}} K.-o.-Fragen",
+    "title": "Titel des Zwischenspiels",
+    "titlePlaceholder": "Sudden Death",
+    "untitled": "Zwischenspiel ohne Titel"
+  },
   "noQuestionYet": "Noch keine Fragen",
   "question": {
     "addMediaHint": "Füge ein Bild, Video oder Audio zu deiner Frage hinzu",

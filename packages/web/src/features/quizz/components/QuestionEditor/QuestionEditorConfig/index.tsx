@@ -16,12 +16,12 @@ import { LayoutList } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorConfig = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
+  const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
   const questionType = currentQuestion.type
 
   const handleTypeChange = (nextType: QuestionType) => {
-    updateQuestion(currentIndex, {
+    updateQuestion(currentId, {
       type: nextType,
       options: QUESTION_REGISTRY[nextType].defaultOptions,
     })

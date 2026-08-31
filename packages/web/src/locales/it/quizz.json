@@ -3,6 +3,17 @@
   "addQuestion": "Aggiungi domanda",
   "answersCountSuffix": " risposte",
   "deleteQuestion": "Elimina domanda",
+  "groupe": {
+    "add": "Aggiungi un interludio",
+    "addQuestion": "domanda",
+    "explain": "Chi sbaglia è fuori per il resto dell'interludio. Finisce quando le domande si esauriscono o restano meno di due giocatori.",
+    "points": "Punti divisi tra i superstiti",
+    "summary_one": "{{count}} domanda a eliminazione",
+    "summary_other": "{{count}} domande a eliminazione",
+    "title": "Titolo dell'interludio",
+    "titlePlaceholder": "Morte improvvisa",
+    "untitled": "Interludio senza titolo"
+  },
   "noQuestionYet": "Nessuna domanda ancora",
   "question": {
     "addMediaHint": "Aggiungi un'immagine, video o audio alla tua domanda",

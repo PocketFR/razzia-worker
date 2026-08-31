@@ -3,6 +3,16 @@
   "addQuestion": "質問を追加",
   "answersCountSuffix": "件の回答",
   "deleteQuestion": "質問を削除",
+  "groupe": {
+    "add": "幕間を追加",
+    "addQuestion": "問題",
+    "explain": "間違えた人はその幕間から脱落します。問題が尽きるか、残りが2人未満になると終了します。",
+    "points": "生き残りで分け合うポイント",
+    "summary_other": "敗退方式の問題{{count}}問",
+    "title": "幕間のタイトル",
+    "titlePlaceholder": "サドンデス",
+    "untitled": "無題の幕間"
+  },
   "noQuestionYet": "まだ質問がありません",
   "question": {
     "addMediaHint": "質問に画像、動画、音声を追加できます",

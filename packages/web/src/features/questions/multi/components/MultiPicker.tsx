@@ -4,18 +4,18 @@ import clsx from "clsx"
 import { Check } from "lucide-react"
 
 const MultiSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
+  const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
 
   const handleToggle = () => {
     const current = currentQuestion.solutions
 
     if (current.includes(index)) {
       const next = current.filter((s) => s !== index)
-      updateQuestion(currentIndex, {
+      updateQuestion(currentId, {
         solutions: next.length > 0 ? next : [index],
       })
     } else {
-      updateQuestion(currentIndex, { solutions: [...current, index] })
+      updateQuestion(currentId, { solutions: [...current, index] })
     }
   }
 

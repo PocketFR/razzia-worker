@@ -3,11 +3,11 @@ import type { ChangeEvent } from "react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorTitle = () => {
-  const { updateQuestion, currentIndex, currentQuestion } = useQuestionEditee()
+  const { updateQuestion, currentId, currentQuestion } = useQuestionEditee()
   const { t } = useTranslation()
 
   const handleChangeQuestion = (e: ChangeEvent<HTMLInputElement>) => {
-    updateQuestion(currentIndex, { question: e.target.value })
+    updateQuestion(currentId, { question: e.target.value })
   }
 
   return (

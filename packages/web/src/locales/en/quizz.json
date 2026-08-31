@@ -3,6 +3,17 @@
   "addQuestion": "Add question",
   "answersCountSuffix": " answers",
   "deleteQuestion": "Delete question",
+  "groupe": {
+    "add": "Add an interlude",
+    "addQuestion": "question",
+    "explain": "Players who answer wrong are out for the rest of the interlude. It ends when its questions run out or fewer than two players remain.",
+    "points": "Points shared between survivors",
+    "summary_one": "{{count}} knockout question",
+    "summary_other": "{{count}} knockout questions",
+    "title": "Interlude title",
+    "titlePlaceholder": "Sudden death",
+    "untitled": "Untitled interlude"
+  },
   "noQuestionYet": "No question yet",
   "question": {
     "addMediaHint": "Add an image, video or audio to your question",

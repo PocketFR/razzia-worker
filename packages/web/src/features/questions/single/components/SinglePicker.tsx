@@ -4,7 +4,7 @@ import clsx from "clsx"
 import { Check } from "lucide-react"
 
 const SingleSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
+  const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
 
   const handleToggle = () => {
     const current = currentQuestion.solutions
@@ -12,14 +12,14 @@ const SingleSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
     if (current.includes(index)) {
       const next = current.filter((s) => s !== index)
 
-      updateQuestion(currentIndex, {
+      updateQuestion(currentId, {
         solutions: next.length > 0 ? next : [index],
       })
 
       return
     }
 
-    updateQuestion(currentIndex, { solutions: [...current, index] })
+    updateQuestion(currentId, { solutions: [...current, index] })
   }
 
   return (

@@ -9,7 +9,7 @@ import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorAnswers = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
+  const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
 
   const questionType = currentQuestion.type
@@ -18,7 +18,7 @@ const QuestionEditorAnswers = () => {
   const updateAnswer = (index: number, value: string) => {
     const next = [...currentQuestion.answers]
     next[index] = value
-    updateQuestion(currentIndex, { answers: next })
+    updateQuestion(currentId, { answers: next })
   }
 
   const addAnswer = () => {
@@ -26,7 +26,7 @@ const QuestionEditorAnswers = () => {
       return
     }
 
-    updateQuestion(currentIndex, { answers: [...currentQuestion.answers, ""] })
+    updateQuestion(currentId, { answers: [...currentQuestion.answers, ""] })
   }
 
   const removeAnswer = () => {
@@ -38,7 +38,7 @@ const QuestionEditorAnswers = () => {
     const maxIndex = next.length - 1
     const nextSolution = currentQuestion.solutions.filter((s) => s <= maxIndex)
 
-    updateQuestion(currentIndex, {
+    updateQuestion(currentId, {
       answers: next,
       solutions: nextSolution.length > 0 ? nextSolution : [0],
     })

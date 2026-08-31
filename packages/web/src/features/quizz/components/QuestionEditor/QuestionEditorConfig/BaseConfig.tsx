@@ -20,7 +20,7 @@ const DEFAULT_TIME = 20
 const DEFAULT_PENALTY = 100
 
 const BaseConfig = () => {
-  const { currentQuestion, currentIndex, updateQuestion } = useQuestionEditee()
+  const { currentQuestion, currentId, updateQuestion } = useQuestionEditee()
   const { t } = useTranslation()
   const isTimeLimitEnabled = currentQuestion.time !== NO_TIME_LIMIT
   const isPenaltyEnabled = (currentQuestion.penalty ?? 0) > 0
@@ -28,21 +28,21 @@ const BaseConfig = () => {
   const scoringMode = currentQuestion.options?.scoringMode
 
   const handleScoringModeChange = (mode: ScoringMode) => {
-    updateQuestion(currentIndex, { options: { scoringMode: mode } })
+    updateQuestion(currentId, { options: { scoringMode: mode } })
   }
 
   const handleUpdateQuestion = (key: string) => (value: string | number) => {
-    updateQuestion(currentIndex, { [key]: value })
+    updateQuestion(currentId, { [key]: value })
   }
 
   const handleToggleTimeLimit = (checked: boolean) => {
-    updateQuestion(currentIndex, {
+    updateQuestion(currentId, {
       time: checked ? DEFAULT_TIME : NO_TIME_LIMIT,
     })
   }
 
   const handleTogglePenalty = (checked: boolean) => {
-    updateQuestion(currentIndex, {
+    updateQuestion(currentId, {
       penalty: checked ? DEFAULT_PENALTY : undefined,
     })
   }

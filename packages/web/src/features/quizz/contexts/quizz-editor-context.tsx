@@ -1,4 +1,4 @@
-import { QUESTION_TYPES } from "@razzia/common/constants"
+import { QUESTION_TYPES, TYPE_GROUPE } from "@razzia/common/constants"
 import {
   estGroupe,
   type BlocQuizz,
@@ -25,9 +25,10 @@ export type GroupeWithId = Omit<Groupe, "questions"> & {
 
 // Ce que l'éditeur manipule : des questions et des groupes.
 //
-// L'identifiant est propre à l'éditeur — il ne part pas à l'enregistrement.
-// Il sert à désigner un bloc sans dépendre de son rang, ce qui cesse d'être
-// praticable dès qu'il y a de l'imbrication.
+// L'identifiant est propre à l'éditeur — le serveur l'ignore à
+// l'enregistrement. Il sert à désigner un bloc sans dépendre de son rang, ce
+// qui cesse d'être praticable dès qu'il y a de l'imbrication : le rang d'une
+// question ne dit pas dans quel groupe elle se trouve.
 export type BlocWithId = QuestionWithId | GroupeWithId
 
 export const estGroupeAvecId = (bloc: BlocWithId): bloc is GroupeWithId =>
@@ -38,14 +39,22 @@ interface QuizzEditorContextType {
   subject: string
   setSubject: (_subject: string) => void
   questions: BlocWithId[]
-  currentIndex: number
-  /* Null quand un groupe est sélectionné : il n'a pas d'éditeur de question. */
+  currentId: string | null
+  // La question sélectionnée, ou null si c'est un groupe qui l'est.
   currentQuestion: QuestionWithId | null
-  setCurrentIndex: (_index: number) => void
-  addQuestion: () => void
-  removeQuestion: (_index: number) => void
-  reorderQuestions: (_from: number, _to: number) => void
-  updateQuestion: (_index: number, _updates: Partial<QuestionWithId>) => void
+  // Le groupe sélectionné, ou null si c'est une question qui l'est.
+  currentGroupe: GroupeWithId | null
+  selectionner: (_id: string) => void
+  addQuestion: (_dansGroupe?: string) => void
+  addGroupe: () => void
+  removeBloc: (_id: string) => void
+  updateQuestion: (_id: string, _updates: Partial<QuestionWithId>) => void
+  updateGroupe: (
+    _id: string,
+    _updates: Partial<Pick<GroupeWithId, "titre" | "points">>,
+  ) => void
+  reorder: (_from: number, _to: number) => void
+  reorderDansGroupe: (_groupeId: string, _from: number, _to: number) => void
 }
 
 const QuizzEditorContext = createContext<QuizzEditorContextType | null>(null)
@@ -60,6 +69,16 @@ const defaultQuestion = (): QuestionWithId => ({
   time: 20,
 })
 
+const defaultGroupe = (): GroupeWithId => ({
+  id: uuid(),
+  type: TYPE_GROUPE,
+  titre: "",
+  points: 1000,
+  // Jamais vide : un groupe sans question ne se joue pas, et le validateur le
+  // refuserait à l'enregistrement.
+  questions: [defaultQuestion()],
+})
+
 const toQuestionWithId = (q: Question): QuestionWithId => ({
   ...q,
   id: uuid(),
@@ -70,8 +89,10 @@ const toBlocWithId = (bloc: BlocQuizz): BlocWithId =>
     ? { ...bloc, id: uuid(), questions: bloc.questions.map(toQuestionWithId) }
     : toQuestionWithId(bloc)
 
-const clampIndex = (index: number, array: unknown[]) =>
-  Math.max(0, Math.min(index, array.length - 1))
+// Toutes les questions, groupes aplatis, dans l'ordre où elles se joueront.
+// Sert à retrouver un bloc par son identifiant sans se soucier du niveau.
+const parcourir = (blocs: BlocWithId[]): QuestionWithId[] =>
+  blocs.flatMap((bloc) => (estGroupeAvecId(bloc) ? bloc.questions : [bloc]))
 
 type QuizzEditorProviderProps = PropsWithChildren<{
   initialData?: QuizzWithId
@@ -84,53 +105,126 @@ export const QuizzEditorProvider = ({
   const [subject, setSubject] = useState(
     initialData?.subject ?? "Untitled Quizz",
   )
-  const [questions, setQuestions] = useState<BlocWithId[]>(
+  const [questions, setQuestions] = useState<BlocWithId[]>(() =>
     initialData ? initialData.questions.map(toBlocWithId) : [defaultQuestion()],
   )
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const bloc = questions[clampIndex(currentIndex, questions)]
-  const currentQuestion = bloc && !estGroupeAvecId(bloc) ? bloc : null
+  const premier = parcourir(questions)[0]?.id ?? null
+  const [currentId, setCurrentId] = useState<string | null>(premier)
 
-  const addQuestion = () => {
-    setQuestions((prev) => [...prev, defaultQuestion()])
-    setCurrentIndex(questions.length)
+  const groupes = questions.filter(estGroupeAvecId)
+  const currentGroupe = groupes.find((g) => g.id === currentId) ?? null
+  const currentQuestion =
+    parcourir(questions).find((q) => q.id === currentId) ?? null
+
+  const selectionner = (id: string) => {
+    setCurrentId(id)
   }
 
-  const removeQuestion = (index: number) => {
-    const next = questions.filter((_, i) => i !== index)
+  const addQuestion = (dansGroupe?: string) => {
+    const neuve = defaultQuestion()
 
-    setQuestions(next)
-    setCurrentIndex((current) => {
-      if (current < index) {
-        return current
-      }
+    setQuestions((prev) =>
+      dansGroupe
+        ? prev.map((bloc) =>
+            estGroupeAvecId(bloc) && bloc.id === dansGroupe
+              ? { ...bloc, questions: [...bloc.questions, neuve] }
+              : bloc,
+          )
+        : [...prev, neuve],
+    )
+    setCurrentId(neuve.id)
+  }
 
-      if (current > index) {
-        return current - 1
-      }
+  const addGroupe = () => {
+    const neuf = defaultGroupe()
 
-      return clampIndex(current, next)
+    setQuestions((prev) => [...prev, neuf])
+    setCurrentId(neuf.id)
+  }
+
+  // Supprime un bloc de premier niveau, ou une question à l'intérieur d'un
+  // groupe. Un groupe emporte son contenu — c'est l'intérêt de l'imbrication.
+  const removeBloc = (id: string) => {
+    setQuestions((prev) => {
+      const sansLuiAuSommet = prev.filter((bloc) => bloc.id !== id)
+
+      const suivant =
+        sansLuiAuSommet.length !== prev.length
+          ? sansLuiAuSommet
+          : prev.map((bloc) =>
+              estGroupeAvecId(bloc)
+                ? {
+                    ...bloc,
+                    questions: bloc.questions.filter((q) => q.id !== id),
+                  }
+                : bloc,
+            )
+
+      // Un groupe vidé de sa dernière question n'a plus de raison d'être, et
+      // serait de toute façon refusé à l'enregistrement.
+      const nettoye = suivant.filter(
+        (bloc) => !estGroupeAvecId(bloc) || bloc.questions.length > 0,
+      )
+
+      setCurrentId(parcourir(nettoye)[0]?.id ?? nettoye[0]?.id ?? null)
+
+      return nettoye
     })
   }
 
-  const reorderQuestions = (from: number, to: number) => {
+  const updateQuestion = (id: string, updates: Partial<QuestionWithId>) => {
+    setQuestions((prev) =>
+      prev.map((bloc) => {
+        if (estGroupeAvecId(bloc)) {
+          return {
+            ...bloc,
+            questions: bloc.questions.map((q) =>
+              q.id === id ? { ...q, ...updates } : q,
+            ),
+          }
+        }
+
+        return bloc.id === id ? { ...bloc, ...updates } : bloc
+      }),
+    )
+  }
+
+  const updateGroupe = (
+    id: string,
+    updates: Partial<Pick<GroupeWithId, "titre" | "points">>,
+  ) => {
+    setQuestions((prev) =>
+      prev.map((bloc) =>
+        estGroupeAvecId(bloc) && bloc.id === id
+          ? { ...bloc, ...updates }
+          : bloc,
+      ),
+    )
+  }
+
+  const reorder = (from: number, to: number) => {
     setQuestions((prev) => {
       const next = [...prev]
-      const [moved] = next.splice(from, 1)
-      next.splice(to, 0, moved)
+      const [bouge] = next.splice(from, 1)
+      next.splice(to, 0, bouge)
 
       return next
     })
-    setCurrentIndex(to)
   }
 
-  // Ne touche jamais un groupe : ses réglages ont leur propre écran, et
-  // fusionner des champs de question dedans le corromprait.
-  const updateQuestion = (index: number, updates: Partial<QuestionWithId>) => {
+  const reorderDansGroupe = (groupeId: string, from: number, to: number) => {
     setQuestions((prev) =>
-      prev.map((q, i) =>
-        i === index && !estGroupeAvecId(q) ? { ...q, ...updates } : q,
-      ),
+      prev.map((bloc) => {
+        if (!estGroupeAvecId(bloc) || bloc.id !== groupeId) {
+          return bloc
+        }
+
+        const next = [...bloc.questions]
+        const [bouge] = next.splice(from, 1)
+        next.splice(to, 0, bouge)
+
+        return { ...bloc, questions: next }
+      }),
     )
   }
 
@@ -141,36 +235,22 @@ export const QuizzEditorProvider = ({
         subject,
         setSubject,
         questions,
-        currentIndex,
+        currentId,
         currentQuestion,
-        setCurrentIndex,
+        currentGroupe,
+        selectionner,
         addQuestion,
-        removeQuestion,
-        reorderQuestions,
+        addGroupe,
+        removeBloc,
         updateQuestion,
+        updateGroupe,
+        reorder,
+        reorderDansGroupe,
       }}
     >
       {children}
     </QuizzEditorContext.Provider>
   )
-}
-
-// Le contexte, avec la garantie qu'une QUESTION est sélectionnée.
-//
-// `currentQuestion` est nul quand la sélection porte sur un groupe, qui n'a
-// pas d'éditeur de question. Plutôt que de faire porter ce cas à chacun des
-// neuf composants de l'éditeur, la garde est posée une fois, à l'endroit qui
-// décide d'afficher ou non le panneau — et ceux-ci reçoivent un type non nul.
-export const useQuestionEditee = () => {
-  const ctx = useQuizzEditor()
-
-  if (!ctx.currentQuestion) {
-    throw new Error(
-      "useQuestionEditee : aucune question sélectionnée, un groupe l'est peut-être",
-    )
-  }
-
-  return { ...ctx, currentQuestion: ctx.currentQuestion }
 }
 
 export const useQuizzEditor = () => {
@@ -181,4 +261,26 @@ export const useQuizzEditor = () => {
   }
 
   return ctx
+}
+
+// Le contexte, avec la garantie qu'une QUESTION est sélectionnée.
+//
+// `currentQuestion` est nul quand la sélection porte sur un groupe, qui n'a
+// pas d'éditeur de question. Plutôt que de faire porter ce cas à chacun des
+// composants de l'éditeur, la garde est posée une fois, à l'endroit qui décide
+// d'afficher ou non le panneau — et ceux-ci reçoivent un type non nul.
+export const useQuestionEditee = () => {
+  const ctx = useQuizzEditor()
+
+  if (!ctx.currentQuestion) {
+    throw new Error(
+      "useQuestionEditee : aucune question sélectionnée, un groupe l'est peut-être",
+    )
+  }
+
+  return {
+    ...ctx,
+    currentQuestion: ctx.currentQuestion,
+    currentId: ctx.currentQuestion.id,
+  }
 }

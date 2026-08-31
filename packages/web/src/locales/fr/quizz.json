@@ -3,6 +3,17 @@
   "addQuestion": "Ajouter une question",
   "answersCountSuffix": " réponses",
   "deleteQuestion": "Supprimer la question",
+  "groupe": {
+    "add": "Ajouter un interlude",
+    "addQuestion": "question",
+    "explain": "Les joueurs qui se trompent sont écartés du reste de l'interlude. Il s'arrête quand ses questions sont épuisées ou qu'il reste moins de deux joueurs.",
+    "points": "Points à partager entre les survivants",
+    "summary_one": "{{count}} question à élimination",
+    "summary_other": "{{count}} questions à élimination",
+    "title": "Titre de l'interlude",
+    "titlePlaceholder": "Mort subite",
+    "untitled": "Interlude sans titre"
+  },
   "noQuestionYet": "Aucune question pour l'instant",
   "question": {
     "addMediaHint": "Ajoutez une image, une vidéo ou un audio à votre question",

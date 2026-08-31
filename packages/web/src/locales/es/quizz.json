@@ -3,6 +3,17 @@
   "addQuestion": "Añadir pregunta",
   "answersCountSuffix": " respuestas",
   "deleteQuestion": "Eliminar pregunta",
+  "groupe": {
+    "add": "Añadir un interludio",
+    "addQuestion": "pregunta",
+    "explain": "Quien falle queda fuera del resto del interludio. Termina cuando se acaban las preguntas o quedan menos de dos jugadores.",
+    "points": "Puntos repartidos entre los supervivientes",
+    "summary_one": "{{count}} pregunta eliminatoria",
+    "summary_other": "{{count}} preguntas eliminatorias",
+    "title": "Título del interludio",
+    "titlePlaceholder": "Muerte súbita",
+    "untitled": "Interludio sin título"
+  },
   "noQuestionYet": "Aún no hay preguntas",
   "question": {
     "addMediaHint": "Añade una imagen, video o audio a tu pregunta",

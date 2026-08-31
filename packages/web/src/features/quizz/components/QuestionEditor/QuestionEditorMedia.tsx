@@ -14,7 +14,7 @@ import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuestionEditorMedia = () => {
-  const { updateQuestion, currentIndex, currentQuestion } = useQuestionEditee()
+  const { updateQuestion, currentId, currentQuestion } = useQuestionEditee()
   const questionMedia = currentQuestion.media
   const { t } = useTranslation()
 
@@ -30,7 +30,7 @@ const QuestionEditorMedia = () => {
       return
     }
 
-    updateQuestion(currentIndex, { media: result.data })
+    updateQuestion(currentId, { media: result.data })
   }
 
   const handleRemoveMedia = () => {
@@ -38,11 +38,11 @@ const QuestionEditorMedia = () => {
       return
     }
 
-    updateQuestion(currentIndex, { media: undefined })
+    updateQuestion(currentId, { media: undefined })
   }
 
   const handleChangeMedia = (e: ChangeEvent<HTMLInputElement>) => {
-    updateQuestion(currentIndex, {
+    updateQuestion(currentId, {
       media: { url: e.target.value },
     })
   }
@@ -56,7 +56,7 @@ const QuestionEditorMedia = () => {
         // précisément l'état où l'animateur a besoin de la recherche.
         <SpotifyMedia
           media={questionMedia}
-          onChange={(media) => updateQuestion(currentIndex, { media })}
+          onChange={(media) => updateQuestion(currentId, { media })}
         />
       ) : (
         <QuestionMedia media={currentQuestion.media} alt="Question Media" />
@@ -108,7 +108,7 @@ const QuestionEditorMedia = () => {
                 apparaître la recherche, ce que rien n'indiquait. */}
             <Button
               onClick={() =>
-                updateQuestion(currentIndex, {
+                updateQuestion(currentId, {
                   media: { type: "audio", url: "spotify:" },
                 })
               }
