@@ -69,14 +69,30 @@ export const SFX = {
   BOUMP_SOUND: "/sounds/boump.mp3",
 } as const
 
+// Les statuts dont le bouton porte un libellé, donc ceux qui doivent faire
+// quelque chose quand on le presse.
+type AvecBouton = {
+  [K in keyof typeof MANAGER_SKIP_BTN]: (typeof MANAGER_SKIP_BTN)[K] extends null
+    ? never
+    : K
+}[keyof typeof MANAGER_SKIP_BTN]
+
 export const MANAGER_SKIP_EVENTS = {
   [STATUS.SHOW_ROOM]: EVENTS.MANAGER.START_GAME,
   [STATUS.SELECT_ANSWER]: EVENTS.MANAGER.ABORT_QUIZ,
   [STATUS.SHOW_RESPONSES]: EVENTS.MANAGER.SHOW_LEADERBOARD,
   [STATUS.SHOW_LEADERBOARD]: EVENTS.MANAGER.NEXT_QUESTION,
-} as const satisfies Partial<
-  Record<keyof typeof GAME_STATE_COMPONENTS_MANAGER, string>
->
+  // La fin d'un interlude se ferme comme un classement : on passe à la suite.
+  // Sans cette ligne, le bouton s'affichait — son libellé est déclaré à part —
+  // mais n'émettait rien, et la partie restait bloquée sur l'écran.
+  [STATUS.SHOW_SURVIVORS]: EVENTS.MANAGER.NEXT_QUESTION,
+  // Un libellé sans action donne un bouton inerte, et une partie bloquée sur
+  // l'écran — c'est arrivé en ajoutant SHOW_SURVIVORS. Le type l'interdit
+  // désormais : tout statut dont le bouton s'affiche DOIT figurer ici.
+  //
+  // FINISHED fait exception parce qu'il n'émet rien : son bouton quitte la
+  // partie, ce que la page traite à part.
+} as const satisfies Record<Exclude<AvecBouton, typeof STATUS.FINISHED>, string>
 
 export function isKeyOf<T extends object>(
   obj: T,
@@ -97,4 +113,4 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_SURVIVORS]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,
-}
+} as const

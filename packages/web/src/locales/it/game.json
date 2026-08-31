@@ -10,8 +10,10 @@
   },
   "interlude": {
     "nobody": "Nessuno ha resistito",
-    "points_one": "{{count}} punto a testa",
-    "points_other": "{{count}} punti a testa",
+    "pointsChacun_one": "{{count}} punto a testa",
+    "pointsChacun_other": "{{count}} punti a testa",
+    "points_one": "{{count}} punto",
+    "points_other": "{{count}} punti",
     "survivors_one": "Ultimo rimasto",
     "survivors_other": "{{count}} superstiti",
     "title": "Interludio"

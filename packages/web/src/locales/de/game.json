@@ -10,8 +10,10 @@
   },
   "interlude": {
     "nobody": "Niemand hat durchgehalten",
-    "points_one": "{{count}} Punkt pro Person",
-    "points_other": "{{count}} Punkte pro Person",
+    "pointsChacun_one": "{{count}} Punkt pro Person",
+    "pointsChacun_other": "{{count}} Punkte pro Person",
+    "points_one": "{{count}} Punkt",
+    "points_other": "{{count}} Punkte",
     "survivors_one": "Als Letzter übrig",
     "survivors_other": "{{count}} Überlebende",
     "title": "Zwischenspiel"

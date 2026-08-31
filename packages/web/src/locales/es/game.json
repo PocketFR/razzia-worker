@@ -10,8 +10,10 @@
   },
   "interlude": {
     "nobody": "Nadie ha aguantado",
-    "points_one": "{{count}} punto cada uno",
-    "points_other": "{{count}} puntos cada uno",
+    "pointsChacun_one": "{{count}} punto cada uno",
+    "pointsChacun_other": "{{count}} puntos cada uno",
+    "points_one": "{{count}} punto",
+    "points_other": "{{count}} puntos",
     "survivors_one": "Último en pie",
     "survivors_other": "{{count}} supervivientes",
     "title": "Interludio"

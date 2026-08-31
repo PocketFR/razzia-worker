@@ -62,7 +62,12 @@ const Survivors = ({ data: { titre, survivants, points } }: Props) => {
 
           {points ? (
             <p className="rounded-xl bg-black/45 px-5 py-2 text-center text-xl font-bold text-white backdrop-blur-sm md:text-3xl">
-              {t("game:interlude.points", { count: points })}
+              {t(
+                survivants.length > 1
+                  ? "game:interlude.pointsChacun"
+                  : "game:interlude.points",
+                { count: points },
+              )}
             </p>
           ) : null}
         </>

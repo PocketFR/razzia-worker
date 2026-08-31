@@ -10,8 +10,10 @@
   },
   "interlude": {
     "nobody": "Personne n'a tenu",
-    "points_one": "{{count}} point chacun",
-    "points_other": "{{count}} points chacun",
+    "pointsChacun_one": "{{count}} point chacun",
+    "pointsChacun_other": "{{count}} points chacun",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
     "survivors_one": "Dernier debout",
     "survivors_other": "{{count}} survivants",
     "title": "Interlude"

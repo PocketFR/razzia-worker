@@ -10,8 +10,10 @@
   },
   "interlude": {
     "nobody": "Nobody made it",
-    "points_one": "{{count}} point each",
-    "points_other": "{{count}} points each",
+    "pointsChacun_one": "{{count}} point each",
+    "pointsChacun_other": "{{count}} points each",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
     "survivors_one": "Last one standing",
     "survivors_other": "{{count}} survivors",
     "title": "Interlude"

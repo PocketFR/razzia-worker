@@ -10,7 +10,8 @@
   },
   "interlude": {
     "nobody": "誰も残りませんでした",
-    "points_other": "1人あたり{{count}}ポイント",
+    "pointsChacun_other": "1人あたり{{count}}ポイント",
+    "points_other": "{{count}}ポイント",
     "survivors_other": "生き残り{{count}}人",
     "title": "幕間"
   },
