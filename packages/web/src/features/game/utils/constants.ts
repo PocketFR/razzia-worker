@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import Answers from "@razzia/web/features/game/components/states/Answers"
+import Interlude from "@razzia/web/features/game/components/states/Interlude"
 import Leaderboard from "@razzia/web/features/game/components/states/Leaderboard"
 import PlayerFinished from "@razzia/web/features/game/components/states/PlayerFinished"
 import Podium from "@razzia/web/features/game/components/states/Podium"
@@ -46,6 +47,7 @@ export const GAME_STATE_COMPONENTS = {
 
 export const GAME_STATE_COMPONENTS_MANAGER = {
   ...GAME_STATE_COMPONENTS,
+  [STATUS.SHOW_INTERLUDE]: Interlude,
   [STATUS.SHOW_ROOM]: Room,
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
@@ -110,6 +112,8 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_RESULT]: null,
   [STATUS.SHOW_RESPONSES]: "common:next",
   [STATUS.SHOW_LEADERBOARD]: "common:next",
+  // L'annonce s'efface d'elle-même au bout de cinq secondes : rien à presser.
+  [STATUS.SHOW_INTERLUDE]: null,
   [STATUS.SHOW_SURVIVORS]: "common:next",
   [STATUS.FINISHED]: "common:exit",
   [STATUS.WAIT]: null,

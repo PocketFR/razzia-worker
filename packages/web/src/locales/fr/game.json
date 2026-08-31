@@ -14,9 +14,14 @@
     "pointsChacun_other": "{{count}} points chacun",
     "points_one": "{{count}} point",
     "points_other": "{{count}} points",
+    "rule_one": "{{count}} question · une erreur et vous êtes éliminé",
+    "rule_other": "{{count}} questions · une erreur et vous êtes éliminé",
+    "suddenDeath": "Mort subite",
     "survivors_one": "Dernier debout",
     "survivors_other": "{{count}} survivants",
-    "title": "Interlude"
+    "title": "Interlude",
+    "toWin_one": "{{count}} point à gagner",
+    "toWin_other": "{{count}} points à gagner"
   },
   "joinInstruction": "Rejoins la partie sur",
   "leaderboard": "Classement",

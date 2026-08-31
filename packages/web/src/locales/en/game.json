@@ -14,9 +14,14 @@
     "pointsChacun_other": "{{count}} points each",
     "points_one": "{{count}} point",
     "points_other": "{{count}} points",
+    "rule_one": "{{count}} question · one mistake and you are out",
+    "rule_other": "{{count}} questions · one mistake and you are out",
+    "suddenDeath": "Sudden death",
     "survivors_one": "Last one standing",
     "survivors_other": "{{count}} survivors",
-    "title": "Interlude"
+    "title": "Interlude",
+    "toWin_one": "{{count}} point to win",
+    "toWin_other": "{{count}} points to win"
   },
   "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",

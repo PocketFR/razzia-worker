@@ -14,6 +14,8 @@ export const STATUS = {
   SHOW_RESULT: "SHOW_RESULT",
   SHOW_RESPONSES: "SHOW_RESPONSES",
   SHOW_LEADERBOARD: "SHOW_LEADERBOARD",
+  // Annonce d'un interlude, avant sa première question.
+  SHOW_INTERLUDE: "SHOW_INTERLUDE",
   /* Fin d'un interlude : la liste de ceux qui restaient debout. */
   SHOW_SURVIVORS: "SHOW_SURVIVORS",
   FINISHED: "FINISHED",
@@ -49,6 +51,13 @@ export interface CommonStatusDataMap {
     // inertes. Le champ n'est posé que sur le statut PERSONNEL des éliminés,
     // jamais sur la diffusion générale.
     elimine?: boolean
+  }
+  // L'annonce d'un interlude. Tout le monde la voit — c'est le moment où
+  // l'on comprend que les règles changent.
+  SHOW_INTERLUDE: {
+    titre?: string
+    points?: number
+    questions: number
   }
   SHOW_RESULT: {
     correct: boolean

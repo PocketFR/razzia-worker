@@ -52,6 +52,7 @@ export const PHASE = {
   PREPARATION: "SHOW_PREPARED",
   ENONCE: "SHOW_QUESTION",
   REPONSES: "SELECT_ANSWER",
+  ANNONCE: "SHOW_INTERLUDE",
 } as const
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE]
@@ -60,6 +61,8 @@ export type Phase = (typeof PHASE)[keyof typeof PHASE]
 const DUREE_DEBUT = 3
 const DUREE_AVANT_PREMIERE = 3
 const DUREE_PREPARATION = 2
+// Assez pour lire trois lignes à voix haute, pas assez pour s'ennuyer.
+const DUREE_INTERLUDE = 5
 
 export interface Manche {
   demarree: boolean
@@ -265,8 +268,40 @@ const suivreLeGroupe = (ctx: ContextePartie) => {
     index === null ? null : ctx.players.map((joueur) => joueur.clientId)
 }
 
+// L'annonce d'un interlude, juste avant sa première question. Elle prévient
+// que les règles changent — se tromper coûte la place, pas seulement des
+// points — et annonce ce qu'il y a à gagner.
+const entrerAnnonce = (
+  ctx: ContextePartie,
+  em: Emetteur,
+  groupe: NonNullable<Etape["groupe"]>,
+) => {
+  ctx.manche.phase = PHASE.ANNONCE
+  ctx.manche.finDePhase = dans(DUREE_INTERLUDE)
+
+  em.statutPourTous(STATUS.SHOW_INTERLUDE, {
+    titre: groupe.titre,
+    points: groupe.points,
+    questions: groupe.questions.length,
+  })
+  em.programmer(ctx.manche.finDePhase)
+}
+
 const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
+  const avant = ctx.manche.groupeIndex
+
   suivreLeGroupe(ctx)
+
+  const debutant = etapeCourante(ctx)
+
+  // On vient d'entrer dans un groupe : on l'annonce d'abord. Au réveil de
+  // l'alarme, avancer() repasse ici — mais suivreLeGroupe est idempotent,
+  // groupeIndex n'a plus changé, et la préparation se poursuit normalement.
+  if (debutant.groupe && ctx.manche.groupeIndex !== avant) {
+    entrerAnnonce(ctx, em, debutant.groupe)
+
+    return
+  }
 
   const { question } = etapeCourante(ctx)
 
@@ -378,6 +413,11 @@ export const avancer = (ctx: ContextePartie, em: Emetteur): void => {
       return
 
     case PHASE.AVANT_PREMIERE:
+      entrerPreparation(ctx, em)
+
+      return
+
+    case PHASE.ANNONCE:
       entrerPreparation(ctx, em)
 
       return

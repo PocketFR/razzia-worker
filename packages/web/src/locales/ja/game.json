@@ -12,8 +12,11 @@
     "nobody": "誰も残りませんでした",
     "pointsChacun_other": "1人あたり{{count}}ポイント",
     "points_other": "{{count}}ポイント",
+    "rule_other": "{{count}}問 · 一度でも間違えたら脱落",
+    "suddenDeath": "サドンデス",
     "survivors_other": "生き残り{{count}}人",
-    "title": "幕間"
+    "title": "幕間",
+    "toWin_other": "{{count}}ポイント獲得のチャンス"
   },
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",

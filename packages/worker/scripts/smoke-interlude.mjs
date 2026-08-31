@@ -209,9 +209,29 @@ await animateur.statut("SELECT_ANSWER")
 await animateur.statut("SHOW_RESPONSES")
 verifier("la question hors groupe se déroule normalement", true)
 
-// ── interlude, tour 1 : Chloé se trompe ───────────────────────────────────
+// ── l'annonce du groupe ───────────────────────────────────────────────────
 suivant()
-const tour1 = await animateur.statut("SELECT_ANSWER")
+const annonce = await animateur.statut("SHOW_INTERLUDE", 8000)
+verifier(
+  "le groupe s'annonce avant sa première question",
+  annonce !== undefined,
+  "aucun SHOW_INTERLUDE reçu",
+)
+verifier(
+  "l'annonce porte le titre, le pot et le nombre de questions",
+  annonce?.d?.data?.titre === "Interlude — qui tiendra ?" &&
+    annonce?.d?.data?.points === POT &&
+    annonce?.d?.data?.questions === 3,
+  JSON.stringify(annonce?.d?.data),
+)
+
+// Les joueurs la voient aussi : c'est là qu'ils apprennent que les règles
+// changent.
+const annonceJoueur = await alice.statut("SHOW_INTERLUDE", 3000)
+verifier("les joueurs la voient aussi", annonceJoueur !== undefined)
+
+// ── interlude, tour 1 : Chloé se trompe ───────────────────────────────────
+const tour1 = await animateur.statut("SELECT_ANSWER", 15000)
 verifier(
   "tour 1 : les trois joueurs sont attendus",
   tour1?.d?.data?.totalPlayer === 3,

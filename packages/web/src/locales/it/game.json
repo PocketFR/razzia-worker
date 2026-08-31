@@ -14,9 +14,14 @@
     "pointsChacun_other": "{{count}} punti a testa",
     "points_one": "{{count}} punto",
     "points_other": "{{count}} punti",
+    "rule_one": "{{count}} domanda · un errore e sei eliminato",
+    "rule_other": "{{count}} domande · un errore e sei eliminato",
+    "suddenDeath": "Morte improvvisa",
     "survivors_one": "Ultimo rimasto",
     "survivors_other": "{{count}} superstiti",
-    "title": "Interludio"
+    "title": "Interludio",
+    "toWin_one": "{{count}} punto in palio",
+    "toWin_other": "{{count}} punti in palio"
   },
   "joinInstruction": "Unisciti al gioco su",
   "leaderboard": "Classifica",
