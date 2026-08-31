@@ -14,3 +14,8 @@ packages/worker/seed.sql
 # Généré par scripts/seed-from-config.mjs, contient le mot de passe manager
 # Secrets de développement local
 .dev.vars
+
+# Configuration du Worker : elle porte le domaine et l'identifiant de la
+# base de chaque installation. Le gabarit versionné est wrangler.jsonc.example,
+# que le script de déploiement recopie et complète au premier passage.
+packages/worker/wrangler.jsonc

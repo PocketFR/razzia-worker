@@ -1,7 +1,8 @@
 #!/bin/sh
 # Déploiement de razzia sur Cloudflare.
 #
-#   CLOUDFLARE_API_TOKEN=... sh scripts/deployer.sh [chemin/vers/config]
+#   CLOUDFLARE_API_TOKEN=... DOMAINE=quiz.exemple.fr \
+#     sh scripts/deployer.sh [chemin/vers/config]
 #
 # Idempotent : chaque étape constate l'existant avant d'agir, et rien n'est
 # écrasé sans le dire. Peut donc être rejoué après un échec en cours de route.
@@ -13,6 +14,9 @@
 # Le dossier config/ est facultatif : il ne sert qu'à la reprise initiale des
 # quiz et des résultats de l'ancienne installation, et n'est repris qu'une
 # fois — un second passage refuserait d'écraser des données déjà en base.
+#
+# DOMAINE n'est demandé qu'au premier passage, et seulement si wrangler.jsonc
+# ne le connaît pas encore. Il doit être géré par Cloudflare.
 set -e
 
 CONFIG_SOURCE="$1"
@@ -26,8 +30,64 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
   exit 1
 fi
 
-echo "== 1. base de données"
+# La configuration porte le domaine et l'identifiant de base de CETTE
+# installation : elle n'est pas versionnée, seul le gabarit l'est.
+# Compte les lignes rendues par une requête, en lisant vraiment le JSON.
+#
+# La version précédente cherchait le motif "n":<chiffres> avec grep. Wrangler
+# rend du JSON INDENTÉ — « "n": 9 », avec une espace — donc le motif ne
+# correspondait jamais et le compte valait toujours zéro. Silencieusement : la
+# reprise des données se croyait devant une base vide alors qu'elle contenait
+# neuf quiz. Trouvé en rejouant le script de bout en bout, pas en le relisant.
+compter() {
+  npx wrangler d1 execute razzia --remote --yes --json --command "$1" 2>/dev/null \
+    | node -e 'let e="";process.stdin.on("data",d=>e+=d).on("end",()=>{
+        try{const r=JSON.parse(e);const l=(Array.isArray(r)?r[0]:r).results[0]
+        process.stdout.write(String(Object.values(l)[0]))}catch{process.stdout.write("")}})' \
+    2>/dev/null || true
+}
+
+echo "== 1. configuration locale"
+if [ ! -f wrangler.jsonc ]; then
+  cp wrangler.jsonc.example wrangler.jsonc
+  echo "   wrangler.jsonc créé depuis le gabarit"
+else
+  echo "   wrangler.jsonc déjà présent, on garde l'existant"
+fi
+
+echo "== 2. domaine"
+if grep -q "REMPLACER_PAR_VOTRE_DOMAINE" wrangler.jsonc; then
+  if [ -z "$DOMAINE" ]; then
+    echo "! DOMAINE manquant." >&2
+    echo "  Le nom sur lequel l'application répondra, par exemple quiz.exemple.fr." >&2
+    echo "  Il doit déjà être géré par Cloudflare : c'est ce qui permet d'y" >&2
+    echo "  attacher un Worker sans toucher au DNS à la main." >&2
+    echo "  Relancer avec : DOMAINE=quiz.exemple.fr sh scripts/deployer.sh" >&2
+    exit 1
+  fi
+
+  sed -i "s/REMPLACER_PAR_VOTRE_DOMAINE/$DOMAINE/" wrangler.jsonc
+  echo "   $DOMAINE reporté dans wrangler.jsonc"
+else
+  DOMAINE=$(grep -o '"pattern": "[^"]*"' wrangler.jsonc | head -1 | cut -d'"' -f4)
+  echo "   déjà configuré : $DOMAINE"
+fi
+
+echo "== 3. base de données"
 if grep -q "REMPLACER_APRES" wrangler.jsonc; then
+  # Une base « razzia » peut déjà exister — configuration égarée, dépôt
+  # recloné. En créer une seconde donnerait une installation vide à côté des
+  # données réelles, ce qui est le pire des résultats : rien n'échoue, tout a
+  # disparu. On regarde donc d'abord.
+  EXISTANTE=$(npx wrangler d1 list --json 2>/dev/null \
+    | node -e 'let e="";process.stdin.on("data",d=>e+=d).on("end",()=>{
+        try{const b=JSON.parse(e).find(b=>b.name==="razzia")
+        if(b)process.stdout.write(b.uuid)}catch{}})' 2>/dev/null || true)
+
+  if [ -n "$EXISTANTE" ]; then
+    sed -i "s/REMPLACER_APRES_wrangler_d1_create/$EXISTANTE/" wrangler.jsonc
+    echo "   base razzia déjà présente, réutilisée ($EXISTANTE)"
+  else
   echo "   création de la base razzia"
   SORTIE=$(npx wrangler d1 create razzia 2>&1) || {
     echo "$SORTIE" >&2
@@ -45,18 +105,17 @@ if grep -q "REMPLACER_APRES" wrangler.jsonc; then
 
   sed -i "s/REMPLACER_APRES_wrangler_d1_create/$ID/" wrangler.jsonc
   echo "   id $ID reporté dans wrangler.jsonc"
+  fi
 else
   echo "   déjà configurée, on garde l'existant"
 fi
 
-echo "== 2. schéma"
+echo "== 4. schéma"
 npx wrangler d1 execute razzia --remote --yes --file schema.sql >/dev/null
 echo "   tables créées ou déjà présentes"
 
-echo "== 3. reprise des données"
-DEJA=$(npx wrangler d1 execute razzia --remote --yes --json \
-  --command "SELECT count(*) AS n FROM quizz" 2>/dev/null \
-  | grep -oE '"n":[0-9]+' | grep -oE '[0-9]+' | head -1)
+echo "== 5. reprise des données"
+DEJA=$(compter "SELECT count(*) AS n FROM quizz")
 
 if [ "${DEJA:-0}" -gt 0 ]; then
   echo "   $DEJA quiz déjà en base : reprise ignorée"
@@ -69,7 +128,7 @@ else
   echo "   aucun dossier config fourni : base laissée vide"
 fi
 
-echo "== 4. clé maîtresse"
+echo "== 6. clé maîtresse"
 # Elle chiffre les clés API et signe les sessions. La CHANGER rendrait
 # illisibles les clés déjà enregistrées et invaliderait le mot de passe
 # animateur converti — d'où la vérification préalable.
@@ -82,24 +141,63 @@ else
   echo "   clé aléatoire de 32 octets posée"
 fi
 
-echo "== 5. build du frontend"
+# SANS CETTE ÉTAPE, UNE INSTALLATION NEUVE EST DÉFINITIVEMENT VERROUILLÉE.
+# L'écran animateur exige un mot de passe, et le changer exige d'être déjà
+# connecté : sans première valeur, il n'y a aucune porte. Elle n'arrivait
+# jusqu'ici que par la reprise d'un ancien config/game.json, que personne
+# d'autre n'a.
+#
+# Le mot de passe est écrit EN CLAIR, comme le faisait l'amont : la première
+# connexion réussie le convertit en empreinte à clé. C'est le même chemin de
+# migration que pour les installations reprises.
+echo "== 7. mot de passe animateur"
+DEJA_MDP=$(compter "SELECT count(*) AS n FROM settings WHERE key = 'managerPassword'")
+
+if [ "${DEJA_MDP:-0}" -gt 0 ]; then
+  echo "   déjà défini, on n'y touche pas"
+else
+  # Alphabet sans caractère ambigu ni guillemet : la valeur part dans une
+  # requête SQL, et se lit à voix haute au moment de la première connexion.
+  MDP=$(node -e 'const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    process.stdout.write(Array.from(crypto.getRandomValues(new Uint8Array(16)),
+      o => a[o % a.length]).join(""))')
+
+  # ON CONFLICT DO NOTHING plutôt qu'un INSERT nu : si le comptage se trompait
+  # encore, cette requête ne pourrait toujours pas écraser un mot de passe en
+  # place — elle ne ferait rien. Perdre l'accès à une installation vivante
+  # serait bien pire que d'afficher un mot de passe inutile.
+  npx wrangler d1 execute razzia --remote --yes \
+    --command "INSERT INTO settings (key, value, encrypted, updated_at)
+               VALUES ('managerPassword', '$MDP', 0, $(date +%s)000)
+               ON CONFLICT(key) DO NOTHING" >/dev/null
+
+  echo "   mot de passe initial tiré au hasard :"
+  echo
+  echo "       $MDP"
+  echo
+  echo "   Il ne sera plus affiché. Le changer depuis /manager, onglet"
+  echo "   « Paramètres », une fois connecté."
+fi
+
+echo "== 8. build du frontend"
 (cd ../.. && pnpm --filter @razzia/web build >/dev/null)
 echo "   dist prêt"
 
-echo "== 6. déploiement"
+echo "== 9. déploiement"
 npx wrangler deploy
 
-cat <<'FIN'
+cat <<FIN
 
 == Il reste UNE chose, et elle casse Spotify en silence si on l'oublie
 
 Dans le tableau de bord développeur Spotify, ajouter aux « Redirect URIs » :
 
-    https://quiz.exemple.fr/ia/spotify-callback
+    https://$DOMAINE/spotify/callback
 
-L'URL est dérivée de location.origin : sans cette déclaration, la connexion
-échoue sans message exploitable.
+Cette adresse est comparée à l'identique par Spotify, qui refuse
+l'autorisation sans même rediriger si elle n'y figure pas — et l'échec ne
+donne aucun message exploitable.
 
-Puis, dans /manager/config, onglet « Clés API », saisir la clé Mistral et les
-identifiants Spotify — c'est le premier essai grandeur nature de l'écran.
+Puis, dans /manager, onglet « Paramètres », saisir la clé Mistral et les
+identifiants Spotify. C'est le premier essai grandeur nature de cet écran.
 FIN

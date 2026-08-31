@@ -30,7 +30,7 @@ class FauxWS {
 }
 
 globalThis.WebSocket = FauxWS
-globalThis.location = { protocol: "https:", host: "quiz.exemple.fr", origin: "https://quiz.exemple.fr" }
+globalThis.location = { protocol: "https:", host: "razzia.example", origin: "https://razzia.example" }
 globalThis.localStorage = {
   _: {},
   getItem(k) { return this._[k] ?? null },

@@ -44,9 +44,11 @@
     }
   ],
 
-  // Domaine dédié : l'ancienne pile reste en service sur son propre nom
-  // pendant toute la durée du portage, pour pouvoir comparer les deux.
-  "routes": [{ "pattern": "quiz.exemple.fr", "custom_domain": true }],
+  // Le domaine sur lequel l'application répond. Le script de déploiement le
+  // demande au premier passage et le reporte ici, comme l'identifiant D1.
+  // Il doit être géré par Cloudflare : c'est ce qui permet d'y attacher un
+  // Worker sans passer par un enregistrement DNS à la main.
+  "routes": [{ "pattern": "REMPLACER_PAR_VOTRE_DOMAINE", "custom_domain": true }],
 
   // Quotidien, à 4 h UTC : il ne ramasse que des lignes vieilles d'un jour,
   // l'heure exacte n'a donc aucune importance.
