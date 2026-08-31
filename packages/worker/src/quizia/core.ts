@@ -46,9 +46,10 @@
  * `popularity` est à null sur les pistes de /search — le curseur de
  * difficulté repose donc sur le CHOIX DES ARTISTES fait en passe 1.
  *
- * ACCÈS — la création consomme des tokens, elle est protégée par le mot de
- * passe manager de razzia lu dans config/game.json. Les deux endpoints de
- * lecture ne le sont pas : métadonnées publiques, coût négligeable.
+ * ACCÈS — la création consomme des tokens : elle n'est atteignable que par
+ * /api/quizz/generate, derrière la session animateur. Les deux endpoints de
+ * lecture, servis sous /spotify, ne sont pas protégés : métadonnées
+ * publiques, coût négligeable.
  *
  * PORTAGE SUR CLOUDFLARE WORKERS — ce qui change, et pourquoi :
  *
