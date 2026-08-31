@@ -24,7 +24,7 @@ const base = process.argv[2] ?? "http://localhost:8787"
 const paliers = (process.argv[3] ?? "10,25,50,100")
   .split(",")
   .map((n) => parseInt(n, 10))
-const motDePasse = process.argv[4] ?? "MotDePasse-De-Test"
+const motDePasse = process.argv[4] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 const wsBase = base.replace(/^http/, "ws")
 
 const auth = await fetch(`${base}/api/manager/auth`, {

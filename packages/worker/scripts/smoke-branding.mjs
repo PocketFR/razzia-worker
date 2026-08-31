@@ -22,7 +22,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? "MotDePasse-De-Test"
+const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0

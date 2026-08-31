@@ -3,6 +3,10 @@
  *
  *   node scripts/smoke-api.mjs [base] [motdepasse]
  *
+ * Le mot de passe animateur se passe en argument, ou par RAZZIA_MDP. Le repli
+ * est celui de la base de développement local, jamais d'une installation
+ * réelle : un mot de passe en dur dans un dépôt est un mot de passe publié.
+ *
  * Exerce autant les chemins d'échec que les chemins nominaux : c'est là que
  * se cachent les régressions, une API qui répond 200 partout étant facile à
  * croire correcte. Vérifie aussi que les erreurs rendent des CLÉS i18n
@@ -14,7 +18,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const base = process.argv[2] ?? "http://localhost:8787"
-const motDePasse = process.argv[3] ?? "MotDePasse-De-Test"
+const motDePasse = process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
 
 let echecs = 0
 let passes = 0

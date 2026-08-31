@@ -1,33 +1,50 @@
 name: CI
 
 on:
+  push:
   pull_request:
 
 jobs:
-  checks:
-    name: Lint & Format
+  verifier:
+    name: Types, style et tests unitaires
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'javascript')
     steps:
-      - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      # Node 22 : c'est la version sous laquelle le déploiement fonctionne.
+      # Wrangler part en erreur de segmentation sous node 26 dès le premier
+      # appel à l'API Cloudflare. Rien ici n'appelle Cloudflare, mais autant
+      # éprouver l'application sur la version qui sert vraiment.
+      - uses: actions/setup-node@v4
         with:
-          node-version: 25
+          node-version: 22
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Check formatting
+      - name: Format
         run: pnpm format
 
       - name: Lint
         run: pnpm lint
+
+      # tsc -b, et non tsc -p : la configuration du paquet web déclare
+      # « files: [] », si bien que -p ne vérifierait rigoureusement rien.
+      - name: Types
+        run: pnpm run typecheck
+
+      # Les suites qui n'ont pas besoin d'un serveur. Les smoke-* exigent un
+      # « wrangler dev » et une base peuplée : elles se lancent à la main,
+      # voir docs/deploiement.md.
+      - name: Tests unitaires
+        working-directory: packages/worker
+        run: |
+          npx tsx scripts/test-quizia.ts
+          npx tsx scripts/test-branding.mts
+          npx tsx scripts/test-socket-client.mts
+          npx tsx scripts/test-rattrapage.mts
+          npx tsx scripts/test-enchainement-auto.mts
