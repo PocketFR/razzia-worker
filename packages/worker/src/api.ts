@@ -11,11 +11,16 @@
 // "errors:manager.invalidPassword"...) : le frontend les traduit déjà, il n'y
 // a aucune raison d'inventer un vocabulaire parallèle.
 
-import { changerMotDePasse, createConfigService } from "./services/config"
+import {
+  changerMotDePasse,
+  createConfigService,
+  epoqueDuMotDePasse,
+} from "./services/config"
 import {
   CLES_CONNUES,
   ecrireCle,
   etatDesCles,
+  formatValide,
   lireCles,
   type NomDeCle,
 } from "./services/secrets"
@@ -25,7 +30,7 @@ import {
   effacerImage,
   ecrireImage,
   ecrireTheme,
-  estImage,
+  estNomStocke,
   estSvg,
   etatDesImages,
   lireTheme,
@@ -33,6 +38,7 @@ import {
   TAILLE_MAX,
   type Theme,
 } from "./services/branding"
+import { CHEMIN_ETAT } from "./game-room"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -73,7 +79,11 @@ export async function routerApi(
   const methode = request.method
 
   const authentifie = async () =>
-    jetonValide(env.RAZZIA_MASTER_KEY, jetonDeLaRequete(request))
+    jetonValide(
+      env.RAZZIA_MASTER_KEY,
+      jetonDeLaRequete(request),
+      await epoqueDuMotDePasse(env.DB),
+    )
 
   // --- animateur : authentification ---------------------------------------
   if (section === "manager" && reste[0] === "auth" && methode === "POST") {
@@ -104,7 +114,12 @@ export async function routerApi(
       return erreur("errors:manager.invalidPassword", 401)
     }
 
-    return json({ token: await creerJeton(env.RAZZIA_MASTER_KEY) })
+    return json({
+      token: await creerJeton(
+        env.RAZZIA_MASTER_KEY,
+        await epoqueDuMotDePasse(env.DB),
+      ),
+    })
   }
 
   // --- joueur : vérification du PIN, sans authentification -----------------
@@ -291,7 +306,7 @@ export async function routerApi(
       return json({ ok: true })
     }
 
-    if (cible === "image" && estImage(reste[1] ?? "")) {
+    if (cible === "image" && estNomStocke(reste[1] ?? "")) {
       const nom = reste[1] as Parameters<typeof ecrireImage>[1]
 
       if (methode === "DELETE") {
@@ -399,7 +414,18 @@ export async function routerApi(
 
     await changerMotDePasse(env.DB, env.RAZZIA_MASTER_KEY, nouveau)
 
-    return json({ ok: true })
+    // Changer le mot de passe invalide TOUTES les sessions, y compris celle
+    // qui vient de le changer : la signature couvre l'époque du mot de passe.
+    // C'est l'effet voulu — un jeton dérobé ne survit pas à la rotation — mais
+    // il serait absurde de déconnecter celui qui agit. On lui en rend un neuf ;
+    // les autres tombent.
+    return json({
+      ok: true,
+      token: await creerJeton(
+        env.RAZZIA_MASTER_KEY,
+        await epoqueDuMotDePasse(env.DB),
+      ),
+    })
   }
 
   // --- clés API -----------------------------------------------------------
@@ -433,11 +459,44 @@ export async function routerApi(
           continue
         }
 
+        // Refusé AVANT d'écrire quoi que ce soit : une valeur mal formée
+        // n'entre pas en base, plutôt que d'y dormir en attendant d'être
+        // neutralisée à l'affichage.
+        if (!formatValide(nom as NomDeCle, valeur.trim())) {
+          return erreur("errors:manager.invalidKeyFormat", 400)
+        }
+      }
+
+      for (const [nom, valeur] of Object.entries(corps)) {
+        if (typeof valeur !== "string") {
+          continue
+        }
+
         await ecrireCle(env, nom as NomDeCle, valeur.trim())
       }
 
       return json({ keys: await etatDesCles(env) })
     }
+  }
+
+  // --- diagnostic d'objet, pour les tests -----------------------------------
+  // La purge du balayage est invérifiable autrement : la ligne D1 partie,
+  // l'objet n'est plus joignable, et rien ne distingue « effacé » de « laissé
+  // plein ». Fermée hors développement, comme le vieillissement ci-dessous.
+  if (section === "__objet" && methode === "GET") {
+    if (!env.GRACE_MS) {
+      return erreur("not found", 404)
+    }
+
+    const gameId = url.searchParams.get("game") ?? ""
+
+    if (!gameId) {
+      return erreur("errors:game.notFound", 400)
+    }
+
+    const objet = env.GAME_ROOM.get(env.GAME_ROOM.idFromName(gameId))
+
+    return objet.fetch(`https://razzia.interne${CHEMIN_ETAT}`)
   }
 
   // --- vieillissement artificiel, pour les tests ---------------------------

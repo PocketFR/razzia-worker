@@ -145,6 +145,14 @@ export interface ContextePartie {
   quizz: QuizzWithId
   players: Player[]
   manche: Manche
+  /*
+   * La largeur de l'écran de l'animateur, en pixels CSS, s'il l'a annoncée.
+   *
+   * Elle n'appartient pas à la manche — elle décrit un poste, pas une partie —
+   * mais la phase de tirage doit la transmettre, et c'est le seul endroit d'où
+   * elle peut partir.
+   */
+  largeurAnimateur: number | null
 }
 
 // Recopiés de utils/game.ts plutôt qu'importés : ce module amont tire aussi
@@ -521,6 +529,7 @@ const entrerTirage = (
     duree,
     endsAt: ctx.manche.finDePhase,
     noms,
+    largeurEcran: ctx.largeurAnimateur ?? undefined,
   })
 
   em.programmer(ctx.manche.finDePhase)

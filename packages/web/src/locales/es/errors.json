@@ -24,6 +24,7 @@
   },
   "manager": {
     "failedToReadConfig": "Error al leer la configuración del juego",
+    "invalidKeyFormat": "El formato de esta clave no es válido",
     "invalidPassword": "Contraseña incorrecta",
     "masterKeyMissing": "Al servidor le falta su clave maestra",
     "passwordNotConfigured": "La contraseña del administrador no está configurada",

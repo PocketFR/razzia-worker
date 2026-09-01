@@ -86,6 +86,7 @@ const faireContexte = (): ContextePartie =>
       streak: 0,
     })),
     manche: mancheNeuve(),
+    largeurAnimateur: null,
   }) as unknown as ContextePartie
 
 const faireEmetteur = (traces: Trace[]): Emetteur => ({
@@ -359,6 +360,51 @@ console.log("=== durée du jeu ===")
     (dernier(traces3, "SHOW_DRAW")?.duree as number) ===
       PARIS["rouge-noir"].duree,
     String(dernier(traces3, "SHOW_DRAW")?.duree),
+  )
+}
+
+// ── L'échelle de la course ────────────────────────────────────────────────
+
+console.log("=== la largeur de l'écran de l'animateur ===")
+{
+  const traces: Trace[] = []
+  const ctx = faireContexte()
+  const em = faireEmetteur(traces)
+
+  // Elle sert d'échelle commune : sans elle, un téléphone dessine la même
+  // course dans cinq fois moins de pixels et les écarts deviennent illisibles.
+  ctx.largeurAnimateur = 1920
+
+  demarrer(ctx, em)
+  ctx.manche.question = 1
+  jusquAuxMises(ctx, em)
+  repondre(ctx, em, "a", [0])
+  repondre(ctx, em, "b", [0])
+  repondre(ctx, em, "c", [0])
+  cloturerReponses(ctx, em)
+
+  verifier(
+    "elle voyage avec le tirage",
+    dernier(traces, "SHOW_DRAW")?.largeurEcran === 1920,
+    String(dernier(traces, "SHOW_DRAW")?.largeurEcran),
+  )
+
+  const muet: Trace[] = []
+  const sans = faireContexte()
+  const emMuet = faireEmetteur(muet)
+
+  demarrer(sans, emMuet)
+  sans.manche.question = 1
+  jusquAuxMises(sans, emMuet)
+  repondre(sans, emMuet, "a", [0])
+  repondre(sans, emMuet, "b", [0])
+  repondre(sans, emMuet, "c", [0])
+  cloturerReponses(sans, emMuet)
+
+  verifier(
+    "et reste absente quand l'animateur n'a rien annoncé",
+    dernier(muet, "SHOW_DRAW")?.largeurEcran === undefined,
+    String(dernier(muet, "SHOW_DRAW")?.largeurEcran),
   )
 }
 

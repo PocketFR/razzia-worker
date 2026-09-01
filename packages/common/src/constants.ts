@@ -47,6 +47,11 @@ export const EVENTS = {
     NEW_QUIZZ: "manager:newQuizz",
     SHOW_LEADERBOARD: "manager:showLeaderboard",
     GET_CONFIG: "manager:getConfig",
+    // L'animateur annonce la largeur de son écran. Elle sert d'ÉCHELLE
+    // commune aux animations qui se déroulent en largeur — la course de
+    // chevaux —, pour qu'un téléphone montre les mêmes écarts qu'une
+    // télévision plutôt qu'une course écrasée.
+    VIEWPORT: "manager:viewport",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
   },

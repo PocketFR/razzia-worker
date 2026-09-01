@@ -10,6 +10,7 @@
       "secondary": "Secondaire"
     },
     "colors": "Couleurs",
+    "declined": "Fond découpé en {{count}} tailles",
     "fontFamily": "Police",
     "fontUrl": "Adresse de la police (facultatif)",
     "fromAddress": "Aucun fichier : l'adresse ci-dessous est utilisée",
@@ -25,11 +26,13 @@
     "reset": "Réinitialiser",
     "save": "Enregistrer l'apparence",
     "saved": "Apparence enregistrée",
+    "slicing": "Découpage de l'image en cours…",
     "sounds": "Sons",
     "subtitle": "Nom, police et couleurs de l'application, pour tous les écrans.",
     "tooLarge": "Image trop lourde : {{max}} au maximum.",
     "upload": "Téléverser une image",
-    "uploaded": "Téléversée — {{taille}}, le {{date}}"
+    "uploaded": "Téléversée — {{taille}}, le {{date}}",
+    "uploadedSet": "Découpé en {{count}} tailles · {{taille}} · {{date}}"
   },
   "configurationsTitle": "Configurations",
   "ia": {

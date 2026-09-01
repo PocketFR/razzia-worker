@@ -54,21 +54,46 @@ export const deriverCle = async (
   )
 }
 
-export const creerJeton = async (maitresse: string): Promise<string> => {
-  const expiration = Date.now() + DUREE_MS
+// Ce que la signature couvre : l'échéance ET l'ÉPOQUE du mot de passe.
+//
+// L'époque est la date de son dernier changement. Elle n'est pas transportée
+// dans le jeton — le serveur la relit — si bien qu'un jeton émis sous l'ancien
+// mot de passe ne se vérifie plus dès qu'il change. Sans cela, un jeton dérobé
+// restait valable douze heures malgré la rotation, ce qui privait le
+// changement de mot de passe de tout effet immédiat.
+//
+// C'est le seul endroit qui coûte une lecture de base, et elle ne concerne que
+// les routes animateur — jamais le trafic d'une partie, qui passe par la
+// WebSocket et son propre contrôle de rôle.
+const signer = async (
+  maitresse: string,
+  expiration: number,
+  epoque: number,
+) => {
   const cle = await deriverCle(maitresse, "session")
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    cle,
-    encodeur.encode(String(expiration)),
-  )
 
-  return `${expiration}.${base64url(signature)}`
+  return base64url(
+    await crypto.subtle.sign(
+      "HMAC",
+      cle,
+      encodeur.encode(`${expiration}.${epoque}`),
+    ),
+  )
+}
+
+export const creerJeton = async (
+  maitresse: string,
+  epoque: number,
+): Promise<string> => {
+  const expiration = Date.now() + DUREE_MS
+
+  return `${expiration}.${await signer(maitresse, expiration, epoque)}`
 }
 
 export const jetonValide = async (
   maitresse: string,
   jeton: string | null,
+  epoque: number,
 ): Promise<boolean> => {
   if (!jeton) {
     return false
@@ -89,24 +114,31 @@ export const jetonValide = async (
   // On resigne et on compare, plutôt que de décoder la signature reçue :
   // crypto.subtle.verify fait la comparaison en temps constant, ce qu'un
   // === sur des chaînes ne garantirait pas.
-  const cle = await deriverCle(maitresse, "session")
   const attendue = jeton.slice(separateur + 1)
-  const recalculee = base64url(
-    await crypto.subtle.sign("HMAC", cle, encodeur.encode(String(expiration))),
-  )
+  const recalculee = await signer(maitresse, expiration, epoque)
 
   if (attendue.length !== recalculee.length) {
     return false
   }
 
-  return crypto.subtle.verify(
-    "HMAC",
-    cle,
-    Uint8Array.from(
+  // Le décodage porte sur une valeur reçue de l'extérieur : mal formée, atob
+  // lève. On refuse plutôt que de laisser l'exception remonter en 500.
+  let signature: Uint8Array
+
+  try {
+    signature = Uint8Array.from(
       atob(attendue.replaceAll("-", "+").replaceAll("_", "/")),
       (c) => c.charCodeAt(0),
-    ),
-    encodeur.encode(String(expiration)),
+    )
+  } catch {
+    return false
+  }
+
+  return crypto.subtle.verify(
+    "HMAC",
+    await deriverCle(maitresse, "session"),
+    signature,
+    encodeur.encode(`${expiration}.${epoque}`),
   )
 }
 

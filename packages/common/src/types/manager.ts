@@ -73,6 +73,8 @@ export interface BrandingImage {
   mime: string
   taille: number
   modifiee: number
+  /* Nombre de déclinaisons, quand l'image en a — le fond seul, aujourd'hui. */
+  variantes?: number
 }
 
 export interface BrandingData {

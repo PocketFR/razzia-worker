@@ -24,6 +24,7 @@
   },
   "manager": {
     "failedToReadConfig": "ゲーム設定の読み込みに失敗しました",
+    "invalidKeyFormat": "このキーの形式が正しくありません",
     "invalidPassword": "パスワードが無効です",
     "masterKeyMissing": "サーバーにマスターキーがありません",
     "passwordNotConfigured": "管理者パスワードが設定されていません",

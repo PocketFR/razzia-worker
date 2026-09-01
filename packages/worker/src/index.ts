@@ -31,10 +31,17 @@
 // réveille plus aucun Durable Object.
 
 import { routerApi } from "./api"
-import { estImage, estSvg, lireImage, themePublic } from "./services/branding"
+import {
+  estNomStocke,
+  estSvg,
+  lireImage,
+  themePublic,
+} from "./services/branding"
 import { routerSpotify } from "./spotify"
 
-export { GameRoom } from "./game-room"
+import { CHEMIN_PURGE, GameRoom } from "./game-room"
+
+export { GameRoom }
 
 export interface Env {
   ASSETS: Fetcher
@@ -70,16 +77,62 @@ export interface Env {
 // ramasser ce que personne ne réclamera plus.
 const RETENTION_MS = 24 * 60 * 60 * 1000
 
-export default {
-  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
-    const { meta } = await env.DB.prepare(
-      `DELETE FROM games WHERE created_at < ?`,
-    )
-      .bind(Date.now() - RETENTION_MS)
-      .run()
+// Le nombre de salles traitées par passage.
+//
+// Chaque purge est un aller-retour vers un Durable Object, et le balayage a un
+// budget comme n'importe quelle requête. Ce qui reste attend le lendemain :
+// une ligne d'un jour de plus ne gêne personne, un balayage interrompu au
+// milieu, si.
+const PAR_PASSAGE = 50
 
-    if (meta.changes) {
-      console.log(`${meta.changes} partie(s) ancienne(s) purgée(s)`)
+export default {
+  /*
+   * Le balayage quotidien.
+   *
+   * IL RÉVEILLE L'OBJET AVANT DE RETIRER SA LIGNE, et l'ordre est tout.
+   *
+   * La ligne D1 est le SEUL pointeur vers l'objet : rien ne permet d'énumérer
+   * les Durable Objects, et Cloudflare n'en ramasse aucun — un objet qui garde
+   * du stockage le garde pour toujours. Supprimer la ligne d'abord, comme on
+   * le faisait, rendait donc définitivement introuvable un objet qui ne se
+   * serait pas vidé — après six échecs d'alarme, par exemple.
+   *
+   * En cas d'échec, la ligne RESTE : c'est ce qui permet de réessayer demain.
+   */
+  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+    const { results } = await env.DB.prepare(
+      `SELECT game_id AS gameId FROM games WHERE created_at < ? LIMIT ?`,
+    )
+      .bind(Date.now() - RETENTION_MS, PAR_PASSAGE)
+      .all<{ gameId: string }>()
+
+    let purgees = 0
+    let echecs = 0
+
+    for (const { gameId } of results) {
+      try {
+        const objet = env.GAME_ROOM.get(env.GAME_ROOM.idFromName(gameId))
+
+        await objet.fetch(`https://razzia.interne${CHEMIN_PURGE}`)
+      } catch (erreur) {
+        echecs += 1
+        console.error(`purge de ${gameId} impossible :`, erreur)
+
+        // On garde la ligne : sans elle, on ne saurait plus où retourner.
+        continue
+      }
+
+      await env.DB.prepare(`DELETE FROM games WHERE game_id = ?`)
+        .bind(gameId)
+        .run()
+
+      purgees += 1
+    }
+
+    if (purgees || echecs) {
+      const reste = echecs ? `, ${echecs} en échec, réessai demain` : ""
+
+      console.log(`${purgees} partie(s) ancienne(s) purgée(s)${reste}`)
     }
   },
 
@@ -147,7 +200,7 @@ async function routerBranding(
 
   const nom = url.pathname.slice("/branding/asset/".length)
 
-  if (url.pathname.startsWith("/branding/asset/") && estImage(nom)) {
+  if (url.pathname.startsWith("/branding/asset/") && estNomStocke(nom)) {
     const image = await lireImage(env.DB, nom)
 
     if (!image) {

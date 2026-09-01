@@ -13,7 +13,7 @@ interface Props {
 // L'écran est le même pour tout le monde, animateur comme joueurs : c'est le
 // moment du spectacle, et l'intérêt d'un interlude est justement que chacun
 // regarde la même chose au même instant.
-const Draw = ({ data: { pari, duree, endsAt, noms } }: Props) => {
+const Draw = ({ data: { pari, duree, endsAt, noms, largeurEcran } }: Props) => {
   const { t } = useTranslation()
   const dureeMs = duree * 1000
 
@@ -37,6 +37,7 @@ const Draw = ({ data: { pari, duree, endsAt, noms } }: Props) => {
           finAt={endsAt}
           dureeMs={dureeMs}
           noms={noms}
+          largeurEcran={largeurEcran}
         />
       ) : (
         <CarteRougeNoir

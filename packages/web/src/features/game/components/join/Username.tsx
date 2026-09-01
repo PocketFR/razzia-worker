@@ -20,12 +20,17 @@ const Username = () => {
   const [username, setUsername] = useState("")
   const { t } = useTranslation()
 
+  // Ébarbé ici AUSSI, et pas seulement sur le serveur : le client garde sa
+  // propre copie du pseudo pour l'afficher, et elle doit correspondre à celle
+  // du classement.
+  const propre = username.trim()
+
   const handleLogin = () => {
     if (!gameId) {
       return
     }
 
-    socket.emit(EVENTS.PLAYER.LOGIN, { gameId, data: { username } })
+    socket.emit(EVENTS.PLAYER.LOGIN, { gameId, data: { username: propre } })
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -36,7 +41,7 @@ const Username = () => {
 
   useEvent(EVENTS.GAME.SUCCESS_JOIN, (joinedGameId) => {
     setStatus(STATUS.WAIT, { text: "game:waitingForPlayers" })
-    login(username)
+    login(propre)
 
     navigate({ to: "/party/$gameId", params: { gameId: joinedGameId } })
   })

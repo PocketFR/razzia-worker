@@ -24,6 +24,7 @@
   },
   "manager": {
     "failedToReadConfig": "Impossibile leggere la configurazione del gioco",
+    "invalidKeyFormat": "Il formato di questa chiave non è valido",
     "invalidPassword": "Password non valida",
     "masterKeyMissing": "Al server manca la chiave madre",
     "passwordNotConfigured": "La password del gestore non è configurata",

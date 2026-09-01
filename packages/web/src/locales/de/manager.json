@@ -10,6 +10,7 @@
       "secondary": "Sekundär"
     },
     "colors": "Farben",
+    "declined": "Hintergrund in {{count}} Größen zerlegt",
     "fontFamily": "Schriftart",
     "fontUrl": "Schrift-URL (optional)",
     "fromAddress": "Keine Datei: Die Adresse unten wird verwendet",
@@ -25,11 +26,13 @@
     "reset": "Zurücksetzen",
     "save": "Erscheinungsbild speichern",
     "saved": "Erscheinungsbild gespeichert",
+    "slicing": "Bild wird zerlegt…",
     "sounds": "Töne",
     "subtitle": "Name, Schrift und Farben der App, auf allen Bildschirmen.",
     "tooLarge": "Bild zu groß: höchstens {{max}}.",
     "upload": "Bild hochladen",
-    "uploaded": "Hochgeladen — {{taille}}, am {{date}}"
+    "uploaded": "Hochgeladen — {{taille}}, am {{date}}",
+    "uploadedSet": "In {{count}} Größen zerlegt · {{taille}} · {{date}}"
   },
   "configurationsTitle": "Konfigurationen",
   "ia": {

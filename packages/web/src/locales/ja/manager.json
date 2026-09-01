@@ -10,6 +10,7 @@
       "secondary": "サブ"
     },
     "colors": "色",
+    "declined": "背景を{{count}}サイズに分割しました",
     "fontFamily": "フォント",
     "fontUrl": "フォントのURL（任意）",
     "fromAddress": "ファイルなし：下のURLを使用します",
@@ -25,11 +26,13 @@
     "reset": "リセット",
     "save": "外観を保存",
     "saved": "外観を保存しました",
+    "slicing": "画像を分割しています…",
     "sounds": "サウンド",
     "subtitle": "アプリの名前、フォント、色。すべての画面に適用されます。",
     "tooLarge": "画像が大きすぎます：最大{{max}}。",
     "upload": "画像をアップロード",
-    "uploaded": "アップロード済み — {{taille}}、{{date}}"
+    "uploaded": "アップロード済み — {{taille}}、{{date}}",
+    "uploadedSet": "{{count}}サイズに分割 · {{taille}} · {{date}}"
   },
   "configurationsTitle": "設定",
   "ia": {

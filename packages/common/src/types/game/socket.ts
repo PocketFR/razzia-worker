@@ -146,6 +146,11 @@ export interface ClientToServerEvents {
     _message: MessageWithoutStatus<{ quizzId: string; resetScores: boolean }>,
   ) => void
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
+  // La largeur de l'écran de l'animateur, échelle commune des animations qui
+  // se déroulent en largeur.
+  [EVENTS.MANAGER.VIEWPORT]: (
+    _message: MessageWithoutStatus<{ width: number }>,
+  ) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
   [EVENTS.SETTINGS.GET]: () => void

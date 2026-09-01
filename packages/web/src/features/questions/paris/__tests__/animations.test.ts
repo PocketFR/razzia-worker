@@ -6,7 +6,10 @@
 // graine qui déroge suffit à faire mentir l'écran devant la salle.
 
 import {
+  cadrage,
+  calageDuGazon,
   FIN_DE_COURSE,
+  hauteurCouloir,
   positionA,
   profils,
 } from "@razzia/web/features/questions/paris/course"
@@ -278,5 +281,129 @@ describe("disposition des cartes", () => {
     const { largeur, hauteur } = geometrie(3)
 
     expect(largeur / hauteur).toBeCloseTo(63 / 88)
+  })
+})
+
+describe("cadrage de la course", () => {
+  const TELE = 1920
+  const TELEPHONE = 390
+
+  // La promesse tenue par le cadrage : l'écart entre deux chevaux occupe le
+  // même nombre de pixels sur les deux écrans. C'est cet écart, seul, qui dit
+  // qui est en train de gagner — le réduire de cinq fois rend la course
+  // illisible sur un téléphone.
+  it("l'écart entre deux chevaux est le même sur les deux écrans", () => {
+    const positions = [0.42, 0.5, 0.55, 0.61]
+    const surTele = cadrage(TELE, TELE, positions)
+    const surTelephone = cadrage(TELEPHONE, TELE, positions)
+
+    const ecart = (vue: ReturnType<typeof cadrage>) =>
+      vue.abscisse(positions[3]) - vue.abscisse(positions[0])
+
+    expect(ecart(surTelephone)).toBeCloseTo(ecart(surTele), 6)
+  })
+
+  it("la télévision ne défile pas : elle voit toute la piste", () => {
+    for (const t of [0, 0.3, 0.6, 0.82]) {
+      const vue = cadrage(TELE, TELE, [t, t, t, t])
+
+      expect(vue.decalage).toBe(0)
+      expect(vue.piste).toBe(TELE)
+    }
+  })
+
+  it("le téléphone garde le peloton au centre", () => {
+    const positions = [0.5, 0.5, 0.5, 0.5]
+    const vue = cadrage(TELEPHONE, TELE, positions)
+    const surEcran = vue.abscisse(0.5) - vue.decalage
+
+    expect(surEcran).toBeCloseTo(TELEPHONE / 2, 0)
+  })
+
+  it("la caméra ne sort jamais de la piste", () => {
+    const bornes: string[] = []
+
+    for (let t = 0; t <= 1; t += 0.02) {
+      const vue = cadrage(TELEPHONE, TELE, [t, t, t, t])
+
+      if (vue.decalage < 0 || vue.decalage > vue.piste - vue.vue) {
+        bornes.push(`t=${t.toFixed(2)} → ${vue.decalage}`)
+      }
+    }
+
+    expect(bornes).toEqual([])
+  })
+
+  it("au départ et à l'arrivée, elle se cale sur les bords", () => {
+    const depart = cadrage(TELEPHONE, TELE, [0, 0, 0, 0])
+    const arrivee = cadrage(TELEPHONE, TELE, [1, 1, 1, 1])
+
+    expect(depart.decalage).toBe(0)
+    expect(arrivee.decalage).toBeCloseTo(TELE - TELEPHONE, 0)
+  })
+
+  it("sans référence, la piste tient dans l'écran local", () => {
+    const vue = cadrage(TELEPHONE, undefined, [0.5, 0.5, 0.5, 0.5])
+
+    expect(vue.piste).toBe(TELEPHONE)
+    expect(vue.decalage).toBe(0)
+  })
+
+  it("le cheval franchit la ligne, quelle que soit l'échelle", () => {
+    for (const largeur of [TELEPHONE, 768, TELE]) {
+      const vue = cadrage(largeur, largeur, [1])
+      // Bord droit du cheval sur le bord droit de la piste : il recouvre donc
+      // le damier, plus étroit que lui.
+      expect(vue.abscisse(1) + vue.cheval / 2).toBeCloseTo(vue.piste, 6)
+      expect(vue.damier).toBeLessThan(vue.cheval)
+    }
+  })
+})
+
+describe("calage du gazon", () => {
+  const TUILE = 1636
+
+  // Sans décalage, les répétitions de la texture s'alignent d'un couloir à
+  // l'autre : quatre coutures verticales à la même abscisse, que l'œil repère
+  // aussitôt.
+  it("garde les couloirs bien séparés, sur toutes les graines", () => {
+    // Le tirage libre en alignait deux une fois sur cent trente. Stratifié,
+    // l'écart minimal est garanti par construction.
+    const minimal = (TUILE / 4) * 0.4
+    const serres: string[] = []
+
+    for (const graine of GRAINES) {
+      const calages = calageDuGazon(graine, 4, TUILE)
+
+      for (let i = 0; i + 1 < calages.length; i += 1) {
+        if (calages[i + 1] - calages[i] < minimal) {
+          serres.push(`graine ${graine} : ${String(calages)}`)
+        }
+      }
+    }
+
+    expect(serres).toEqual([])
+  })
+
+  it("reste dans une tuile : au-delà, le décalage revient au même", () => {
+    const calages = GRAINES.slice(0, 200).flatMap((g) =>
+      calageDuGazon(g, 4, TUILE),
+    )
+
+    expect(Math.min(...calages)).toBeGreaterThanOrEqual(0)
+    expect(Math.max(...calages)).toBeLessThan(TUILE)
+  })
+
+  it("est le même partout pour une graine donnée", () => {
+    // La télévision et les téléphones doivent montrer le MÊME gazon.
+    expect(calageDuGazon(4242, 4, TUILE)).toEqual(calageDuGazon(4242, 4, TUILE))
+    expect(calageDuGazon(4242, 4, TUILE)).not.toEqual(
+      calageDuGazon(4243, 4, TUILE),
+    )
+  })
+
+  it("le couloir suit l'échelle du cheval", () => {
+    expect(hauteurCouloir(65)).toBeGreaterThan(65)
+    expect(hauteurCouloir(32)).toBeLessThan(hauteurCouloir(68))
   })
 })

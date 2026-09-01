@@ -35,6 +35,22 @@ const enB64 = (octets: Uint8Array) => btoa(String.fromCharCode(...octets))
 const deB64 = (texte: string) =>
   Uint8Array.from(atob(texte), (c) => c.charCodeAt(0))
 
+// Comparaison à temps constant : un `===` s'arrête au premier octet différent
+// et laisse fuir la position de l'erreur.
+const memeSecret = (a: Uint8Array, b: Uint8Array) => {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  let ecart = 0
+
+  for (let i = 0; i < a.length; i++) {
+    ecart |= a[i] ^ b[i]
+  }
+
+  return ecart === 0
+}
+
 /** Une valeur stockée est-elle déjà une empreinte, ou du clair hérité ? */
 export const estHache = (stocke: string) => stocke.startsWith(PREFIXE)
 
@@ -66,11 +82,16 @@ export const verifierMotDePasse = async (
     return false
   }
 
-  // Valeur héritée, encore en clair : on accepte la comparaison directe, et
-  // l'appelant se charge de la convertir. Sans cette tolérance, la reprise
-  // du game.json existant fermerait la porte à l'animateur.
+  // Valeur héritée, encore en clair : on l'accepte, et l'appelant se charge
+  // de la convertir. Sans cette tolérance, la reprise du game.json existant
+  // fermerait la porte à l'animateur.
+  //
+  // La comparaison est à temps constant elle aussi : un `===` sur des chaînes
+  // s'arrête au premier octet différent. C'est le seul chemin où le mot de
+  // passe est encore comparé en clair, donc le seul où cette fuite dirait
+  // quelque chose d'utile à qui la mesure.
   if (!estHache(stocke)) {
-    return saisi === stocke
+    return memeSecret(encodeur.encode(saisi), encodeur.encode(stocke))
   }
 
   const parties = stocke.slice(PREFIXE.length).split("$")
@@ -79,20 +100,8 @@ export const verifierMotDePasse = async (
     return false
   }
 
-  const attendue = deB64(parties[1])
-  const calculee = await empreinte(maitresse, saisi, deB64(parties[0]))
-
-  if (attendue.length !== calculee.length) {
-    return false
-  }
-
-  // Comparaison à temps constant : un === sur des chaînes s'arrête au premier
-  // octet différent et laisse fuir la position de l'erreur.
-  let ecart = 0
-
-  for (let i = 0; i < attendue.length; i++) {
-    ecart |= attendue[i] ^ calculee[i]
-  }
-
-  return ecart === 0
+  return memeSecret(
+    deB64(parties[1]),
+    await empreinte(maitresse, saisi, deB64(parties[0])),
+  )
 }

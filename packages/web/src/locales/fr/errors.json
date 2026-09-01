@@ -24,6 +24,7 @@
   },
   "manager": {
     "failedToReadConfig": "Impossible de lire la configuration",
+    "invalidKeyFormat": "Le format de cette clé est invalide",
     "invalidPassword": "Mot de passe invalide",
     "masterKeyMissing": "Le serveur n'a pas de clé maîtresse",
     "passwordNotConfigured": "Mot de passe manager non configuré",

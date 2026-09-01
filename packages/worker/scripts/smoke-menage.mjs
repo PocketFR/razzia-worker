@@ -162,5 +162,63 @@ await declencher()
 
 verifier("une ligne trop ancienne est purgée", !(await existe(e.inviteCode)))
 
+// ── le balayage efface AUSSI le stockage de l'objet ────────────────────────
+//
+// Le cas qui manquait. Une ligne peut être assez ancienne alors que son objet
+// détient encore du stockage — six échecs d'alarme suffisent à l'y laisser.
+// Le balayage réveille donc l'objet avant de retirer sa ligne : elle est le
+// SEUL pointeur vers lui, rien ne permettant d'énumérer les Durable Objects.
+//
+// Si la purge levait, ce test échouerait : la ligne serait conservée pour un
+// réessai le lendemain, et `existe` la retrouverait.
+console.log("— une salle avec un objet vivant")
+const f = await creerPartie("anim-f")
+const animF = await ouvrir(f.gameId, "anim-f", "manager")
+
+await new Promise((r) => setTimeout(r, 300))
+
+// L'état de l'objet lui-même, et non plus seulement sa ligne : c'est la seule
+// façon de distinguer « le balayage a effacé l'objet » de « le balayage a
+// juste retiré la ligne et laissé l'objet plein ».
+const objetTient = async (gameId) =>
+  fetch(`${base}/api/__objet?game=${gameId}`, { headers: entetes })
+    .then((r) => (r.ok ? r.json() : { existe: null }))
+    .then((c) => c.existe)
+
+verifier("l'objet a été instancié", (await objetTient(f.gameId)) === true)
+animF.close()
+
+await fetch(`${base}/api/__vieillir`, {
+  method: "POST",
+  headers: entetes,
+  body: JSON.stringify({ inviteCode: f.inviteCode }),
+})
+
+await declencher()
+
+verifier(
+  "le balayage retire la ligne",
+  !(await existe(f.inviteCode)),
+  "la ligne a survécu : la purge de l'objet a échoué",
+)
+verifier(
+  "ET vide le stockage de l'objet",
+  (await objetTient(f.gameId)) === false,
+  "l'objet garde son état : il serait désormais introuvable à jamais",
+)
+
+// Et l'objet ne doit pas ressusciter : sans sa ligne D1, il n'a plus de quoi
+// s'initialiser.
+const reouverture = await fetch(
+  `${base}/ws?game=${f.gameId}&clientId=anim-f&role=manager`,
+  { headers: { upgrade: "websocket" } },
+).catch(() => null)
+
+verifier(
+  "et il ne se rouvre pas",
+  !reouverture || reouverture.status === 404,
+  `statut ${reouverture?.status}`,
+)
+
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

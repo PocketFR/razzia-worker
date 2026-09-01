@@ -24,6 +24,7 @@
   },
   "manager": {
     "failedToReadConfig": "Spielkonfiguration konnte nicht gelesen werden",
+    "invalidKeyFormat": "Das Format dieses Schlüssels ist ungültig",
     "invalidPassword": "Ungültiges Passwort",
     "masterKeyMissing": "Dem Server fehlt sein Hauptschlüssel",
     "passwordNotConfigured": "Manager-Passwort ist nicht konfiguriert",

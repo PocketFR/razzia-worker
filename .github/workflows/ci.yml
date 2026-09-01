@@ -54,6 +54,9 @@ jobs:
           npx tsx scripts/test-enchainement-auto.mts
           npx tsx scripts/test-arborescence.mts
           npx tsx scripts/test-paris.mts
+          npx tsx scripts/test-validateurs.mts
+          npx tsx scripts/test-branding-variantes.mts
+          npx tsx scripts/test-securite.mts
 
       # L'éditeur monté dans jsdom et cliqué. Ce panneau m'a échappé trois fois
       # de suite : un typecheck vert n'y prouve rien, seul un clic le fait.

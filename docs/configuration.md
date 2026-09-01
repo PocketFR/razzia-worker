@@ -17,14 +17,32 @@ Il n'est jamais stocké en clair au-delà de la première connexion. La valeur
 initiale est convertie en empreinte à clé (`hmac$…`) dès qu'elle sert, sur le
 même chemin que celui qui reprenait un ancien `config/game.json`.
 
-**Perdu ?** Aucun rattrapage par l'interface — changer le mot de passe exige
-d'être connecté. Il faut effacer la ligne en base, puis rejouer le script de
-déploiement, qui en tirera un nouveau :
+**Perdu ?** Écrivez le nouveau **en clair** dans la base. La première
+connexion réussie le convertira en empreinte, et le clair disparaîtra.
 
 ```sh
 npx wrangler d1 execute razzia --remote \
-  --command "DELETE FROM settings WHERE key = 'managerPassword'"
+  --command "UPDATE settings SET value = 'MonNouveauMotDePasse'
+             WHERE key = 'managerPassword'"
 ```
+
+Puis connectez-vous sur `/manager` avec cette valeur. Rien d'autre à faire :
+ni script de déploiement à rejouer, ni redéploiement.
+
+C'est le même chemin que celui qui reprenait un ancien `config/game.json` — la
+valeur en clair n'est qu'un état transitoire, et une saisie erronée ne la
+convertit pas, elle reste donc utilisable jusqu'à la bonne.
+
+Deux remarques :
+
+- **N'effacez pas la ligne**, écrivez dedans. Une case vide ferme l'accès au
+  lieu de l'ouvrir, et il n'y a alors plus de porte du tout.
+- Le mot de passe est lisible en base entre l'écriture et la première
+  connexion. Ça ne l'expose qu'à qui a déjà accès à la base — c'est-à-dire à
+  vous — mais autant ne pas laisser traîner.
+
+Comme tout changement, il **invalide les sessions en cours** : les onglets
+ouverts sous l'ancien mot de passe sont déconnectés.
 
 ## Clés API
 
@@ -85,3 +103,24 @@ Pour un quiz précis, le bouton d'export de l'onglet **Quiz** le sort en JSON.
 Voir aussi [Quiz](quiz.md) et [Apparence](branding.md).
 
 Retour au [sommaire](README.md).
+
+## Stockage des Durable Objects
+
+L'état d'une partie vit dans le stockage de son Durable Object, et l'objet
+s'efface lui-même une fois la salle vide. Rien ne permet d'énumérer ces objets,
+et Cloudflare n'en ramasse aucun : la mesure agrégée du stockage est donc le
+seul détecteur de fuite disponible.
+
+```sh
+CLOUDFLARE_API_TOKEN=… node packages/worker/scripts/stockage-do.mjs 14
+```
+
+Au repos, elle doit être nulle. Une valeur non nulle est normale pendant une
+partie et jusqu'à la fin de la grâce ; elle ne l'est plus si elle persiste
+alors que personne ne joue.
+
+Le même graphique existe dans le tableau de bord Cloudflare : **Durable
+Objects**, sélectionner l'espace de noms, onglet **Metrics**, courbe « Total
+storage ». Elle n'apparaît que pour les espaces de noms adossés à SQLite, ce
+qui est le cas ici. Le détail par objet n'est pas proposé — Cloudflare ne
+l'expose pas.

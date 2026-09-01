@@ -55,6 +55,21 @@ export interface ConfigService {
  * Vérifie un accès animateur. Exportée à part de la fabrique pour que quizia
  * puisse l'appeler sans construire tout le service.
  */
+/**
+ * L'époque du mot de passe animateur : la date de son dernier changement.
+ *
+ * Elle entre dans la signature des jetons de session, de sorte qu'un
+ * changement de mot de passe les invalide tous. Zéro si aucun mot de passe
+ * n'est configuré — aucune session ne peut alors être valide de toute façon.
+ */
+export const epoqueDuMotDePasse = async (db: D1Database): Promise<number> => {
+  const ligne = await db
+    .prepare(`SELECT updated_at FROM settings WHERE key = 'managerPassword'`)
+    .first<{ updated_at: number }>()
+
+  return ligne?.updated_at ?? 0
+}
+
 export const verifierAcces = async (
   db: D1Database,
   maitresse: string,
@@ -64,6 +79,13 @@ export const verifierAcces = async (
     .prepare(`SELECT value FROM settings WHERE key = 'managerPassword'`)
     .first<{ value: string }>()
 
+  // Aucune valeur : l'accès reste FERMÉ.
+  //
+  // On a envisagé d'adopter ici le premier mot de passe reçu, pour simplifier
+  // la réinitialisation. C'était ouvrir l'instance au premier venu tant que la
+  // case est vide — inutile, puisque le chemin de reprise ci-dessous donne le
+  // même service sans fenêtre publique : l'administrateur écrit la valeur EN
+  // CLAIR dans la base, et la première connexion réussie la convertit.
   if (!row?.value) {
     return "absent"
   }

@@ -355,7 +355,10 @@ try {
   // Le vrai fichier livré, pas une vignette : c'est la ligne D1 la plus
   // lourde que l'application écrira jamais.
   const fond = fs.readFileSync(
-    path.join(import.meta.dirname, "../../web/public/branding/background.webp"),
+    path.join(
+      import.meta.dirname,
+      "../../web/public/branding/background-5600.webp",
+    ),
   )
   const gros = await envoyerImage("background", "image/webp", fond)
   verifier(

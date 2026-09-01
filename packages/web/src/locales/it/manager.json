@@ -10,6 +10,7 @@
       "secondary": "Secondario"
     },
     "colors": "Colori",
+    "declined": "Sfondo diviso in {{count}} dimensioni",
     "fontFamily": "Carattere",
     "fontUrl": "Indirizzo del carattere (facoltativo)",
     "fromAddress": "Nessun file: viene usato l'indirizzo qui sotto",
@@ -25,11 +26,13 @@
     "reset": "Reimposta",
     "save": "Salva l'aspetto",
     "saved": "Aspetto salvato",
+    "slicing": "Taglio dell'immagine…",
     "sounds": "Suoni",
     "subtitle": "Nome, carattere e colori dell'applicazione, su tutti gli schermi.",
     "tooLarge": "Immagine troppo pesante: al massimo {{max}}.",
     "upload": "Carica un'immagine",
-    "uploaded": "Caricata — {{taille}}, il {{date}}"
+    "uploaded": "Caricata — {{taille}}, il {{date}}",
+    "uploadedSet": "Diviso in {{count}} dimensioni · {{taille}} · {{date}}"
   },
   "configurationsTitle": "Configurazioni",
   "ia": {

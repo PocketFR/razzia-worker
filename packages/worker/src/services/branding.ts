@@ -27,6 +27,50 @@ export type NomImage = (typeof IMAGES)[number]
 export const estImage = (nom: string): nom is NomImage =>
   (IMAGES as readonly string[]).includes(nom)
 
+// Les déclinaisons du fond d'écran, une par largeur.
+//
+// Un fond doit être net sur le vidéoprojecteur de la salle — dont personne ne
+// connaît la définition à l'avance — sans faire télécharger la même image en
+// pleine taille au téléphone de chaque joueur. Le navigateur choisit lui-même
+// dans un `srcset` ; il ne récupère qu'un fichier.
+//
+// Les déclinaisons sont fabriquées PAR LE NAVIGATEUR de l'animateur au moment
+// du téléversement. Le Worker n'en produit aucune, et ne le pourrait pas : le
+// runtime n'embarque aucun codec image, et le seul décodage d'une image de
+// cinq mille pixels demande trente-huit fois le temps processeur accordé.
+// Le TIRET, et le même partout — clés de base comme fichiers livrés.
+//
+// L'arobase aurait fait un séparateur plus net, et fonctionne très bien sur
+// une route à nous. Mais Workers Assets l'encode dans un nom de FICHIER et
+// répond par une redirection : les déclinaisons livrées auraient donc coûté un
+// aller-retour de plus, ou porté un nom différent de celles en base. Deux
+// conventions pour une même chose valent moins qu'une seule imparfaite.
+//
+// C'est la SEULE forme reconnue. Rien ici ne connaît d'ancien schéma, et le
+// test des noms le fige.
+const VARIANTE = /^background-(\d{3,4})$/u
+
+const LARGEUR_MIN = 320
+const LARGEUR_MAX = 8192
+
+export const largeurDeVariante = (nom: string): number | null => {
+  const trouve = VARIANTE.exec(nom)
+
+  if (!trouve) {
+    return null
+  }
+
+  const largeur = Number(trouve[1])
+
+  return largeur >= LARGEUR_MIN && largeur <= LARGEUR_MAX ? largeur : null
+}
+
+/** Ce qui peut être rangé dans la table : les trois images, et les déclinaisons. */
+export type NomStocke = NomImage | `background-${number}`
+
+export const estNomStocke = (nom: string): nom is NomStocke =>
+  estImage(nom) || largeurDeVariante(nom) !== null
+
 // Le plafond par image.
 //
 // D1 refuse une ligne au-delà de 2 Mo. On s'arrête avant, avec de quoi loger
@@ -131,6 +175,12 @@ export const dangerDuSvg = (octets: Uint8Array): string | null => {
 
 export interface Theme {
   appName?: string
+  /*
+   * Les déclinaisons du fond, de la plus étroite à la plus large. Le client en
+   * fait un `srcset` ; `background` reste renseigné et désigne la plus large,
+   * pour tout ce qui ne sait pas lire un `srcset`.
+   */
+  backgroundSet?: Array<{ w: number; url: string }>
   colors?: Record<string, string>
   answerColors?: string[]
   font?: { family: string; url?: string }
@@ -145,6 +195,8 @@ export interface EtatImage {
   mime: string
   taille: number
   modifiee: number
+  /* Nombre de déclinaisons, quand l'image en a — le fond seul, aujourd'hui. */
+  variantes?: number
 }
 
 /** Le thème enregistré, ou null si l'installation garde celui d'origine. */
@@ -185,6 +237,16 @@ export const ecrireTheme = async (db: D1Database, theme: Theme | null) => {
 }
 
 /** Ce que l'écran doit savoir des images : leur existence et leur poids, pas leur contenu. */
+// L'état des images téléversées, tel que l'écran de branding l'affiche.
+//
+// LES DÉCLINAISONS DU FOND Y COMPTENT POUR UNE IMAGE. Elles portent des noms
+// que `estImage` ne reconnaît pas — c'est voulu, seuls trois noms canoniques
+// sont acceptables comme cible de téléversement — mais les omettre ici faisait
+// dire à l'écran « aucun fichier » alors que cinq venaient d'être envoyés,
+// laissait le champ d'adresse actif et cachait le bouton de suppression.
+//
+// La taille annoncée est la SOMME : c'est elle qui occupe la base, et c'est la
+// question que se pose celui qui regarde cet écran.
 export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> => {
   const { results } = await db
     .prepare(
@@ -192,7 +254,7 @@ export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> => {
     )
     .all<{ name: string; mime: string; taille: number; updated_at: number }>()
 
-  return results
+  const simples = results
     .filter((l) => estImage(l.name))
     .map((l) => ({
       nom: l.name as NomImage,
@@ -200,6 +262,23 @@ export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> => {
       taille: l.taille,
       modifiee: l.updated_at,
     }))
+
+  const variantes = results.filter((l) => largeurDeVariante(l.name) !== null)
+
+  if (!variantes.length || simples.some((i) => i.nom === "background")) {
+    return simples
+  }
+
+  return [
+    ...simples,
+    {
+      nom: "background",
+      mime: variantes[0].mime,
+      taille: variantes.reduce((somme, l) => somme + l.taille, 0),
+      modifiee: Math.max(...variantes.map((l) => l.updated_at)),
+      variantes: variantes.length,
+    },
+  ]
 }
 
 // Une image, prête à être servie.
@@ -211,7 +290,7 @@ export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> => {
 // la comparaison du contenu octet pour octet le révèle. La normalisation est
 // ici, et non chez l'appelant, pour qu'il n'y ait qu'un endroit où se
 // tromper.
-export const lireImage = async (db: D1Database, nom: NomImage) => {
+export const lireImage = async (db: D1Database, nom: NomStocke) => {
   const ligne = await db
     .prepare(`SELECT mime, bytes, updated_at FROM branding WHERE name = ?`)
     .bind(nom)
@@ -237,7 +316,7 @@ export const lireImage = async (db: D1Database, nom: NomImage) => {
 
 export const ecrireImage = async (
   db: D1Database,
-  nom: NomImage,
+  nom: NomStocke,
   mime: string,
   octets: ArrayBuffer,
 ) => {
@@ -256,8 +335,37 @@ export const ecrireImage = async (
   return quand
 }
 
-export const effacerImage = async (db: D1Database, nom: NomImage) => {
+export const effacerImage = async (db: D1Database, nom: NomStocke) => {
   await db.prepare(`DELETE FROM branding WHERE name = ?`).bind(nom).run()
+
+  // Effacer le fond emporte ses déclinaisons : les laisser derrière donnerait
+  // un `srcset` pointant vers des images que le thème ne revendique plus.
+  if (nom === "background") {
+    await db
+      .prepare(`DELETE FROM branding WHERE name LIKE 'background-%'`)
+      .run()
+  }
+}
+
+/** Les déclinaisons du fond présentes en base, de la plus étroite à la plus large. */
+export const variantesDuFond = async (db: D1Database) => {
+  const { results } = await db
+    .prepare(
+      `SELECT name, updated_at FROM branding WHERE name LIKE 'background-%'`,
+    )
+    .all<{ name: string; updated_at: number }>()
+
+  return results
+    .map((l) => ({
+      largeur: largeurDeVariante(l.name),
+      nom: l.name,
+      modifiee: l.updated_at,
+    }))
+    .filter(
+      (v): v is { largeur: number; nom: string; modifiee: number } =>
+        v.largeur !== null,
+    )
+    .sort((a, b) => a.largeur - b.largeur)
 }
 
 // Le thème tel que le navigateur doit le recevoir.
@@ -284,6 +392,18 @@ export const themePublic = async (env: Env): Promise<Theme | null> => {
 
   for (const image of images) {
     rendu[image.nom] = `/branding/asset/${image.nom}?v=${image.modifiee}`
+  }
+
+  const variantes = await variantesDuFond(env.DB)
+
+  if (variantes.length) {
+    rendu.backgroundSet = variantes.map((v) => ({
+      w: v.largeur,
+      url: `/branding/asset/${v.nom}?v=${v.modifiee}`,
+    }))
+    // La plus large fait office de fond canonique : rien n'est stocké deux
+    // fois, et les chemins qui ignorent le `srcset` restent servis.
+    rendu.background = rendu.backgroundSet[rendu.backgroundSet.length - 1].url
   }
 
   return rendu

@@ -72,6 +72,10 @@ export interface CommonStatusDataMap {
     // nomment — les chevaux du PMU ; les autres tirent leurs libellés de leur
     // habillage, et restent donc traduits.
     noms: string[]
+    // La largeur de l'écran de l'animateur, en pixels CSS, quand il l'a
+    // annoncée. Elle fixe l'ÉCHELLE de la piste : un écran plus étroit n'y
+    // écrase pas la course, il en montre une fenêtre qui suit le peloton.
+    largeurEcran?: number
   }
   // L'annonce d'un interlude. Tout le monde la voit — c'est le moment où
   // l'on comprend que les règles changent.

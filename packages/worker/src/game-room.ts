@@ -86,12 +86,39 @@ interface EtatPartie {
   // Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
   // et devait les transposer à chaque retour ; indexés par clientId, ils
   // survivent d'eux-mêmes.
+  // Largeur de l'écran de l'animateur, en pixels CSS. Annoncée par lui à la
+  // connexion et à chaque redimensionnement ; null tant qu'il n'a rien dit.
+  largeurAnimateur: number | null
   dernierStatut: Statut | null
   statutAnimateur: Statut | null
   statutsJoueurs: Record<string, Statut>
 }
 
 const CLE = "partie"
+
+// Le compte d'échecs consécutifs de l'alarme. Clé à part : si l'état lui-même
+// est illisible, on doit quand même pouvoir compter.
+const CLE_ECHECS = "echecsAlarme"
+
+/*
+ * Le chemin d'effacement, adressé par le balayage quotidien.
+ *
+ * INATTEIGNABLE DE L'EXTÉRIEUR : le routeur public ne transmet à cet objet que
+ * des requêtes dont le chemin est « /ws » — il n'en fabrique aucune autre. Ce
+ * chemin ne peut donc venir que d'une requête construite par le Worker.
+ */
+export const CHEMIN_PURGE = "/purge"
+
+/*
+ * Le chemin de diagnostic : cet objet détient-il encore un état ?
+ *
+ * Il n'existe que pour les tests, et la route qui y mène est fermée hors
+ * développement. Sans lui, la purge du balayage est INVÉRIFIABLE de
+ * l'extérieur : une fois la ligne D1 retirée, l'objet n'est plus joignable, et
+ * un test ne saurait pas distinguer « effacé » de « laissé plein ». C'est
+ * précisément la distinction qui compte ici.
+ */
+export const CHEMIN_ETAT = "/etat"
 
 // Le pas de regroupement du compteur de réponses.
 //
@@ -206,6 +233,7 @@ export class GameRoom implements DurableObject {
       managerClientId: ligne.managerClientId,
       players: [],
       manche: mancheNeuve(),
+      largeurAnimateur: null,
       seq: 0,
       finDeGrace: null,
       effectifEnvoyeA: 0,
@@ -224,6 +252,19 @@ export class GameRoom implements DurableObject {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
+
+    // La purge passe AVANT tout le reste, et ce n'est pas un détail de style :
+    // la suite de ce gestionnaire CRÉE l'état quand il n'existe pas. Une
+    // demande d'effacement traitée plus bas instancierait donc l'objet qu'elle
+    // vient supprimer.
+    if (url.pathname === CHEMIN_PURGE) {
+      return this.purger()
+    }
+
+    if (url.pathname === CHEMIN_ETAT) {
+      return Response.json({ existe: this.lire() !== null })
+    }
+
     const clientId = url.searchParams.get("clientId")
     const gameId = url.searchParams.get("game")
     const role = url.searchParams.get("role")
@@ -461,7 +502,12 @@ export class GameRoom implements DurableObject {
   }
 
   private contexte(etat: EtatPartie): ContextePartie {
-    return { quizz: etat.quizz, players: etat.players, manche: etat.manche }
+    return {
+      quizz: etat.quizz,
+      players: etat.players,
+      manche: etat.manche,
+      largeurAnimateur: etat.largeurAnimateur ?? null,
+    }
   }
 
   // ── Réception ───────────────────────────────────────────────────────────
@@ -550,6 +596,11 @@ export class GameRoom implements DurableObject {
 
         return
 
+      case EVENTS.MANAGER.VIEWPORT:
+        this.noterLargeur(qui, trame.d)
+
+        return
+
       case EVENTS.MANAGER.NEW_QUIZZ:
         await this.enchainer(ws, qui, trame.d)
 
@@ -611,6 +662,23 @@ export class GameRoom implements DurableObject {
     return Number.isFinite(regle) && regle > 0 ? regle : GRACE_PAR_DEFAUT_MS
   }
 
+  /*
+   * Efface le stockage, sur demande du balayage quotidien.
+   *
+   * La ligne D1 n'est PAS touchée ici : c'est l'appelant qui la retire, et
+   * seulement si cette réponse arrive. Elle est le seul pointeur vers cet
+   * objet — la supprimer d'abord rendrait un objet resté plein définitivement
+   * introuvable, puisque rien ne permet d'énumérer les Durable Objects.
+   */
+  private async purger(): Promise<Response> {
+    const avaitUnEtat = this.lire() !== null
+
+    // DeleteAll emporte aussi l'alarme : plus rien ne rappellera cet objet.
+    await this.ctx.storage.deleteAll()
+
+    return Response.json({ purge: true, avaitUnEtat })
+  }
+
   /** Efface la salle : son stockage et son PIN. */
   private async supprimer(etat: EtatPartie) {
     // La ligne D1 part sans être attendue : attendre ici ouvrirait la porte
@@ -668,7 +736,45 @@ export class GameRoom implements DurableObject {
     return bouge
   }
 
+  /*
+   * Le réveil, encadré.
+   *
+   * Cloudflare réessaie une alarme qui lève, mais SIX FOIS AU PLUS. Passé
+   * cela, plus aucune alarme n'est posée : l'objet dormirait avec son stockage
+   * pour toujours — invisible, non énumérable, et facturé. La documentation
+   * recommande donc explicitement d'attraper l'exception et de reposer une
+   * alarme soi-même.
+   *
+   * On ne repose RIEN si l'état a disparu : la suppression a réussi, et armer
+   * une alarme recréerait du stockage — donc l'objet — juste après l'avoir
+   * effacé.
+   */
   async alarm() {
+    try {
+      await this.executerAlarme()
+      this.ctx.storage.kv.delete(CLE_ECHECS)
+
+      return
+    } catch (erreur) {
+      console.error("alarme en échec :", erreur)
+
+      if (!this.lire()) {
+        return
+      }
+
+      const echecs = (this.ctx.storage.kv.get<number>(CLE_ECHECS) ?? 0) + 1
+
+      this.ctx.storage.kv.put(CLE_ECHECS, echecs)
+
+      // Repli croissant, plafonné : une dépendance en panne n'est pas
+      // martelée, et rien ne s'arrête jamais définitivement.
+      const delai = Math.min(60_000, 5_000 * 2 ** Math.min(echecs, 4))
+
+      void this.ctx.storage.setAlarm(Date.now() + delai)
+    }
+  }
+
+  private async executerAlarme() {
     const etat = this.lire()
 
     if (!etat) {
@@ -1002,6 +1108,39 @@ export class GameRoom implements DurableObject {
     }
 
     cloturerReponses(this.contexte(etat), this.emetteur(etat))
+    this.ecrire(etat)
+  }
+
+  /*
+   * L'animateur annonce la largeur de son écran.
+   *
+   * Elle sert d'échelle commune aux animations qui se déroulent en largeur.
+   * Bornée : une valeur absurde — une trame forgée, un navigateur exotique —
+   * ne doit pas rendre la course illisible pour toute la salle.
+   *
+   * On n'écrit que si elle a vraiment bougé. Un redimensionnement de fenêtre
+   * produit une rafale de mesures, et chacune coûterait sinon une écriture.
+   */
+  private noterLargeur(qui: Attachement, donnees: unknown) {
+    if (qui.role !== "manager") {
+      return
+    }
+
+    const brute = (donnees as { data?: { width?: unknown } } | null)?.data
+      ?.width
+
+    if (typeof brute !== "number" || !Number.isFinite(brute)) {
+      return
+    }
+
+    const largeur = Math.round(Math.min(8000, Math.max(320, brute)))
+    const etat = this.lire()
+
+    if (!etat || Math.abs((etat.largeurAnimateur ?? 0) - largeur) < 16) {
+      return
+    }
+
+    etat.largeurAnimateur = largeur
     this.ecrire(etat)
   }
 

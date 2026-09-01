@@ -9,6 +9,12 @@ const brandingSchema = z.object({
   logo: z.string().optional(),
   favicon: z.string().optional(),
   background: z.string().optional(),
+  // Les déclinaisons du fond, de la plus étroite à la plus large. Le
+  // navigateur choisit celle qui convient à son écran, et n'en télécharge
+  // qu'une.
+  backgroundSet: z
+    .array(z.object({ w: z.number(), url: z.string() }))
+    .optional(),
   sounds: z.object({ answersMusic: z.boolean().optional() }).optional(),
 })
 

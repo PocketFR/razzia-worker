@@ -1,6 +1,9 @@
 {
   "appName": "Razzia",
-  "colors": { "primary": "#555555", "secondary": "#000000" },
+  "colors": {
+    "primary": "#555555",
+    "secondary": "#000000"
+  },
   "answerColors": ["#64dd16", "#f11414", "#bfac2e", "#368ccc"],
   "font": {
     "family": "Rubik",
@@ -8,5 +11,27 @@
   },
   "logo": "/branding/logo.svg",
   "favicon": "/branding/R.ico",
-  "background": "/branding/background.webp"
+  "background": "/branding/background-5600.webp",
+  "backgroundSet": [
+    {
+      "w": 1280,
+      "url": "/branding/background-1280.webp"
+    },
+    {
+      "w": 1920,
+      "url": "/branding/background-1920.webp"
+    },
+    {
+      "w": 2560,
+      "url": "/branding/background-2560.webp"
+    },
+    {
+      "w": 3840,
+      "url": "/branding/background-3840.webp"
+    },
+    {
+      "w": 5600,
+      "url": "/branding/background-5600.webp"
+    }
+  ]
 }

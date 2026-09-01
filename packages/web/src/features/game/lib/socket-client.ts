@@ -311,11 +311,22 @@ export class RazziaSocket {
         void this.appel("/manager/password", {
           method: "PUT",
           body: JSON.stringify(charge),
-        }).then(({ statut, corps }) =>
-          statut === 200
-            ? this.local(EVENTS.SETTINGS.PASSWORD_OK)
-            : this.local(EVENTS.SETTINGS.ERROR, corps.error),
-        )
+        }).then(({ statut, corps }) => {
+          if (statut !== 200) {
+            this.local(EVENTS.SETTINGS.ERROR, corps.error)
+
+            return
+          }
+
+          // Le changement invalide toutes les sessions, celle-ci comprise :
+          // le serveur en rend une neuve, faute de quoi l'animateur serait
+          // déconnecté par son propre geste.
+          if (typeof corps.token === "string") {
+            this.jeton = corps.token
+          }
+
+          this.local(EVENTS.SETTINGS.PASSWORD_OK)
+        })
 
         return true
 
@@ -436,6 +447,25 @@ export class RazziaSocket {
   // précaution de principe — c'est elle qui rapporte la nouvelle date de
   // modification, dont dépend l'adresse versionnée de l'image ; sans elle
   // l'aperçu resterait sur la version précédente, servie depuis le cache.
+  // Remplace le fond par un jeu de déclinaisons, DANS L'ORDRE.
+  //
+  // Les émissions ordinaires sont sans attente : elles partent et l'on passe à
+  // la suivante. Ici ce serait une course perdue d'avance — l'effacement de
+  // l'ancien jeu emporte toutes les lignes `background-%`, et rien ne garantit
+  // qu'il arrive avant les envois. Une fois sur combien, on ne sait pas ; le
+  // résultat serait un fond disparu après un téléversement réussi.
+  //
+  // D'où cette méthode, à part : elle attend chaque requête avant la suivante.
+  async remplacerLeFond(images: Array<{ nom: string; fichier: File }>) {
+    await this.brandingEcrit("/branding/image/background", "DELETE")
+
+    for (const { nom, fichier } of images) {
+      await this.brandingEcrit(`/branding/image/${nom}`, "PUT", fichier, {
+        "content-type": fichier.type,
+      })
+    }
+  }
+
   private async brandingEcrit(
     chemin: string,
     method: "PUT" | "DELETE",
@@ -589,6 +619,28 @@ export class RazziaSocket {
 
   private ouvrir() {
     if (!this.gameId || this.ferme) {
+      return
+    }
+
+    // Une socket déjà ouverte, ou en train de s'ouvrir, suffit.
+    //
+    // Sans cette garde, un second appel pendant la poignée de main en ouvrait
+    // une deuxième et écrasait `this.ws` : la première devenait orpheline,
+    // plus rien ne pouvait la fermer, et elle recevait toutes les diffusions
+    // jusqu'à la fermeture de l'onglet.
+    //
+    // Le cas n'a rien de tordu. `connected` ne passe à vrai qu'à l'ouverture
+    // EFFECTIVE, et DEUX effets appellent connect() — celui de la mise en page
+    // racine et celui de la page. Les quelques dizaines de millisecondes de la
+    // poignée de main suffisent.
+    // La présence de la socket est testée À PART : sans elle, `readyState`
+    // vaut `undefined`, et comparer `undefined` à une constante absente rendait
+    // vrai — plus aucune socket ne s'ouvrait.
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.CONNECTING ||
+        this.ws.readyState === WebSocket.OPEN)
+    ) {
       return
     }
 

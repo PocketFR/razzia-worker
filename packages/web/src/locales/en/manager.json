@@ -10,6 +10,7 @@
       "secondary": "Secondary"
     },
     "colors": "Colours",
+    "declined": "Background sliced into {{count}} sizes",
     "fontFamily": "Font",
     "fontUrl": "Font URL (optional)",
     "fromAddress": "No file: the address below is used",
@@ -25,11 +26,13 @@
     "reset": "Reset",
     "save": "Save appearance",
     "saved": "Appearance saved",
+    "slicing": "Slicing the image…",
     "sounds": "Sounds",
     "subtitle": "Name, font and colours of the app, on every screen.",
     "tooLarge": "Image too large: {{max}} at most.",
     "upload": "Upload an image",
-    "uploaded": "Uploaded — {{taille}}, on {{date}}"
+    "uploaded": "Uploaded — {{taille}}, on {{date}}",
+    "uploadedSet": "Sliced into {{count}} sizes · {{taille}} · {{date}}"
   },
   "configurationsTitle": "Configurations",
   "ia": {

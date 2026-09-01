@@ -1377,7 +1377,7 @@ function echec(message) {
         grant_type: 'authorization_code',
         code,
         redirect_uri: location.origin + '/spotify/callback',
-        client_id: '__SPOTIFY_CLIENT_ID__',
+        client_id: __SPOTIFY_CLIENT_ID__,
         code_verifier: verifier,
       }),
     });
@@ -1610,6 +1610,34 @@ export async function genererQuiz(
   })
 }
 
-/** Le retour de l'autorisation Spotify, pour le flux PKCE du navigateur. */
+// Une valeur posée dans un <script>, sans qu'elle puisse en sortir.
+//
+// JSON.stringify NE SUFFIT PAS, et c'est le piège : il produit bien une chaîne
+// JavaScript correcte, mais n'échappe pas le chevron. Or l'analyseur HTML
+// termine un élément <script> au premier « </script > » qu'il rencontre, SANS
+// tenir compte du contexte JavaScript — une valeur contenant cette suite
+// referme donc le bloc et tout ce qui suit devient du balisage. Le test de
+// sécurité l'a attrapé sur une première version qui s'arrêtait au stringify.
+//
+// D'où l'échappement du chevron. Les deux séparateurs de ligne Unicode
+// suivent : ils terminent une instruction en JavaScript sans être des blancs
+// pour JSON.
+const pourScript = (valeur: string) =>
+  JSON.stringify(valeur)
+    .replaceAll("<", "\\u003c")
+    .replaceAll("\u2028", "\\u2028")
+    .replaceAll("\u2029", "\\u2029")
+
+// Le retour de l'autorisation Spotify, pour le flux PKCE du navigateur.
+//
+// L'identifiant y est inscrit dans le script de la page. Interpolé nu entre
+// apostrophes, comme il l'était, une valeur contenant une apostrophe refermait
+// le littéral et exécutait du JavaScript arbitraire sur cette page — publique,
+// sans authentification, et sur notre origine. Il faut les droits animateur
+// pour poser la valeur, mais la charge y serait persistante, et le jeton
+// animateur vit dans localStorage.
+//
+// La validation du format à l'écriture ferme la même porte de l'autre côté ;
+// les deux, plutôt qu'une.
 export const pageCallbackSpotify = (clientId: string) =>
-  html(CALLBACK_SPOTIFY.replace("__SPOTIFY_CLIENT_ID__", clientId))
+  html(CALLBACK_SPOTIFY.replace("__SPOTIFY_CLIENT_ID__", pourScript(clientId)))

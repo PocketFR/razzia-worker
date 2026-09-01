@@ -9,6 +9,7 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useLecteurSpotify } from "@razzia/web/features/spotify/hooks/use-lecteur-spotify"
 import { useEnchainementAuto } from "@razzia/web/features/game/hooks/use-enchainement-auto"
+import { useLargeurAnnoncee } from "@razzia/web/features/game/hooks/use-largeur-annoncee"
 import { usePleinEcran } from "@razzia/web/features/game/hooks/use-plein-ecran"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
@@ -122,6 +123,10 @@ const ManagerGamePage = () => {
   }
 
   const auto = useEnchainementAuto(gameId)
+
+  // La largeur de cet écran sert d'échelle à la course de chevaux, pour tout
+  // le monde : c'est ici qu'elle part.
+  useLargeurAnnoncee(gameId)
 
   // La case ne sert qu'une fois la manche lancée : dans la salle d'attente
   // comme sur le podium, il n'y a rien à enchaîner.

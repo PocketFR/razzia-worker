@@ -42,6 +42,31 @@ const SECRETES = new Set<NomDeCle>(["MISTRAL_API_KEY", "SPOTIFY_CLIENT_SECRET"])
 
 export const estSecrete = (nom: NomDeCle) => SECRETES.has(nom)
 
+// Ce qu'une valeur peut contenir, quand elle ressort ailleurs que vers son
+// destinataire.
+//
+// L'identifiant Spotify est le seul à figurer DANS UNE PAGE : le retour
+// d'autorisation PKCE l'inscrit dans son script. La page l'échappe — c'est la
+// barrière qui compte — et celle-ci refuse la faute au moment où on la commet
+// plutôt que de la neutraliser à chaque affichage.
+//
+// ON NE LÉGIFÈRE PAS SUR LE FORMAT DU TIERS. Une première version exigeait
+// trente-deux caractères hexadécimaux, ce qu'est un identifiant Spotify
+// aujourd'hui ; si Spotify en change, l'animateur ne peut plus configurer sa
+// propre application, et le gain de sécurité était nul puisque l'échappement
+// suffit. On borne donc le JEU DE CARACTÈRES — apostrophes, chevrons,
+// contre-obliques et blancs exclus — et rien d'autre.
+const FORMATS: Partial<Record<NomDeCle, RegExp>> = {
+  SPOTIFY_CLIENT_ID: /^[\w.~-]{4,128}$/u,
+}
+
+/** La valeur est-elle acceptable pour cette clé ? */
+export const formatValide = (nom: NomDeCle, valeur: string) => {
+  const attendu = FORMATS[nom]
+
+  return !attendu || !valeur || attendu.test(valeur)
+}
+
 // ── Chiffrement ───────────────────────────────────────────────────────────
 
 const encodeur = new TextEncoder()

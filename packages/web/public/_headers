@@ -1,0 +1,18 @@
+# En-têtes de sécurité, posés par Workers Assets.
+#
+# ILS NE PEUVENT PAS VENIR DU WORKER : `run_worker_first` ne lui envoie que
+# /ws, /api/*, /spotify/* et /branding/*. La page elle-même est servie
+# directement par Assets, sans exécuter la moindre ligne à nous. Router tout
+# le trafic statique vers le Worker pour ajouter trois en-têtes coûterait une
+# invocation par fichier.
+#
+# Ce qui n'est PAS ici : une Content-Security-Policy complète. Elle demanderait
+# de recenser les sources de script — le lecteur Spotify, les polices Google —
+# et de poser un nonce sur la page de retour d'autorisation, qui porte un
+# script en ligne. Mal réglée, elle casse la soirée en silence ; elle mérite
+# d'être vérifiée dans un navigateur, pas devinée.
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff

@@ -18,12 +18,15 @@ import { EVENTS } from "@razzia/common/constants"
 import type { BrandingData, BrandingTheme } from "@razzia/common/types/manager"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
+import { getBranding } from "@razzia/web/branding"
+import { socketClient } from "@razzia/web/features/game/lib/socket-client"
 import { pourPastille } from "@razzia/web/features/manager/lib/couleur"
+import { declinerLeFond } from "@razzia/web/features/manager/lib/decoupe"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
-import { Trash2, Upload } from "lucide-react"
+import { Loader2, Trash2, Upload } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -32,6 +35,13 @@ import { useTranslation } from "react-i18next"
 const COULEURS = ["primary", "secondary"] as const
 
 const IMAGES = ["logo", "favicon", "background"] as const
+
+// Les adresses livrées avec l'application, dernier recours du repère affiché.
+const DEFAUTS: Record<NomImage, string> = {
+  logo: "/branding/logo.svg",
+  favicon: "/branding/R.ico",
+  background: "/branding/background-5600.webp",
+}
 
 type NomImage = (typeof IMAGES)[number]
 
@@ -46,6 +56,9 @@ const ConfigBranding = () => {
 
   const [donnees, setDonnees] = useState<BrandingData | null>(null)
   const [theme, setTheme] = useState<BrandingTheme>({})
+  // Le découpage prend une à deux secondes sur une grande image : sans
+  // témoin, l'animateur croit que rien ne se passe et reclique.
+  const [decoupe, setDecoupe] = useState(false)
   const champs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -93,12 +106,60 @@ const ConfigBranding = () => {
       return
     }
 
+    // Le fond est DÉCLINÉ en plusieurs largeurs, ici, dans ce navigateur.
+    //
+    // Le serveur ne peut pas le faire : le runtime Workers n'a pas de codec
+    // image, et le seul décodage d'une grande photo dépasse de trente-huit
+    // fois le temps processeur accordé par requête.
+    //
+    // Un SVG n'a pas de largeur intrinsèque à décliner, et se met à l'échelle
+    // tout seul : il part tel quel.
+    if (nom === "background" && fichier.type !== "image/svg+xml") {
+      void declinerEtEnvoyer(fichier)
+
+      return
+    }
+
     // Le fichier part tel quel, sans passer par un FileReader : le décodage
     // du base64 coûtait au serveur vingt fois le temps processeur accordé.
     socket.emit(EVENTS.BRANDING.UPLOAD, { nom, fichier })
   }
 
+  const declinerEtEnvoyer = async (fichier: File) => {
+    setDecoupe(true)
+
+    try {
+      const declinaisons = await declinerLeFond(fichier)
+
+      // Les requêtes sont ENCHAÎNÉES, pas lancées ensemble : l'effacement de
+      // l'ancien jeu emporte toutes les déclinaisons, et arriver après les
+      // envois les balaierait.
+      await socketClient.remplacerLeFond(
+        declinaisons.map(({ largeur, fichier: image }) => ({
+          nom: `background-${largeur}`,
+          fichier: image,
+        })),
+      )
+
+      toast.success(t("branding.declined", { count: declinaisons.length }))
+    } catch {
+      // Un navigateur sans canvas, ou une image illisible : on envoie
+      // l'original plutôt que de ne rien envoyer.
+      socket.emit(EVENTS.BRANDING.UPLOAD, { nom: "background", fichier })
+    } finally {
+      setDecoupe(false)
+    }
+  }
+
   const image = (nom: NomImage) => donnees?.images.find((i) => i.nom === nom)
+
+  // Ce que la partie affiche pour cette image quand aucun fichier n'est
+  // téléversé : l'adresse du thème en vigueur, à défaut celle livrée.
+  const enService = (nom: NomImage) => {
+    const vigueur = getBranding()?.[nom]
+
+    return typeof vigueur === "string" ? vigueur : DEFAUTS[nom]
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -255,12 +316,18 @@ const ConfigBranding = () => {
 
                 <span className="text-xs opacity-60">
                   {televersee
-                    ? t("branding.uploaded", {
-                        taille: enOctets(televersee.taille),
-                        date: new Date(
-                          televersee.modifiee,
-                        ).toLocaleDateString(),
-                      })
+                    ? t(
+                        televersee.variantes
+                          ? "branding.uploadedSet"
+                          : "branding.uploaded",
+                        {
+                          count: televersee.variantes,
+                          taille: enOctets(televersee.taille),
+                          date: new Date(
+                            televersee.modifiee,
+                          ).toLocaleDateString(),
+                        },
+                      )
                     : t("branding.fromAddress")}
                 </span>
 
@@ -268,7 +335,12 @@ const ConfigBranding = () => {
                   <Input
                     variant="sm"
                     className="min-w-0 flex-1"
-                    placeholder="/branding/logo.svg"
+                    // Le repère montre l'adresse RÉELLEMENT en service, et
+                    // non un exemple : champ vide, c'est elle qui s'affiche
+                    // dans la partie. Il était codé en dur sur le logo, si
+                    // bien que la ligne « fond d'écran » proposait un fichier
+                    // SVG de logo.
+                    placeholder={enService(nom)}
                     disabled={Boolean(televersee)}
                     value={theme[nom] ?? ""}
                     onChange={(e) =>
@@ -301,9 +373,18 @@ const ConfigBranding = () => {
                     size="sm"
                     className="bg-accent text-foreground shrink-0"
                     onClick={() => champs.current[nom]?.click()}
-                    title={t("branding.upload")}
+                    disabled={decoupe}
+                    title={
+                      decoupe && nom === "background"
+                        ? t("branding.slicing")
+                        : t("branding.upload")
+                    }
                   >
-                    <Upload className="size-4" />
+                    {decoupe && nom === "background" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Upload className="size-4" />
+                    )}
                   </Button>
 
                   {televersee && (
