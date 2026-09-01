@@ -8,9 +8,14 @@ Onglet **Quiz** de `/manager`, bouton **Créer manuellement**. On y saisit les
 questions, les réponses, la ou les bonnes solutions, les durées, et un média
 éventuel.
 
-Pour une question musicale, le bouton Spotify du bloc média ouvre une recherche :
-on tape un titre, on choisit un résultat, et l'URL `spotify:<id>` est remplie.
-Un lecteur permet d'écouter le morceau et de fixer le point de départ.
+Pour une question musicale, trois boutons ouvrent le bloc média : **Spotify**,
+**Deezer** et **Soundtrack**. On tape un titre, on choisit un résultat, et l'URL du service est
+remplie. Un lecteur permet d'écouter le morceau — et, chez Spotify seulement,
+de fixer le point de départ.
+
+Les deux coexistent : un même quiz peut mêler des morceaux des deux catalogues,
+et chaque question se joue avec le sien. Le bouton Spotify n'apparaît que si
+l'identifiant client est configuré ; Deezer ne demande rien.
 
 ## La génération par IA
 
@@ -18,12 +23,19 @@ Onglet **Quiz**, bouton **Créer par IA**. On décrit ce qu'on veut en une phras
 — « un blind test de 15 questions sur le rock français des années 80, pour des
 joueurs avancés » — et le quiz est écrit, enregistré, et affiché en aperçu.
 
-La génération résout les morceaux sur Spotify et source les questions de culture
-générale sur l'[Open Trivia Database](https://opentdb.com/) (CC BY-SA 4.0).
-Comptez une minute.
+La génération résout les morceaux sur le service choisi dans l'onglet
+**Paramètres** — Spotify, Deezer, ou « automatique », qui prend Spotify s'il est
+configuré et Deezer sinon — et source les questions de culture générale sur
+l'[Open Trivia Database](https://opentdb.com/) (CC BY-SA 4.0). Comptez une
+minute.
 
 Le bouton est grisé tant qu'il manque une clé API — la liste des manquantes
-apparaît au survol. Ce sont les mêmes que le serveur exige : Mistral et Spotify.
+apparaît au survol. Ce sont les mêmes que le serveur exige : Mistral, plus les
+clés Spotify si c'est Spotify qui est retenu. Avec Deezer, Mistral suffit.
+
+Ce réglage ne gouverne que la génération : dans l'éditeur les deux catalogues
+restent proposés, et la lecture suit toujours l'URL enregistrée dans la
+question.
 
 ## L'import
 
@@ -72,18 +84,42 @@ autre.
 
 L'`id` est attribué à l'enregistrement, il n'a pas à figurer dans le fichier.
 
-## Les morceaux Spotify
+## Les morceaux
 
 Une question musicale porte `"type": "audio"` et une URL de la forme :
 
 ```
 spotify:<identifiant de 22 caractères>
 spotify:<identifiant de 22 caractères>:<départ en secondes>
+deezer:<identifiant numérique>
+soundtrack:<identifiant de 22 caractères>
 ```
 
-Le morceau est lu par l'animateur, via le Web Playback SDK, sur son propre
-compte Spotify Premium. Les joueurs n'ont rien à connecter : ils entendent le
-son de la pièce.
+C'est cette URL qui décide du lecteur, et non les réglages : un quiz écrit avec
+des identifiants Spotify continue de se jouer par Spotify après une bascule du
+réglage de génération. L'en-tête de l'éditeur propose une **conversion** d'un
+catalogue à l'autre, qui montre chaque correspondance avant d'écrire quoi que
+ce soit.
+
+Dans les deux cas le morceau est lu par l'animateur, jamais par les joueurs :
+leur téléphone reste muet, ils entendent le son de la pièce.
+
+|                 | Spotify                                                 | Deezer             | Soundtrack                          |
+| --------------- | ------------------------------------------------------- | ------------------ | ----------------------------------- |
+| À configurer    | identifiant client, secret, et une connexion par soirée | rien               | rien, ou un jeton pour le mode zone |
+| Compte          | Premium exigé                                           | aucun              | aucun, sauf pour le mode zone       |
+| Ce qui sort     | le morceau entier                                       | un extrait de 30 s | un extrait, ou le morceau entier    |
+| Où              | le navigateur de l'animateur                            | le navigateur      | le navigateur, ou les enceintes     |
+| Point de départ | réglable                                                | choisi par Deezer  | choisi par Soundtrack               |
+
+**Le mode zone de Soundtrack** est le seul des trois à couvrir la diffusion en
+public : l'animateur appaire une zone sonore dans les paramètres, et le
+morceau sort en entier des enceintes du lieu, sous licence. Sans zone, le
+comportement est celui de Deezer — un extrait de 30 s dans le navigateur.
+
+L'API Deezer est employée ici dans un **cadre d'usage personnel**,
+conformément à ses conditions d'utilisation : c'est le cadre de cette
+installation, et il mérite d'être revérifié avant tout autre emploi.
 
 À noter : la musique d'attente ne se superpose jamais à une question `audio` ou
 `video`. Elle est de toute façon éteinte par défaut, voir [Apparence](branding.md).

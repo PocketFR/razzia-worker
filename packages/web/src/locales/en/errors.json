@@ -27,8 +27,13 @@
     "invalidKeyFormat": "This key has an invalid format",
     "invalidPassword": "Invalid password",
     "masterKeyMissing": "Server is missing its master key",
+    "musicProviderMissing": "That music service is not configured",
     "passwordNotConfigured": "Manager password is not configured",
     "passwordTooShort": "Password too short",
+    "soundtrackLoginFailed": "Soundtrack sign-in refused",
+    "soundtrackSlow": "Soundtrack is taking too long to answer. It throttles repeated attempts: wait a few minutes before trying again.",
+    "soundtrackTokenMissing": "No Soundtrack token is configured",
+    "soundtrackUnreachable": "Soundtrack is unreachable",
     "unauthorized": "Not authorised",
     "unknownKey": "Unknown key"
   },

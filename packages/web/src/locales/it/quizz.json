@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "Aggiungi una risposta...",
   "addQuestion": "Aggiungi domanda",
   "answersCountSuffix": " risposte",
+  "conversion": {
+    "applied": "{{count}} brano/i convertito/i",
+    "apply": "Converti {{count}} brano/i",
+    "button": "Converti in {{service}} ({{count}})",
+    "cancel": "Annulla",
+    "hint": "Nulla viene salvato prima della conferma. Deseleziona ciò che non corrisponde: le righe escluse mantengono il brano originale, che resta riproducibile.",
+    "notFound": "Non trovato in questo catalogo",
+    "title": "Converti i brani in {{service}}"
+  },
   "deleteQuestion": "Elimina domanda",
   "groupe": {
     "add": "Aggiungi un interludio",
@@ -60,9 +69,9 @@
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Inserisci URL...",
-    "placeholder": "Inizia a scrivere la tua domanda...",
-    "spotify": {
+    "musique": {
       "apply": "Applica",
+      "extraitCourt": "Anteprima di 30 s, senza account",
       "listen": "Ascolta",
       "loading": "Caricamento…",
       "noResult": "Nessun risultato",
@@ -73,11 +82,13 @@
       "searchButton": "Cerca",
       "start": "Inizia a",
       "startHint": "secondi",
+      "startUnavailable": "Il servizio sceglie l'estratto: lo scostamento non si applica",
       "stop": "Ferma",
       "tooShort": "Ricerca troppo breve",
       "unavailable": "metadati non disponibili",
       "unchanged": "Scarto invariato"
-    }
+    },
+    "placeholder": "Inizia a scrivere la tua domanda..."
   },
   "questionType": {
     "bonneteau": "Scommessa — gioco delle tre carte",

@@ -330,12 +330,14 @@ anim3.envoyer("manager:startGame", { gameId: partie3.gameId })
 
 const amorce = await anim3.attendre((t) => t.e === "game:audioCue")
 verifier("l'animateur reçoit l'amorce", amorce !== undefined)
+// L'URI COMPLÈTE, et non l'identifiant seul : c'est elle qui dit à
+// l'animateur par quel lecteur jouer, Spotify ou Deezer. Le décalage y est
+// inclus, à sa place.
 verifier(
-  "elle porte l'identifiant du morceau",
-  amorce?.d?.id === "5Aom4pV5XRvO33DrZ5bMLD",
-  amorce?.d?.id,
+  "elle porte l'URI du morceau, décalage compris",
+  amorce?.d?.uri === "spotify:5Aom4pV5XRvO33DrZ5bMLD:45",
+  amorce?.d?.uri,
 )
-verifier("et son décalage", amorce?.d?.depart === 45, String(amorce?.d?.depart))
 
 const enonceSonore = await anim3.statut("SHOW_QUESTION")
 verifier(
@@ -402,8 +404,8 @@ const amorceRejouee = await anim4bis.attendre((t) => t.e === "game:audioCue")
 verifier("et son amorce audio", amorceRejouee !== undefined)
 verifier(
   "avec le bon morceau",
-  amorceRejouee?.d?.id === "5Aom4pV5XRvO33DrZ5bMLD",
-  String(amorceRejouee?.d?.id),
+  amorceRejouee?.d?.uri === "spotify:5Aom4pV5XRvO33DrZ5bMLD:45",
+  String(amorceRejouee?.d?.uri),
 )
 
 // Le joueur, lui, n'a pas à recevoir l'amorce : elle livrerait la réponse.

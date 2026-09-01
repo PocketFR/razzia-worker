@@ -27,8 +27,13 @@
     "invalidKeyFormat": "Il formato di questa chiave non è valido",
     "invalidPassword": "Password non valida",
     "masterKeyMissing": "Al server manca la chiave madre",
+    "musicProviderMissing": "Questo servizio musicale non è configurato",
     "passwordNotConfigured": "La password del gestore non è configurata",
     "passwordTooShort": "Password troppo corta",
+    "soundtrackLoginFailed": "Accesso a Soundtrack rifiutato",
+    "soundtrackSlow": "Soundtrack impiega troppo a rispondere. Limita i tentativi ripetuti: attendi qualche minuto prima di riprovare.",
+    "soundtrackTokenMissing": "Nessun token Soundtrack configurato",
+    "soundtrackUnreachable": "Soundtrack non è raggiungibile",
     "unauthorized": "Non autorizzato",
     "unknownKey": "Chiave sconosciuta"
   },

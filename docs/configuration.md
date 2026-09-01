@@ -46,14 +46,52 @@ ouverts sous l'ancien mot de passe sont déconnectés.
 
 ## Clés API
 
-Onglet **Paramètres** de `/manager`. Quatre valeurs :
+Onglet **Paramètres** de `/manager`. Huit valeurs :
 
-| Clé                     | Rôle                                               |
-| ----------------------- | -------------------------------------------------- |
-| `MISTRAL_API_KEY`       | Génération de quiz par IA.                         |
-| `MISTRAL_MODEL`         | Modèle utilisé, `mistral-large-latest` par défaut. |
-| `SPOTIFY_CLIENT_ID`     | Recherche de morceaux, métadonnées, lecture.       |
-| `SPOTIFY_CLIENT_SECRET` | Idem. Expire tous les 180 jours.                   |
+| Clé                     | Rôle                                                      |
+| ----------------------- | --------------------------------------------------------- |
+| `MISTRAL_API_KEY`       | Génération de quiz par IA.                                |
+| `MISTRAL_MODEL`         | Modèle utilisé, `mistral-large-latest` par défaut.        |
+| `MUSIC_PROVIDER`        | Catalogue interrogé par la génération : `auto` (défaut),  |
+|                         | `spotify`, `deezer` ou `soundtrack`.                      |
+| `SOUNDTRACK_API_TOKEN`  | Facultatif. Jeton partenaire, à demander à Soundtrack.    |
+| `SOUNDTRACK_REFRESH`    | Posé par le bouton « Connecter ». Jamais saisi à la main. |
+| `SOUNDTRACK_ZONE`       | Facultatif. La zone où sortir le son, choisie dans une    |
+|                         | liste.                                                    |
+| `SPOTIFY_CLIENT_ID`     | Recherche de morceaux, métadonnées, lecture.              |
+| `SPOTIFY_CLIENT_SECRET` | Idem. Expire tous les 180 jours.                          |
+
+Deezer et Soundtrack n'ont pas de clé, et c'est leur principal intérêt : leurs
+catalogues répondent sans authentification. `auto` retient donc Spotify si ses
+deux clés sont présentes, et Deezer sinon — une installation neuve a de la
+musique avant d'avoir ouvert cet écran. Soundtrack, lui, ne se choisit
+qu'explicitement : le retenir d'office changerait le catalogue d'installations
+existantes sans que personne l'ait demandé.
+
+Les réglages Soundtrack sont facultatifs et n'ouvrent qu'une chose : la
+lecture **par zone sonore**, où le morceau sort en entier des enceintes du
+lieu sous licence de diffusion, au lieu de l'extrait de 30 s joué dans le
+navigateur. Chaque zone est un abonnement chez Soundtrack.
+
+**Deux voies pour s'authentifier**, et le mot de passe n'est stocké dans
+aucune :
+
+1. **Un jeton partenaire**, à demander à Soundtrack. C'est la voie qu'ils
+   recommandent pour la production.
+2. **Une session utilisateur** — le bouton « Connecter » de l'écran. Les
+   identifiants partent une fois au serveur, qui les échange contre un jeton
+   de rafraîchissement ; lui seul est conservé, scellé comme les autres
+   secrets. Le mot de passe n'entre jamais en base. Se révoque en le changeant
+   chez Soundtrack.
+
+Soundtrack déconseille la seconde en production : « if it's abused that user
+can be rate limited or suspended ». C'est le compte de l'animateur qui est
+exposé, pas une application — d'où le jeton partenaire, prioritaire dès qu'il
+existe.
+
+Ce réglage ne concerne que la génération. Dans l'éditeur les deux catalogues
+restent proposés côte à côte, et la lecture suit l'URL enregistrée dans chaque
+question : basculer ici ne rend aucun quiz injouable.
 
 Trois règles gouvernent cet écran :
 

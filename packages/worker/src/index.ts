@@ -24,7 +24,9 @@
 //   /api/*  sans état, servi par le Worker sur D1 — authentification, quiz,
 //           résultats, vérification du PIN, création de partie ;
 //   /ws     la partie en cours, vers le Durable Object nommé par gameId ;
-//   /spotify/*  métadonnées d'un morceau et retour d'autorisation ;
+//   /spotify/*, /deezer/*, /soundtrack/*  métadonnées d'un morceau, et
+//           le retour
+//           d'autorisation pour Spotify ;
 //   le reste, les assets de packages/web (jamais vus par ce code).
 //
 // Effet de bord appréciable : la consultation des quiz et des résultats ne
@@ -37,7 +39,7 @@ import {
   lireImage,
   themePublic,
 } from "./services/branding"
-import { routerSpotify } from "./spotify"
+import { routerDeezer, routerSoundtrack, routerSpotify } from "./musique/routes"
 
 import { CHEMIN_PURGE, GameRoom } from "./game-room"
 
@@ -62,6 +64,15 @@ export interface Env {
   MISTRAL_MODEL?: string
   SPOTIFY_CLIENT_ID?: string
   SPOTIFY_CLIENT_SECRET?: string
+  // Le service musical retenu : "auto", "spotify", "deezer" ou "soundtrack".
+  // Comme les autres, une valeur enregistrée depuis l'interface l'emporte sur
+  // celle-ci.
+  MUSIC_PROVIDER?: string
+  // Facultatifs : ils n'ouvrent que le mode zone de Soundtrack, dont le
+  // catalogue et les extraits répondent sans rien.
+  SOUNDTRACK_API_TOKEN?: string
+  SOUNDTRACK_REFRESH?: string
+  SOUNDTRACK_ZONE?: string
 }
 
 // Balayage quotidien des parties anciennes.
@@ -147,8 +158,18 @@ export default {
       return routerApi(request, env, url)
     }
 
+    // Les deux catalogues, côte à côte : l'éditeur propose l'un et l'autre,
+    // quelle que soit la configuration.
     if (url.pathname.startsWith("/spotify/")) {
       return routerSpotify(request, env, url)
+    }
+
+    if (url.pathname.startsWith("/deezer/")) {
+      return routerDeezer(request, env, url)
+    }
+
+    if (url.pathname.startsWith("/soundtrack/")) {
+      return routerSoundtrack(request, env, url)
     }
 
     if (url.pathname.startsWith("/branding/")) {
@@ -156,7 +177,7 @@ export default {
     }
 
     // Inatteignable en pratique : run_worker_first ne dirige ici que /ws,
-    // /api/*, /spotify/* et /branding/*. Le repli existe pour le développement
+    // /api/*, /spotify/*, /deezer/*, /soundtrack/* et /branding/*. Le repli existe pour le développement
     // local et les erreurs de configuration, qui autrement se manifesteraient
     // par une page blanche.
     return env.ASSETS.fetch(request)

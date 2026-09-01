@@ -79,13 +79,16 @@ fichier par compte et de le passer à wrangler avec `-c`.
 
 ## Après le déploiement
 
-Le script rappelle les deux dernières actions, qui ne peuvent pas être
+Le script rappelle les dernières actions, qui ne peuvent pas être
 automatisées :
 
-1. Déclarer `https://<domaine>/spotify/callback` dans les _Redirect URIs_ de
-   l'application Spotify. Spotify compare cette adresse à l'identique et refuse
-   l'autorisation sans même rediriger si elle n'y figure pas.
-2. Saisir les clés Mistral et Spotify dans `/manager`, onglet **Paramètres**.
+1. Saisir la clé Mistral dans `/manager`, onglet **Paramètres**. Elle suffit à
+   générer des quiz : à défaut de clés Spotify, la musique passe par Deezer,
+   qui ne demande ni compte ni configuration.
+2. Pour employer Spotify plutôt que Deezer : déclarer
+   `https://<domaine>/spotify/callback` dans les _Redirect URIs_ de
+   l'application Spotify — comparée à l'identique, elle refuse l'autorisation
+   sans même rediriger si elle n'y figure pas — puis saisir ses deux clés.
 
 Voir [Configuration](configuration.md).
 
@@ -109,7 +112,32 @@ Dériver la configuration d'une instance pour en déployer une autre — en
 changeant seulement l'identifiant D1 et le domaine — lui fait donc rejouer des
 migrations qui ne la concernent pas. Si l'une d'elles est un
 `deleted_classes`, **l'espace de noms de la seconde instance et tout son
-stockage sont détruits**, sans retour.
+stockage sont détruits**, sans retour. C'est arrivé.
+
+**Un fichier par installation**, donc, et jamais une modification au vol du
+fichier de l'autre :
+
+```sh
+cd packages/worker
+wrangler deploy                          # l'installation principale
+wrangler deploy -c wrangler.ccpda.jsonc  # une autre, avec sa propre base
+```
+
+Tous les `wrangler.*.jsonc` sont ignorés par git — ils portent le domaine et
+l'identifiant de base de chaque installation. Seul `wrangler.jsonc.example`
+est versionné.
+
+Avant tout déploiement sur une instance qu'on ne déploie pas tous les jours,
+**relever son tag courant** et le comparer au dernier de la liste :
+
+```sh
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  "https://api.cloudflare.com/client/v4/accounts/$ID/workers/services/razzia" \
+  | jq -r .result.default_environment.script.migration_tag
+```
+
+S'ils sont égaux, le déploiement n'applique aucune migration. S'ils diffèrent,
+lire ce qui sera rejoué **avant** de lancer quoi que ce soit.
 
 Une installation neuve n'a besoin que de `v1`. Vérifiez la liste avant chaque
 déploiement vers une instance qui n'est pas celle d'où vient le fichier.

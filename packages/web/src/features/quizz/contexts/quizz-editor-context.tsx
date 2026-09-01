@@ -93,7 +93,7 @@ const toBlocWithId = (bloc: BlocQuizz): BlocWithId =>
 
 // Toutes les questions, groupes aplatis, dans l'ordre où elles se joueront.
 // Sert à retrouver un bloc par son identifiant sans se soucier du niveau.
-const parcourir = (blocs: BlocWithId[]): QuestionWithId[] =>
+export const parcourir = (blocs: BlocWithId[]): QuestionWithId[] =>
   blocs.flatMap((bloc) => (estGroupeAvecId(bloc) ? bloc.questions : [bloc]))
 
 type QuizzEditorProviderProps = PropsWithChildren<{

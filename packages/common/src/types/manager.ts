@@ -1,9 +1,21 @@
+import type { Fournisseur } from "@razzia/common/musique"
 import type { GameResultMeta, QuizzMeta } from "@razzia/common/types/game"
 
 export interface ManagerConfig {
   // Public : le flux PKCE l'expose de toute façon au navigateur, qui en a
   // besoin pour ouvrir la session Spotify.
   spotifyClientId: string | null
+  // Le service musical retenu pour le contenu NOUVEAU — recherche dans
+  // l'éditeur et génération par IA. Il ne décide pas de la lecture, qui suit
+  // l'URI enregistrée dans chaque question.
+  musicProvider: Fournisseur
+  // Une zone sonore Soundtrack est-elle configurée ?
+  //
+  // Quand elle l'est, le Worker envoie le morceau ENTIER sur les enceintes du
+  // lieu et le navigateur de l'animateur doit se taire — sans quoi on
+  // entendrait l'extrait de trente secondes par-dessus. C'est un booléen, pas
+  // un identifiant : rien de sensible ne descend.
+  musicZone: boolean
   quizz: QuizzMeta[]
   results: GameResultMeta[]
   // Les clés API qui manquent à la génération par IA, par leur nom seul. Vide

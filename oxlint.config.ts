@@ -53,12 +53,21 @@ export default defineConfig({
       },
     },
     {
-      // Quizia lit du JSON d'API tierces — Spotify, Mistral, OpenTDB — dont
-      // la forme n'est garantie par personne. Le `any` y est assumé et
-      // documenté : chaque champ passe par `champ()` ou par une validation
-      // explicite avant d'être utilisé. Les règles no-unsafe-* y signalent
-      // la nature du problème, pas un défaut.
-      files: ["packages/worker/src/quizia/core.ts"],
+      // Ces fichiers lisent du JSON d'API tierces — Spotify, Deezer,
+      // Mistral, OpenTDB — dont la forme n'est garantie par personne. Le
+      // `any` y est assumé et documenté : chaque champ passe par `champ()`,
+      // par un adaptateur, ou par une validation explicite avant d'être
+      // utilisé. Les règles no-unsafe-* y signalent la nature du problème,
+      // pas un défaut.
+      //
+      // Le dossier musique/ a rejoint la liste en même temps que Deezer :
+      // c'est le client Spotify de quizia qui y a déménagé, mot pour mot, le
+      // temps de lui donner un jumeau. Le code n'a pas changé de nature en
+      // changeant de fichier.
+      files: [
+        "packages/worker/src/quizia/core.ts",
+        "packages/worker/src/musique/*.ts",
+      ],
       rules: {
         "typescript/no-explicit-any": "off",
         // `||` et non `??`, et c'est délibéré sur les 45 sites que la règle

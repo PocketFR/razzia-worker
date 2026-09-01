@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "Añadir una respuesta...",
   "addQuestion": "Añadir pregunta",
   "answersCountSuffix": " respuestas",
+  "conversion": {
+    "applied": "{{count}} canción(es) convertida(s)",
+    "apply": "Convertir {{count}} canción(es)",
+    "button": "Convertir a {{service}} ({{count}})",
+    "cancel": "Cancelar",
+    "hint": "No se guarda nada hasta que confirmes. Desmarca lo que no corresponda: las líneas descartadas conservan su canción original, que sigue siendo reproducible.",
+    "notFound": "No encontrada en este catálogo",
+    "title": "Convertir las canciones a {{service}}"
+  },
   "deleteQuestion": "Eliminar pregunta",
   "groupe": {
     "add": "Añadir un interludio",
@@ -60,9 +69,9 @@
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Introduce la URL...",
-    "placeholder": "Empieza a escribir tu pregunta...",
-    "spotify": {
+    "musique": {
       "apply": "Aplicar",
+      "extraitCourt": "Fragmento de 30 s, sin cuenta",
       "listen": "Escuchar",
       "loading": "Cargando…",
       "noResult": "Sin resultados",
@@ -73,11 +82,13 @@
       "searchButton": "Buscar",
       "start": "Empezar en",
       "startHint": "segundos",
+      "startUnavailable": "El servicio elige el fragmento: el desfase no se aplica",
       "stop": "Detener",
       "tooShort": "Consulta demasiado corta",
       "unavailable": "metadatos no disponibles",
       "unchanged": "Desfase sin cambios"
-    }
+    },
+    "placeholder": "Empieza a escribir tu pregunta..."
   },
   "questionType": {
     "bonneteau": "Apuesta — trile",

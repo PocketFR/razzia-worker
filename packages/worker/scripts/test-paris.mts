@@ -99,6 +99,7 @@ const faireEmetteur = (traces: Trace[]): Emetteur => ({
   programmer: () => undefined,
   annulerAlarme: () => undefined,
   compteur: () => undefined,
+  jouerSurZone: () => undefined,
 })
 
 const dernier = (traces: Trace[], nom: string) =>

@@ -5,6 +5,8 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import ConversionMusicale from "@razzia/web/features/quizz/components/ConversionMusicale"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { useNavigate } from "@tanstack/react-router"
 import type { ChangeEvent } from "react"
@@ -13,6 +15,10 @@ import { useTranslation } from "react-i18next"
 
 const QuizzEditorHeader = () => {
   const { quizzId, subject, setSubject, questions } = useQuizzEditor()
+  // Le service retenu pour le contenu nouveau : c'est vers lui que la
+  // conversion propose d'aller. Le bouton s'efface tout seul quand le quiz
+  // n'a rien à y porter.
+  const vers = useManagerStore((e) => e.config?.musicProvider) ?? "deezer"
   const { socket } = useSocket()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -56,6 +62,7 @@ const QuizzEditorHeader = () => {
       </div>
 
       <div className="flex gap-2">
+        <ConversionMusicale vers={vers} />
         <Button
           className="text-md bg-accent text-accent-foreground px-4 py-2 font-semibold"
           onClick={() => navigate({ to: "/manager" })}

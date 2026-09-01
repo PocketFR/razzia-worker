@@ -52,7 +52,14 @@ const parNom = (etat, nom) => etat.keys.find((k) => k.nom === nom)
 // qu'effacer une valeur y ramène — c'est la transition qui compte, pas la
 // configuration de la machine qui exécute le test.
 const depart = await lire()
-verifier("les quatre clés sont décrites", depart.keys?.length === 4)
+verifier("les huit clés sont décrites", depart.keys?.length === 8)
+
+// Le choix du service musical est une valeur PUBLIQUE : il doit se relire
+// pour que le sélecteur des réglages montre l'état courant, alors qu'un
+// secret ne ressort jamais.
+const choixMusique = parNom(depart, "MUSIC_PROVIDER")
+verifier("le service musical figure parmi les clés", Boolean(choixMusique))
+verifier("il n'est pas secret", choixMusique?.secrete === false)
 
 const origineInitiale = parNom(depart, "SPOTIFY_CLIENT_SECRET")?.origine
 verifier(
@@ -137,6 +144,54 @@ verifier(
 // ── clé inconnue rejetée ───────────────────────────────────────────────────
 const inconnue = await ecrire({ CLE_QUI_NEXISTE_PAS: "x" })
 verifier("clé inconnue rejetée", inconnue.statut === 400)
+
+// ── le service musical : une énumération, pas un champ libre ───────────────
+// Un format refusé au moment où on l'écrit vaut mieux qu'une valeur
+// fantaisiste qui se traduirait en silence par « auto » à chaque lecture.
+const musiqueOk = await ecrire({ MUSIC_PROVIDER: "deezer" })
+verifier("« deezer » est accepté", musiqueOk.statut === 200)
+verifier(
+  "et il se relit",
+  parNom(await lire(), "MUSIC_PROVIDER")?.valeur === "deezer",
+)
+
+const soundtrackOk = await ecrire({ MUSIC_PROVIDER: "soundtrack" })
+verifier("« soundtrack » est accepté", soundtrackOk.statut === 200)
+
+// LE CONTRÔLE QUI COMPTE pour Soundtrack : son jeton est un secret, il ne doit
+// jamais ressortir de l'API — contrairement à l'identifiant de zone, qui est
+// public et doit se relire pour alimenter le sélecteur.
+const JETON = "jeton-soundtrack-de-test-a-ne-jamais-relire"
+await ecrire({ SOUNDTRACK_API_TOKEN: JETON, SOUNDTRACK_ZONE: "zone-de-test" })
+const apresSoundtrack = await lire()
+verifier(
+  "le jeton Soundtrack n'apparaît nulle part",
+  !JSON.stringify(apresSoundtrack).includes(JETON),
+)
+verifier(
+  "aucune valeur ne l'accompagne",
+  parNom(apresSoundtrack, "SOUNDTRACK_API_TOKEN")?.valeur === undefined,
+)
+verifier(
+  "la zone, elle, se relit",
+  parNom(apresSoundtrack, "SOUNDTRACK_ZONE")?.valeur === "zone-de-test",
+)
+await ecrire({ SOUNDTRACK_API_TOKEN: "", SOUNDTRACK_ZONE: "" })
+
+const musiqueKo = await ecrire({ MUSIC_PROVIDER: "napster" })
+verifier(
+  "un service inconnu est refusé",
+  musiqueKo.statut >= 400,
+  `reçu ${musiqueKo.statut}`,
+)
+verifier(
+  "et la valeur précédente tient",
+  parNom(await lire(), "MUSIC_PROVIDER")?.valeur === "soundtrack",
+)
+
+// On rend la machine à son état d'origine : ce test tourne sur des
+// déploiements réels.
+await ecrire({ MUSIC_PROVIDER: "" })
 
 // ── remise en état pour les autres suites ──────────────────────────────────
 await ecrire({ SPOTIFY_CLIENT_ID: "" })

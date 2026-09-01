@@ -1,4 +1,5 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
+import { estUriMusique } from "@razzia/common/musique"
 import type { QuestionMedia as QuestionMediaType } from "@razzia/common/types/game"
 
 interface Props {
@@ -29,10 +30,12 @@ const QuestionMedia = ({ media, alt = "" }: Props) => {
   }
 
   if (media?.type === MEDIA_TYPES.AUDIO) {
-    // Une URI « spotify:… » n'est pas jouable par le navigateur : le contrôle
-    // resterait inerte, et la surcouche le masquait en CSS. Le morceau est
-    // joué par le SDK Spotify côté animateur, pas par cette balise.
-    if (media.url.startsWith("spotify:")) {
+    // Une URI « spotify: » ou « deezer: » n'est pas jouable par le
+    // navigateur : le contrôle resterait inerte, et la surcouche le masquait
+    // en CSS. Le morceau est joué côté animateur — par le SDK Spotify ou par
+    // l'extrait Deezer — et surtout pas ici : ce composant s'affiche AUSSI
+    // sur le téléphone des joueurs, où le son donnerait la réponse.
+    if (estUriMusique(media.url)) {
       return null
     }
 

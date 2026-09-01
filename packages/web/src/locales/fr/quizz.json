@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "Ajouter une réponse...",
   "addQuestion": "Ajouter une question",
   "answersCountSuffix": " réponses",
+  "conversion": {
+    "applied": "{{count}} morceau(x) converti(s)",
+    "apply": "Convertir {{count}} morceau(x)",
+    "button": "Convertir vers {{service}} ({{count}})",
+    "cancel": "Annuler",
+    "hint": "Rien n'est enregistré avant validation. Décochez ce qui ne correspond pas : les lignes écartées gardent leur morceau d'origine, qui reste jouable.",
+    "notFound": "Introuvable dans ce catalogue",
+    "title": "Convertir les morceaux vers {{service}}"
+  },
   "deleteQuestion": "Supprimer la question",
   "groupe": {
     "add": "Ajouter un interlude",
@@ -60,9 +69,9 @@
       "video": "Vidéo"
     },
     "mediaUrlPlaceholder": "Entrez l'URL...",
-    "placeholder": "Commencez à écrire votre question...",
-    "spotify": {
+    "musique": {
       "apply": "Appliquer",
+      "extraitCourt": "Extrait de 30 s, sans connexion",
       "listen": "Écouter",
       "loading": "Chargement…",
       "noResult": "Aucun résultat",
@@ -73,11 +82,13 @@
       "searchButton": "Chercher",
       "start": "Démarrer à",
       "startHint": "secondes",
+      "startUnavailable": "Le service choisit le passage : le décalage ne s'applique pas",
       "stop": "Arrêter",
       "tooShort": "Requête trop courte",
       "unavailable": "métadonnées indisponibles",
       "unchanged": "Décalage inchangé"
-    }
+    },
+    "placeholder": "Commencez à écrire votre question..."
   },
   "questionType": {
     "bonneteau": "Pari — bonneteau",

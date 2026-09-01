@@ -31,6 +31,10 @@ import { deriverCle } from "./session"
 export const CLES_CONNUES = [
   "MISTRAL_API_KEY",
   "MISTRAL_MODEL",
+  "MUSIC_PROVIDER",
+  "SOUNDTRACK_API_TOKEN",
+  "SOUNDTRACK_REFRESH",
+  "SOUNDTRACK_ZONE",
   "SPOTIFY_CLIENT_ID",
   "SPOTIFY_CLIENT_SECRET",
 ] as const
@@ -38,7 +42,12 @@ export const CLES_CONNUES = [
 export type NomDeCle = (typeof CLES_CONNUES)[number]
 
 /** Celles qui méritent le chiffrement. Les autres sont publiques. */
-const SECRETES = new Set<NomDeCle>(["MISTRAL_API_KEY", "SPOTIFY_CLIENT_SECRET"])
+const SECRETES = new Set<NomDeCle>([
+  "MISTRAL_API_KEY",
+  "SOUNDTRACK_API_TOKEN",
+  "SOUNDTRACK_REFRESH",
+  "SPOTIFY_CLIENT_SECRET",
+])
 
 export const estSecrete = (nom: NomDeCle) => SECRETES.has(nom)
 
@@ -56,8 +65,17 @@ export const estSecrete = (nom: NomDeCle) => SECRETES.has(nom)
 // propre application, et le gain de sécurité était nul puisque l'échappement
 // suffit. On borne donc le JEU DE CARACTÈRES — apostrophes, chevrons,
 // contre-obliques et blancs exclus — et rien d'autre.
+//
+// MUSIC_PROVIDER, lui, n'est pas un format de tiers mais une valeur DE NOUS :
+// trois mots, dont l'application seule décide. On l'énumère, donc, et une
+// valeur inconnue est refusée à l'écriture plutôt que d'aller se traduire en
+// silence par « auto » à chaque lecture.
 const FORMATS: Partial<Record<NomDeCle, RegExp>> = {
   SPOTIFY_CLIENT_ID: /^[\w.~-]{4,128}$/u,
+  MUSIC_PROVIDER: /^(?:auto|spotify|deezer|soundtrack)$/u,
+  // Un identifiant de zone sonore, tel que l'API le rend. Même prudence que
+  // pour l'identifiant Spotify : on borne le jeu de caractères, pas la forme.
+  SOUNDTRACK_ZONE: /^[\w:.~-]{4,128}$/u,
 }
 
 /** La valeur est-elle acceptable pour cette clé ? */
@@ -130,15 +148,48 @@ const lignesDesCles = async (db: D1Database) => {
   const { results } = await db
     .prepare(
       `SELECT key, value, encrypted, updated_at FROM settings WHERE key IN
-       ('MISTRAL_API_KEY','MISTRAL_MODEL','SPOTIFY_CLIENT_ID','SPOTIFY_CLIENT_SECRET')`,
+       ('MISTRAL_API_KEY','MISTRAL_MODEL','MUSIC_PROVIDER',
+        'SOUNDTRACK_API_TOKEN','SOUNDTRACK_REFRESH','SOUNDTRACK_ZONE',
+        'SPOTIFY_CLIENT_ID','SPOTIFY_CLIENT_SECRET')`,
     )
     .all<Ligne>()
 
   return new Map(results.map((l) => [l.key, l]))
 }
 
+/**
+ * Les clés effectives, et le réglage qui les accompagne.
+ *
+ * `Cles` vit ici et non dans quizia : c'est cette fonction qui la produit, et
+ * la génération n'est plus la seule à s'en servir depuis que les catalogues
+ * musicaux la lisent aussi.
+ */
+export interface Cles {
+  mistralKey: string
+  mistralModel: string
+  spotifyId: string
+  spotifySecret: string
+  /** "auto" | "spotify" | "deezer" | "soundtrack". Vide vaut "auto". */
+  musicProvider: string
+  /**
+   * Les réglages Soundtrack, tous FACULTATIFS.
+   *
+   * Chercher un morceau et en jouer l'extrait ne demande rien. Ceux-ci ne
+   * servent qu'au mode zone. Sans eux, Soundtrack fonctionne en extrait,
+   * exactement comme Deezer.
+   *
+   * DEUX VOIES POUR S'AUTHENTIFIER, et le mot de passe n'est stocké dans
+   * aucune : soit un jeton partenaire obtenu auprès de Soundtrack, soit une
+   * session ouverte une fois avec les identifiants de l'animateur, dont on ne
+   * retient que le jeton de rafraîchissement.
+   */
+  soundtrackToken: string
+  soundtrackRefresh: string
+  soundtrackZone: string
+}
+
 /** Les clés effectives : la base d'abord, la liaison en repli. */
-export const lireCles = async (env: Env) => {
+export const lireCles = async (env: Env): Promise<Cles> => {
   const lignes = await lignesDesCles(env.DB)
 
   const valeur = async (nom: NomDeCle) => {
@@ -158,6 +209,10 @@ export const lireCles = async (env: Env) => {
     mistralModel: (await valeur("MISTRAL_MODEL")) || "mistral-large-latest",
     spotifyId: await valeur("SPOTIFY_CLIENT_ID"),
     spotifySecret: await valeur("SPOTIFY_CLIENT_SECRET"),
+    musicProvider: (await valeur("MUSIC_PROVIDER")) || "auto",
+    soundtrackToken: await valeur("SOUNDTRACK_API_TOKEN"),
+    soundtrackRefresh: await valeur("SOUNDTRACK_REFRESH"),
+    soundtrackZone: await valeur("SOUNDTRACK_ZONE"),
   }
 }
 

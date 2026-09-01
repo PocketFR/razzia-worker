@@ -19,6 +19,8 @@
       "/ws",
       "/api/*",
       "/spotify/*",
+      "/deezer/*",
+      "/soundtrack/*",
       // Ces deux-là ONT un équivalent statique, et c'est le piège : sans
       // cette ligne les assets répondraient d'abord, et le branding
       // enregistré en base ne serait jamais servi.

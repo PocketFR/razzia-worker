@@ -66,12 +66,15 @@
  * réponses — est inchangé.
  */
 
-export interface Cles {
-  mistralKey: string
-  mistralModel: string
-  spotifyId: string
-  spotifySecret: string
-}
+import { ecrireUriMusique, type Fournisseur } from "@razzia/common/musique"
+import { catalogueChoisi, fournisseurChoisi } from "../musique"
+import { norm, type Morceau } from "../musique/texte"
+import type { Cles } from "../services/secrets"
+
+// `Cles` et les catalogues arrivent d'ailleurs depuis que la musique n'est
+// plus forcément Spotify : ce module compose, il ne parle plus à un service
+// musical en direct.
+export type { Cles }
 
 // Réglages restés en dur : ce sont des choix de conception mesurés, pas des
 // paramètres d'exploitation. Seules les CLÉS varient d'un déploiement à
@@ -80,11 +83,6 @@ const MISTRAL_MAX_TOKENS = 8000
 // Tâche factuelle : on veut l'association la plus probable, pas la plus
 // originale. La valeur par défaut du modèle (~0.7) invente trop.
 const TEMPERATURE = 0.2
-
-const MARKET = "FR"
-const SPOTIFY_TIMEOUT_MS = 15000
-// Plafond constaté sur /search comme sur /artists/{id}/albums.
-const SPOTIFY_LIMIT = 10
 
 const OPENTDB_URL = "https://opentdb.com"
 const OPENTDB_TIMEOUT_MS = 15000
@@ -111,18 +109,8 @@ const CONCURRENCE = 3
 const log = (...a: unknown[]) =>
   console.log(new Date().toISOString().slice(11, 19), ...a)
 
-export const norm = (s: unknown) =>
-  String(s || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-
-// Versions parasites : un blind test sur un live ou un karaoké ne marche pas.
-const NOISE =
-  /\b(live|remaster\w*|karaoke|tribute|instrumental|acoustic|demo|re-?recorded|sped\s*up|slowed|cover|version)\b/i
-const ALBUM_KO = new Set(["compilation"])
+// Réexportée : elle sert encore ici, et les tests la prennent à cette adresse.
+export { norm }
 
 const pause = (ms: number) =>
   new Promise((r) => {
@@ -155,225 +143,6 @@ async function parLots<T, R>(
   }
 
   return resultats
-}
-
-// -------------------------------------------------------------------- Spotify
-
-// Cache par isolat : un Worker n'a pas de processus qui dure, mais un isolat
-// sert plusieurs requêtes. Un jeton déjà émis reste d'ailleurs valable même
-// si le secret est renouvelé entre-temps, jusqu'à sa propre expiration.
-let jeton: string | null = null
-let jetonExpire = 0
-
-async function jetonSpotify(cles: Cles): Promise<string> {
-  if (jeton && Date.now() < jetonExpire) {
-    return jeton
-  }
-
-  const basic = btoa(`${cles.spotifyId}:${cles.spotifySecret}`)
-  const r = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  })
-
-  if (!r.ok) {
-    throw new Error(`token Spotify HTTP ${r.status}`)
-  }
-
-  // `r.json<T>()` et non `as T` : l'assertion faisait clignoter oxlint — sa
-  // passe typée la jugeait tantôt nécessaire, tantôt superflue, une fois sur
-  // quatre environ, ce qui suffit à rendre la CI capricieuse.
-  const j = await r.json<{ access_token: string; expires_in: number }>()
-  jeton = j.access_token
-  jetonExpire = Date.now() + (j.expires_in - 60) * 1000
-
-  return jeton
-}
-
-/** GET sur l'API Spotify, avec respect du Retry-After en cas de 429. */
-async function spotify(cles: Cles, chemin: string, essai = 0): Promise<any> {
-  const t = await jetonSpotify(cles)
-  const r = await fetch(`https://api.spotify.com/v1${chemin}`, {
-    headers: { Authorization: `Bearer ${t}` },
-    signal: AbortSignal.timeout(SPOTIFY_TIMEOUT_MS),
-  })
-
-  if (r.status === 429) {
-    const attente = Math.min(
-      30,
-      parseInt(r.headers.get("retry-after") || "2", 10),
-    )
-
-    if (essai >= 2) {
-      throw new Error(`quota Spotify épuisé (429 après ${essai + 1} essais)`)
-    }
-
-    log(`quota Spotify atteint, pause ${attente}s`)
-    await pause(attente * 1000)
-
-    return spotify(cles, chemin, essai + 1)
-  }
-
-  if (r.status === 401 && essai < 1) {
-    // Jeton périmé plus tôt que prévu
-    jeton = null
-
-    return spotify(cles, chemin, essai + 1)
-  }
-
-  if (!r.ok) {
-    const detail = await r.text()
-    throw new Error(
-      `Spotify HTTP ${r.status} sur ${chemin.split("?")[0]} ` +
-        `— ${detail.slice(0, 120)}`,
-    )
-  }
-
-  return r.json()
-}
-
-/** Normalise une piste Spotify, ou null si elle n'est pas exploitable. */
-function retenirPiste(t: any, nomArtiste: string) {
-  if (!t?.id || !t.name) {
-    return null
-  }
-
-  if (NOISE.test(t.name)) {
-    return null
-  }
-
-  const album = t.album || {}
-
-  if (ALBUM_KO.has(String(album.album_type || "").toLowerCase())) {
-    return null
-  }
-
-  if (NOISE.test(album.name || "")) {
-    return null
-  }
-
-  // La recherche remonte reprises et artistes voisins : sur « Indochine »,
-  // Louise Attaque figurait dans les résultats.
-  const interprete = ((t.artists || [])[0] || {}).name || ""
-
-  if (norm(interprete) !== norm(nomArtiste)) {
-    return null
-  }
-
-  // Le format varie : "1982" pour l'un, "1985-12-10" pour l'autre.
-  const annee =
-    parseInt(String(album.release_date || "").slice(0, 4), 10) || null
-
-  // L'identifiant est la raison d'être de cette passe : c'est lui qui finira
-  // dans le champ media du quiz. Le résoudre ici, contre le catalogue réel,
-  // est le seul moyen d'être sûr qu'il désigne bien ce morceau-là.
-  return { id: t.id, artiste: interprete, titre: t.name, annee }
-}
-
-/** Métadonnées affichables d'un objet track, pour la surcouche d'édition. */
-function decrireTrack(t: any) {
-  if (!t?.id) {
-    return null
-  }
-
-  const album = t.album || {}
-  const images = album.images || []
-  // On prend LA PLUS GRANDE. Ces métadonnées ne servaient au départ qu'à une
-  // vignette d'éditeur, et la plus petite (64 px) suffisait ; elles alimentent
-  // maintenant aussi la carte de fin de question, affichée sur un téléviseur,
-  // où ce format-là est franchement flou. Une pochette de 640 px pèse une
-  // cinquantaine de kilo-octets, chargée une fois par question : le confort de
-  // l'éditeur ne justifie pas de dégrader l'écran de jeu.
-  //
-  // L'ordre décroissant est documenté mais on ne s'y fie pas : un tableau
-  // renvoyé dans un autre ordre donnerait ici, en silence, la vignette.
-  let cover: string | null = null
-  let large = -1
-  for (const i of images) {
-    if (i?.url && (i.width || 0) > large) {
-      cover = i.url
-      large = i.width || 0
-    }
-  }
-
-  const artistes = []
-  for (const a of t.artists || []) {
-    if (a?.name) {
-      artistes.push(a.name)
-    }
-  }
-
-  return {
-    id: t.id,
-    titre: t.name,
-    artiste: artistes.join(", "),
-    album: album.name || "",
-    annee: parseInt(String(album.release_date || "").slice(0, 4), 10) || null,
-    duree: Math.round((t.duration_ms || 0) / 1000),
-    cover,
-  }
-}
-
-/** Un titre par nom normalisé, avec l'année de sortie la plus ancienne. */
-const dedupliquer = (pistes: any[]) => {
-  const parTitre = new Map<string, any>()
-  for (const p of pistes) {
-    const cle = norm(p.titre)
-
-    if (!cle) {
-      continue
-    }
-
-    const connue = parTitre.get(cle)
-
-    if (!connue) {
-      parTitre.set(cle, p)
-
-      continue
-    }
-
-    if (p.annee && (!connue.annee || p.annee < connue.annee)) {
-      parTitre.set(cle, { ...connue, annee: p.annee })
-    }
-  }
-
-  return [...parTitre.values()]
-}
-
-/** Pistes d'un artiste, en UN appel. La période est un qualificateur. */
-async function pistesArtiste(
-  cles: Cles,
-  nom: string,
-  anneeMin: number | null,
-  anneeMax: number | null,
-) {
-  let requete = `artist:${nom}`
-
-  if (anneeMin || anneeMax) {
-    requete += ` year:${anneeMin || 1900}-${anneeMax || new Date().getFullYear()}`
-  }
-
-  const res = await spotify(
-    cles,
-    "/search?type=track" +
-      `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
-      `&q=${encodeURIComponent(requete)}`,
-  )
-
-  const pistes = []
-  for (const t of (res.tracks || {}).items || []) {
-    const p = retenirPiste(t, nom)
-
-    if (p) {
-      pistes.push(p)
-    }
-  }
-
-  return dedupliquer(pistes)
 }
 
 // -------------------------------------------------------------------- OpenTDB
@@ -974,44 +743,12 @@ export function validerQuestion(
  * "titre" sans numéro. Le pyscript la résolvait via Music Assistant ; sans
  * cette recherche, elle serait écartée alors qu'elle était jouable avant.
  */
-async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
-  const requete = `artist:${artiste} track:${titre}`
-  let res
-
-  try {
-    res = await spotify(
-      cles,
-      "/search?type=track" +
-        `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
-        `&q=${encodeURIComponent(requete)}`,
-    )
-  } catch (e) {
-    console.error(
-      `! résolution "${artiste} — ${titre}": ${(e as Error).message}`,
-    )
-
-    return null
-  }
-
-  const vise = norm(titre)
-  for (const t of (res.tracks || {}).items || []) {
-    // RetenirPiste applique déjà le filtre NOISE et l'égalité d'artiste.
-    const p = retenirPiste(t, artiste)
-
-    if (!p) {
-      continue
-    }
-
-    const nom = norm(p.titre)
-
-    // Garde-fou contre les homonymies : la recherche remonte volontiers un
-    // autre titre du même artiste quand celui demandé n'existe pas.
-    if (nom.includes(vise) || vise.includes(nom)) {
-      return { ...p, id: t.id }
-    }
-  }
-
-  return null
+async function resoudreMorceau(
+  cles: Cles,
+  artiste: string,
+  titre: string,
+): Promise<Morceau | null> {
+  return catalogueChoisi(cles).resoudre(artiste, titre)
 }
 
 /**
@@ -1022,11 +759,15 @@ async function resoudreMorceau(cles: Cles, artiste: string, titre: string) {
  * la première édition du quiz. "media" est au schéma, et sa chaîne "url"
  * est transmise sans être interprétée — d'où l'URI à deux-points, dont
  * l'offset est omis quand il vaut 0.
+ *
+ * LE SERVICE FAIT PARTIE DE L'URI depuis qu'il y en a deux : c'est elle, et
+ * non un réglage global, qui décidera plus tard par quel lecteur ce morceau
+ * se joue. Un quiz reste donc jouable après une bascule des réglages.
  */
-export function media(id: string, start: number) {
+export function media(fournisseur: Fournisseur, id: string, start: number) {
   return {
     type: "audio",
-    url: start ? `spotify:${id}:${start}` : `spotify:${id}`,
+    url: ecrireUriMusique(fournisseur, id, start),
   }
 }
 
@@ -1083,6 +824,10 @@ export async function ecrireQuiz(
   const positions: Record<number, number> = {}
   const vus = new Set<string>()
   let sonores = 0
+  // Le service qui a résolu ces morceaux, et donc celui dont les URI seront
+  // écrites. Il est lu une fois : basculer le réglage en pleine génération
+  // donnerait un quiz mi-Spotify mi-Deezer.
+  const fournisseur = fournisseurChoisi(cles)
 
   const parTexte = new Map<string, any>()
   for (const p of pistes) {
@@ -1148,7 +893,7 @@ export async function ecrireQuiz(
     }
 
     if (musicale) {
-      question.media = media(piste.id, q.start)
+      question.media = media(fournisseur, piste.id, q.start)
     }
 
     questions.push(question)
@@ -1232,6 +977,11 @@ async function construire(cles: Cles, titre: string, description: string) {
   // --- passe 2 : les deux sources, en parallèle ---------------------------
   const debut = Date.now()
 
+  // Le catalogue est résolu UNE FOIS pour toute la génération : le relire par
+  // artiste laisserait une bascule de réglage en cours de route produire un
+  // quiz aux identifiants mélangés.
+  const catalogue = catalogueChoisi(cles)
+
   // `categorie ?? 0` plutôt qu'une assertion : deux règles s'opposaient ici,
   // l'une réclamant un « ! », l'autre l'interdisant. Ni l'une ni l'autre
   // n'avait tort — une assertion cache le cas où la catégorie annoncée par
@@ -1252,7 +1002,7 @@ async function construire(cles: Cles, titre: string, description: string) {
     CONCURRENCE,
     async (nom: string) => {
       try {
-        const pistes = await pistesArtiste(cles, nom, anneeMin, anneeMax)
+        const pistes = await catalogue.pistesDeLArtiste(nom, anneeMin, anneeMax)
 
         if (!pistes.length) {
           return { nom, pistes: [] as any[] }
@@ -1419,63 +1169,6 @@ const html = (contenu: string) =>
     headers: { "content-type": "text/html; charset=utf-8" },
   })
 
-/** Métadonnées d'un morceau, pour la surcouche de l'éditeur. */
-export async function endpointTrack(cles: Cles, id: string) {
-  if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
-  }
-
-  try {
-    const info = decrireTrack(
-      await spotify(cles, `/tracks/${id}?market=${MARKET}`),
-    )
-
-    if (!info) {
-      return json({ ok: false, message: "Morceau introuvable" }, 404)
-    }
-
-    return json({ ok: true, track: info })
-  } catch (e) {
-    console.error(`! track ${id}: ${(e as Error).message}`)
-
-    return json({ ok: false, message: (e as Error).message }, 502)
-  }
-}
-
-/** Recherche libre, pour la liste déroulante de la surcouche. */
-export async function endpointSearch(cles: Cles, q: string) {
-  if (q.trim().length < 2) {
-    return json({ ok: false, message: "Requête trop courte" }, 400)
-  }
-
-  if (!cles.spotifyId || !cles.spotifySecret) {
-    return json({ ok: false, message: "Identifiants Spotify absents" }, 500)
-  }
-
-  try {
-    const res = await spotify(
-      cles,
-      "/search?type=track" +
-        `&limit=${SPOTIFY_LIMIT}&market=${MARKET}` +
-        `&q=${encodeURIComponent(q.trim())}`,
-    )
-    const sortie = []
-    for (const t of (res.tracks || {}).items || []) {
-      const info = decrireTrack(t)
-
-      if (info) {
-        sortie.push(info)
-      }
-    }
-
-    return json({ ok: true, tracks: sortie })
-  } catch (e) {
-    console.error(`! search "${q}": ${(e as Error).message}`)
-
-    return json({ ok: false, message: (e as Error).message }, 502)
-  }
-}
-
 /** Génération complète, protégée par le mot de passe manager. */
 /**
  * Ce qui manque pour qu'une génération puisse aboutir. Tableau vide = prête.
@@ -1486,8 +1179,11 @@ export async function endpointSearch(cles: Cles, q: string) {
  * la génération. Deux listes tenues séparément finiraient par diverger, et
  * c'est le bouton actif menant à un échec qui coûterait le plus cher.
  *
- * Spotify y figure au même titre que Mistral : `genererQuiz` refuse sans lui,
- * la partie musicale étant le cœur de l'exercice.
+ * Le catalogue musical y figure au même titre que Mistral : `genererQuiz`
+ * refuse sans lui, la partie musicale étant le cœur de l'exercice. Mais ce
+ * qu'il exige DÉPEND DU SERVICE RETENU — Deezer ne demande rien. Sans cette
+ * délégation, une installation qui n'a jamais vu une clé Spotify garderait
+ * son bouton grisé alors que tout est en place.
  */
 export function manquePourGenerer(cles: Cles): string[] {
   const manque: string[] = []
@@ -1500,13 +1196,7 @@ export function manquePourGenerer(cles: Cles): string[] {
     manque.push("MISTRAL_MODEL")
   }
 
-  if (!cles.spotifyId) {
-    manque.push("SPOTIFY_CLIENT_ID")
-  }
-
-  if (!cles.spotifySecret) {
-    manque.push("SPOTIFY_CLIENT_SECRET")
-  }
+  manque.push(...catalogueChoisi(cles).manque())
 
   return manque
 }

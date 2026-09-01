@@ -33,6 +33,7 @@
 
 import { derouler } from "@razzia/common/deroulement"
 import { EVENTS } from "@razzia/common/constants"
+import { lireUriMusique } from "@razzia/common/musique"
 import type { GameResult, Player, QuizzWithId } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
 import { usernameValidator } from "@razzia/common/validators/auth"
@@ -40,7 +41,7 @@ import {
   avancer,
   demarrer,
   PHASE,
-  pisteSpotify,
+  pisteMusicale,
   estDerniereQuestion,
   mancheNeuve,
   cloturerReponses,
@@ -50,6 +51,9 @@ import {
   type Emetteur,
   type Manche,
 } from "./game/round"
+import { authSoundtrack, zoneActive } from "./musique"
+import { jouerSurLaZone } from "./musique/soundtrack"
+import { ecrireCle, lireCles } from "./services/secrets"
 import type { Env } from "./index"
 
 export interface Attachement {
@@ -397,7 +401,7 @@ export class GameRoom implements DurableObject {
 
       if (enJeu) {
         const etape = derouler(etat.quizz.questions)[etat.manche.question]
-        const piste = etape && pisteSpotify(etape.question)
+        const piste = etape && pisteMusicale(etape.question)
 
         if (piste) {
           this.envoyer(server, EVENTS.GAME.AUDIO_CUE, piste)
@@ -498,7 +502,53 @@ export class GameRoom implements DurableObject {
       // sont la trace.
       programmer: () => undefined,
       annulerAlarme: () => undefined,
+
+      jouerSurZone: (uri) => this.jouerSurZone(uri),
     }
+  }
+
+  /**
+   * Sort un morceau Soundtrack sur la zone sonore du compte.
+   *
+   * LE SEUL APPEL SORTANT DE LA BOUCLE DE JEU, et il est délibérément
+   * détaché : `waitUntil` le laisse courir après la réponse, sans que
+   * l'énoncé l'attende. Une zone injoignable, un jeton périmé ou un réseau
+   * lent donnent alors une question muette — ce qui se rattrape — au lieu
+   * d'une manche figée, ce qui ne se rattrape pas.
+   *
+   * Les clés sont relues à chaque question plutôt que retenues : elles sont
+   * modifiables depuis l'interface, et un objet qui vit des heures servirait
+   * sinon un jeton révoqué.
+   */
+  private jouerSurZone(uri: string) {
+    const lue = lireUriMusique(uri)
+
+    if (lue?.fournisseur !== "soundtrack" || !lue.id) {
+      return
+    }
+
+    this.ctx.waitUntil(
+      (async () => {
+        const cles = await lireCles(this.env)
+
+        // MÊME RÈGLE QUE CELLE ANNONCÉE AU NAVIGATEUR : les deux avaient
+        // divergé, et le morceau sortait deux fois — entier sur la zone,
+        // en extrait dans l'onglet de l'animateur.
+        if (!zoneActive(cles)) {
+          return
+        }
+
+        await jouerSurLaZone(
+          authSoundtrack(cles, (valeur) =>
+            ecrireCle(this.env, "SOUNDTRACK_REFRESH", valeur),
+          ),
+          cles.soundtrackZone,
+          lue.id,
+        )
+      })().catch((e: unknown) => {
+        console.error(`! zone Soundtrack: ${(e as Error).message}`)
+      }),
+    )
   }
 
   private contexte(etat: EtatPartie): ContextePartie {

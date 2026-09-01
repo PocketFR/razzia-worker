@@ -22,8 +22,21 @@ import {
   etatDesCles,
   formatValide,
   lireCles,
+  type Cles,
   type NomDeCle,
 } from "./services/secrets"
+import { estFournisseur } from "@razzia/common/musique"
+import {
+  authSoundtrack,
+  catalogueDe,
+  fournisseurChoisi,
+  zoneActive,
+} from "./musique"
+import {
+  ConnexionLente,
+  ouvrirSession,
+  zonesDuCompte,
+} from "./musique/soundtrack"
 import { genererQuiz, manquePourGenerer } from "./quizia/core"
 import {
   dangerDuSvg,
@@ -41,6 +54,15 @@ import {
 import { CHEMIN_ETAT } from "./game-room"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
+
+// Le plafond d'une conversion, en morceaux. Le schéma de razzia n'accepte de
+// toute façon pas plus de questions que cela, et sans borne un corps forgé
+// ferait enchaîner autant de recherches qu'il en demande.
+const MAX_CONVERSION = 40
+
+/** L'autorisation Soundtrack, avec de quoi réécrire un jeton qui tourne. */
+const authDuCompte = (env: Env, cles: Cles) =>
+  authSoundtrack(cles, (valeur) => ecrireCle(env, "SOUNDTRACK_REFRESH", valeur))
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -180,6 +202,11 @@ export async function routerApi(
       results: await config.getResultsMeta(),
       // Le navigateur en a besoin pour le flux PKCE ; il n'a rien de secret.
       spotifyClientId: cles.spotifyId || null,
+      // Le service retenu pour ce qu'on CRÉE. La lecture, elle, suit l'URI
+      // de chaque question : l'éditeur en a besoin pour savoir quel
+      // catalogue interroger et quel logo montrer.
+      musicProvider: fournisseurChoisi(cles),
+      musicZone: zoneActive(cles),
       // De quoi griser le bouton « créer par IA » plutôt que de laisser
       // remplir un formulaire qui serait refusé à l'envoi. On ne transmet que
       // les NOMS des clés manquantes, jamais leurs valeurs.
@@ -432,6 +459,105 @@ export async function routerApi(
   // La lecture ne rend jamais une valeur secrète, seulement son état. Une
   // écriture avec une chaîne vide efface la ligne et rend la main à la
   // liaison Worker : c'est le moyen d'annuler une saisie sans redéployer.
+  // --- conversion d'un quiz d'un catalogue à l'autre -----------------------
+  //
+  // Une recherche PAR LOT, et rien de plus : elle rend, pour chaque couple
+  // artiste-titre, le meilleur morceau du catalogue visé, ou null. Rien n'est
+  // écrit ici — c'est l'animateur qui valide dans l'éditeur, question par
+  // question, avant d'enregistrer.
+  //
+  // POURQUOI PAS DE CONVERSION AUTOMATIQUE : la recherche remonte volontiers
+  // un live, une reprise ou un remaster quand l'original manque. Sur un blind
+  // test, la mauvaise version est une question fausse — et personne ne s'en
+  // aperçoit avant la soirée.
+  if (section === "musique" && reste[0] === "convertir" && methode === "POST") {
+    const corps = (await request.json().catch(() => ({}))) as {
+      vers?: string
+      morceaux?: Array<{ artiste?: string; titre?: string }>
+    }
+
+    if (!estFournisseur(corps.vers)) {
+      return erreur("errors:manager.unknownKey", 400)
+    }
+
+    const demandes = (corps.morceaux ?? []).slice(0, MAX_CONVERSION)
+    const catalogue = catalogueDe(await lireCles(env), corps.vers)
+
+    // Convertir VERS un service qu'on n'a pas configuré n'a aucune chance
+    // d'aboutir. Le dire tout de suite, et le dire juste : réutiliser
+    // « clé inconnue » laissait l'animateur chercher une faute de frappe.
+    if (catalogue.manque().length) {
+      return erreur("errors:manager.musicProviderMissing", 400)
+    }
+
+    // En série et non en rafale : un plan gratuit plafonne les sous-requêtes,
+    // et les deux catalogues limitent leur cadence.
+    const trouves = []
+    for (const d of demandes) {
+      trouves.push(
+        d.artiste && d.titre
+          ? await catalogue.resoudre(d.artiste, d.titre).catch(() => null)
+          : null,
+      )
+    }
+
+    return json({ vers: corps.vers, morceaux: trouves })
+  }
+
+  // --- les zones sonores Soundtrack, pour le sélecteur des réglages -------
+  //
+  // La seule route de ce chantier qui exige vraiment un abonnement : chercher
+  // un morceau et en jouer l'extrait ne demande rien, mais lister les zones
+  // d'un compte suppose d'en avoir un.
+  if (section === "musique" && reste[0] === "zones" && methode === "GET") {
+    const cles = await lireCles(env)
+
+    if (!cles.soundtrackToken && !cles.soundtrackRefresh) {
+      return erreur("errors:manager.soundtrackTokenMissing", 400)
+    }
+
+    try {
+      return json({ zones: await zonesDuCompte(authDuCompte(env, cles)) })
+    } catch (e) {
+      console.error(`! zones Soundtrack: ${(e as Error).message}`)
+
+      return erreur("errors:manager.soundtrackUnreachable", 502)
+    }
+  }
+
+  // --- ouverture d'une session Soundtrack ---------------------------------
+  //
+  // LE MOT DE PASSE NE VA PAS PLUS LOIN QUE CETTE FONCTION. On l'échange
+  // contre un jeton de rafraîchissement, c'est lui seul qui est scellé en
+  // base. Personne ne peut le relire, et il se révoque en changeant le mot de
+  // passe chez Soundtrack.
+  if (section === "musique" && reste[0] === "connexion" && methode === "POST") {
+    const { email, password } = (await request.json().catch(() => ({}))) as {
+      email?: string
+      password?: string
+    }
+
+    if (!email || !password) {
+      return erreur("errors:manager.soundtrackTokenMissing", 400)
+    }
+
+    try {
+      const { rafraichi } = await ouvrirSession(email, password)
+      await ecrireCle(env, "SOUNDTRACK_REFRESH", rafraichi)
+
+      return json({ ok: true })
+    } catch (e) {
+      console.error(`! connexion Soundtrack: ${(e as Error).message}`)
+
+      // Un délai dépassé n'est PAS un refus : Soundtrack freine les tentatives
+      // répétées, et confondre les deux envoie chercher une faute de frappe
+      // dans un mot de passe parfaitement correct.
+      return e instanceof ConnexionLente
+        ? erreur("errors:manager.soundtrackSlow", 504)
+        : erreur("errors:manager.soundtrackLoginFailed", 400)
+    }
+  }
+
   if (section === "settings" && reste[0] === "keys") {
     if (methode === "GET") {
       return json({ keys: await etatDesCles(env) })

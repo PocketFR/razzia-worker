@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "Add an answer...",
   "addQuestion": "Add question",
   "answersCountSuffix": " answers",
+  "conversion": {
+    "applied": "{{count}} track(s) converted",
+    "apply": "Convert {{count}} track(s)",
+    "button": "Convert to {{service}} ({{count}})",
+    "cancel": "Cancel",
+    "hint": "Nothing is saved until you confirm. Uncheck anything that does not match: skipped rows keep their original track, which stays playable.",
+    "notFound": "Not found in this catalogue",
+    "title": "Convert tracks to {{service}}"
+  },
   "deleteQuestion": "Delete question",
   "groupe": {
     "add": "Add an interlude",
@@ -60,9 +69,9 @@
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Enter URL...",
-    "placeholder": "Start typing your question...",
-    "spotify": {
+    "musique": {
       "apply": "Apply",
+      "extraitCourt": "30-second preview, no account needed",
       "listen": "Listen",
       "loading": "Loading…",
       "noResult": "No result",
@@ -73,11 +82,13 @@
       "searchButton": "Search",
       "start": "Start at",
       "startHint": "seconds",
+      "startUnavailable": "The service picks the excerpt: the start offset does not apply",
       "stop": "Stop",
       "tooShort": "Query too short",
       "unavailable": "metadata unavailable",
       "unchanged": "Offset unchanged"
-    }
+    },
+    "placeholder": "Start typing your question..."
   },
   "questionType": {
     "bonneteau": "Bet — three-card monte",

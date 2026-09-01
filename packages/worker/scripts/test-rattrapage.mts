@@ -72,6 +72,7 @@ const faireEmetteur = (journal: string[]): Emetteur => ({
   statutJoueur: (_c, nom) => journal.push(`joueur:${nom}`),
   programmer: () => undefined,
   annulerAlarme: () => undefined,
+  jouerSurZone: () => undefined,
 })
 
 /** La boucle de GameRoom.rattraper, reproduite à l'identique. */

@@ -27,8 +27,13 @@
     "invalidKeyFormat": "このキーの形式が正しくありません",
     "invalidPassword": "パスワードが無効です",
     "masterKeyMissing": "サーバーにマスターキーがありません",
+    "musicProviderMissing": "その音楽サービスは設定されていません",
     "passwordNotConfigured": "管理者パスワードが設定されていません",
     "passwordTooShort": "パスワードが短すぎます",
+    "soundtrackLoginFailed": "Soundtrack へのログインが拒否されました",
+    "soundtrackSlow": "Soundtrack の応答が遅すぎます。試行の繰り返しは制限されます。数分待ってからやり直してください。",
+    "soundtrackTokenMissing": "Soundtrack のトークンが設定されていません",
+    "soundtrackUnreachable": "Soundtrack に接続できません",
     "unauthorized": "権限がありません",
     "unknownKey": "不明なキー"
   },

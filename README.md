@@ -19,8 +19,10 @@ Ce que ce fork ajoute :
   pour cent des quotas journaliers ; l'hibernation fait qu'un objet ne coûte que
   les secondes où il travaille vraiment.
 - **Génération de quiz par IA** à partir d'une phrase, avec les morceaux résolus
-  sur Spotify et les questions de culture générale sourcées.
-- **Lecture Spotify** intégrée côté animateur, via le Web Playback SDK.
+  sur le catalogue musical choisi et les questions de culture générale sourcées.
+- **Lecture Spotify ou Deezer** côté animateur : le Web Playback SDK pour les
+  morceaux entiers, les extraits de 30 s de Deezer quand on ne veut ni compte ni
+  clé. Les deux coexistent dans un même quiz.
 - **Apparence modifiable depuis l'interface** : nom, couleurs, police, logo,
   fond — sans redéployer.
 - **Clés API saisies dans le navigateur**, chiffrées au repos. Le secret Spotify
@@ -58,12 +60,14 @@ Détails, options et pièges : [docs/deploiement.md](docs/deploiement.md).
 
 ## Après le déploiement
 
-1. Déclarer `https://<votre-domaine>/spotify/callback` dans les _Redirect URIs_
-   de votre application Spotify. Cette adresse est comparée à l'identique ;
-   sans elle la connexion échoue sans message exploitable.
-2. Ouvrir `/manager`, se connecter avec le mot de passe affiché par le script,
-   puis saisir les clés Mistral et Spotify dans l'onglet **Paramètres** — et
-   changer le mot de passe au passage.
+1. Ouvrir `/manager`, se connecter avec le mot de passe affiché par le script,
+   puis saisir la clé Mistral dans l'onglet **Paramètres** — et changer le mot
+   de passe au passage. La musique fonctionne déjà : sans clés Spotify, c'est
+   Deezer qui sert, sans compte ni configuration.
+2. Pour Spotify, en plus : déclarer `https://<votre-domaine>/spotify/callback`
+   dans les _Redirect URIs_ de votre application, puis saisir ses deux clés.
+   Cette adresse est comparée à l'identique ; sans elle la connexion échoue
+   sans message exploitable.
 3. Créer un quiz, à la main ou par IA, dans l'onglet **Quiz**.
 4. Lancer une partie : les joueurs rejoignent par QR code ou code à 6 chiffres.
 

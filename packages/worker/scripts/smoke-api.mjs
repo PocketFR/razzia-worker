@@ -167,7 +167,7 @@ verifier(
   JSON.stringify(generationVide.corps),
 )
 
-console.log("— routes Spotify")
+console.log("— routes musicales")
 // Elles vivaient sous /ia, héritage du temps où quizia était un conteneur
 // distinct derrière nginx. Ces contrôles vérifient l'aiguillage, pas les
 // appels à Spotify, qui demanderaient de vraies clés.
@@ -210,6 +210,76 @@ verifier(
   "méthode refusée : 405",
   mauvaiseMethode.statut === 405,
   `reçu ${mauvaiseMethode.statut}`,
+)
+
+// Deezer, à côté de Spotify et non à sa place : c'est tout l'intérêt du
+// découpage. Ces routes n'exigent aucune clé, elles répondent donc vraiment
+// ici — contrairement à leurs jumelles Spotify, qui demanderaient un compte.
+const deezerCourt = await brut("/deezer/search?q=a")
+verifier(
+  "recherche Deezer trop courte : 400",
+  deezerCourt.statut === 400,
+  `reçu ${deezerCourt.statut}`,
+)
+
+// L'identifiant est contrôlé AVANT tout appel : une chaîne qui ne peut
+// désigner aucun morceau n'a pas à déranger l'API distante.
+const deezerMauvaisId = await brut("/deezer/track/1qyJ6XpMHdsJD8pkiA7Qww")
+verifier(
+  "identifiant Deezer invalide : 400",
+  deezerMauvaisId.statut === 400,
+  `reçu ${deezerMauvaisId.statut}`,
+)
+
+// Et symétriquement : un identifiant Deezer sous le préfixe Spotify part
+// chez le mauvais catalogue si le contrôle manque.
+const spotifyMauvaisId = await brut("/spotify/track/1132150")
+verifier(
+  "identifiant Spotify invalide : 400",
+  spotifyMauvaisId.statut === 400,
+  `reçu ${spotifyMauvaisId.statut}`,
+)
+
+// UN VRAI APPEL, et c'est délibéré — le seul de cette suite.
+//
+// Le catalogue Soundtrack répond sans authentification, et une requête
+// GraphQL mal typée n'échoue qu'à l'exécution : la variable `ids` doit être
+// déclarée `[ID!]!`, et le schéma refuse `[String!]!` sans que rien, ni le
+// typage TypeScript ni les tests sur charge capturée, ne puisse le voir.
+// C'est exactement le défaut qui est passé au travers une première fois.
+const soundtrackPiste = await brut("/soundtrack/track/6HCoh83beExcwaRCL2yizr")
+verifier(
+  "une fiche Soundtrack se lit sans jeton",
+  soundtrackPiste.texte.includes('"ok":true'),
+  `${soundtrackPiste.statut} ${soundtrackPiste.texte.slice(0, 120)}`,
+)
+verifier(
+  "et elle porte bien l'identifiant nu",
+  soundtrackPiste.texte.includes('"id":"6HCoh83beExcwaRCL2yizr"'),
+  soundtrackPiste.texte.slice(0, 120),
+)
+
+const soundtrackMauvaisId = await brut("/soundtrack/track/soundtrack:track:x")
+verifier(
+  "identifiant Soundtrack invalide : 400",
+  soundtrackMauvaisId.statut === 400,
+  `reçu ${soundtrackMauvaisId.statut}`,
+)
+
+const deezerInconnue = await brut("/deezer/nexistepas")
+verifier(
+  "route Deezer inconnue : 404",
+  deezerInconnue.statut === 404,
+  `reçu ${deezerInconnue.statut}`,
+)
+
+// Le retour d'autorisation est propre à Spotify : Deezer ne demande aucune
+// connexion, et servir une page de rappel de son côté n'aurait aucun sens.
+const deezerCallback = await brut("/deezer/callback")
+verifier(
+  "pas de retour d'autorisation chez Deezer : 404",
+  deezerCallback.statut === 404,
+  `reçu ${deezerCallback.statut}`,
 )
 
 console.log("— écriture")

@@ -242,6 +242,44 @@ verifier(
   String(remiseCoupe),
 )
 
+// ── les appels HTTP : le préfixe /api est posé par `appel`, pas par l'appelant
+//
+// Le piège a été trouvé EN PRODUCTION, pas ici : un chemin écrit
+// « /api/musique/convertir » devenait /api/api/musique/convertir, et le
+// routeur rendait un 404 « not found » qui ne désignait rien de reconnaissable.
+// Rien dans le type ne l'empêche — c'est une chaîne — donc c'est à un test de
+// le dire.
+{
+  const vusHttp = []
+  const vraiFetch = globalThis.fetch
+  globalThis.fetch = async (url, options) => {
+    vusHttp.push(String(url))
+
+    return {
+      status: 200,
+      json: async () => ({ vers: "spotify", morceaux: [null] }),
+      ...options,
+    }
+  }
+
+  const http = new RazziaSocket()
+  http.configurer("client-http")
+  await http.convertirMusique("spotify", [{ artiste: "Queen", titre: "39" }])
+
+  verifier(
+    "la conversion vise /api/musique/convertir",
+    vusHttp[0] === "/api/musique/convertir",
+    vusHttp[0],
+  )
+  verifier(
+    "et surtout pas /api/api/…",
+    !vusHttp[0]?.includes("/api/api/"),
+    vusHttp[0],
+  )
+
+  globalThis.fetch = vraiFetch
+}
+
 globalThis.setTimeout = vraiSetTimeout
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)

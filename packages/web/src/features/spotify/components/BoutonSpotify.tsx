@@ -15,14 +15,25 @@ import { useTranslation } from "react-i18next"
 
 interface Props {
   clientId: string | null
+  /**
+   * Rapporte l'état de la session au parent.
+   *
+   * L'écran des réglages l'affiche dans l'en-tête replié du groupe Spotify :
+   * « configuré » ne dit rien de la CONNEXION, et c'est elle qui décide si le
+   * blind test sortira du son ce soir. Les deux se confondaient.
+   */
+  onEtat?: (_connecte: boolean) => void
 }
 
-const BoutonSpotify = ({ clientId }: Props) => {
+const BoutonSpotify = ({ clientId, onEtat }: Props) => {
   const { t } = useTranslation("manager")
   const [connecte, setConnecte] = useState(false)
 
   useEffect(() => {
-    setConnecte(Boolean(lireSession()))
+    const ouverte = Boolean(lireSession())
+    setConnecte(ouverte)
+    onEtat?.(ouverte)
+    // oxlint-disable-next-line exhaustive-deps
   }, [])
 
   const connecter = async () => {
@@ -43,6 +54,7 @@ const BoutonSpotify = ({ clientId }: Props) => {
   const deconnecter = () => {
     oublierSession()
     setConnecte(false)
+    onEtat?.(false)
   }
 
   return (

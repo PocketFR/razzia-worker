@@ -27,8 +27,13 @@
     "invalidKeyFormat": "Das Format dieses Schlüssels ist ungültig",
     "invalidPassword": "Ungültiges Passwort",
     "masterKeyMissing": "Dem Server fehlt sein Hauptschlüssel",
+    "musicProviderMissing": "Dieser Musikdienst ist nicht konfiguriert",
     "passwordNotConfigured": "Manager-Passwort ist nicht konfiguriert",
     "passwordTooShort": "Passwort zu kurz",
+    "soundtrackLoginFailed": "Soundtrack-Anmeldung abgelehnt",
+    "soundtrackSlow": "Soundtrack antwortet zu langsam. Wiederholte Versuche werden gedrosselt: Warte einige Minuten, bevor du es erneut versuchst.",
+    "soundtrackTokenMissing": "Es ist kein Soundtrack-Token konfiguriert",
+    "soundtrackUnreachable": "Soundtrack ist nicht erreichbar",
     "unauthorized": "Nicht berechtigt",
     "unknownKey": "Unbekannter Schlüssel"
   },

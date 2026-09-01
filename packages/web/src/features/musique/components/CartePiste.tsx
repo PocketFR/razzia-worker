@@ -21,14 +21,15 @@
 // règle). L'artiste et l'année, courts et complémentaires, tiennent ensemble
 // en dessous sans risquer de se faire couper.
 
-import { usePisteSpotify } from "@razzia/web/features/spotify/hooks/use-piste"
+import { usePiste } from "@razzia/web/features/musique/hooks/use-piste"
 
 interface Props {
-  id: string
+  /** L'URI complète : c'est elle qui désigne le catalogue à interroger. */
+  uri: string
 }
 
-const CartePiste = ({ id }: Props) => {
-  const { piste } = usePisteSpotify(id)
+const CartePiste = ({ uri }: Props) => {
+  const { piste } = usePiste(uri)
 
   if (!piste) {
     return null

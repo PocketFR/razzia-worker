@@ -67,6 +67,44 @@ verifier(
   formatValide("MISTRAL_MODEL", "mistral-large-latest"),
 )
 
+// ── Le service musical : une énumération, pas un champ libre ───────────────
+//
+// Ce réglage n'est pas un format de tiers mais une valeur DE NOUS : trois
+// services et « auto », dont l'application seule décide. Une valeur inconnue
+// se traduirait en silence par le choix automatique à chaque lecture, donc on
+// la refuse à l'écriture — là où la faute se commet.
+for (const bon of ["auto", "spotify", "deezer", "soundtrack"]) {
+  verifier(
+    `« ${bon} » est un service accepté`,
+    formatValide("MUSIC_PROVIDER", bon),
+  )
+}
+
+for (const mauvais of [
+  "napster",
+  "SPOTIFY",
+  "deezer ",
+  "auto;deezer",
+  "<script>",
+]) {
+  verifier(
+    `« ${mauvais} » est refusé comme service`,
+    !formatValide("MUSIC_PROVIDER", mauvais),
+  )
+}
+
+// L'identifiant de zone borne son jeu de caractères, pas sa forme : c'est un
+// identifiant de tiers, et légiférer dessus reviendrait à casser la
+// configuration le jour où Soundtrack en change.
+verifier(
+  "un identifiant de zone plausible est accepté",
+  formatValide("SOUNDTRACK_ZONE", "soundtrack:zone:6HCoh83beExcwaRCL2yizr"),
+)
+verifier(
+  "une zone porteuse de chevrons est refusée",
+  !formatValide("SOUNDTRACK_ZONE", "<script>alert(1)</script>"),
+)
+
 // ── L'affichage échappe, même si l'écriture a laissé passer ────────────────
 //
 // La seconde barrière : une valeur déjà en base, ou écrite par un chemin qui

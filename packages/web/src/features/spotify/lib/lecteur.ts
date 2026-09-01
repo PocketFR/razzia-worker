@@ -264,3 +264,17 @@ export const arreter = async (clientId: string) => {
 export const nouvelleQuestion = () => {
   enCours = false
 }
+
+/**
+ * Arrête, mais seulement s'il y a de quoi.
+ *
+ * Sans identifiant client il n'y a pas de session, donc rien qui joue de ce
+ * côté : appeler `arreter` irait chercher un jeton pour ne rien en faire.
+ * L'aiguillage s'en sert pour couper Spotify avant de lancer Deezer, sur des
+ * installations où Spotify n'est pas configuré du tout.
+ */
+export const arreterSi = async (clientId: string | null) => {
+  if (clientId) {
+    await arreter(clientId)
+  }
+}

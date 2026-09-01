@@ -51,7 +51,9 @@ export interface ServerToClientEvents {
   [EVENTS.GAME.TOTAL_PLAYERS]: (_count: number) => void
   [EVENTS.GAME.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.GAME.START_COOLDOWN]: (_data: { endsAt: number }) => void
-  [EVENTS.GAME.AUDIO_CUE]: (_data: { id: string; depart: number }) => void
+  // L'URI COMPLÈTE, et non l'identifiant seul : c'est elle qui dit par quel
+  // lecteur ce morceau se joue, Spotify ou Deezer.
+  [EVENTS.GAME.AUDIO_CUE]: (_data: { uri: string }) => void
   [EVENTS.GAME.COOLDOWN]: (_count: number) => void
   [EVENTS.GAME.RESET]: (_message: string) => void
   // Null remet le compteur à néant : c'est ce qui se passe quand la salle

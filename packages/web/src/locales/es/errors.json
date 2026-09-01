@@ -27,8 +27,13 @@
     "invalidKeyFormat": "El formato de esta clave no es válido",
     "invalidPassword": "Contraseña incorrecta",
     "masterKeyMissing": "Al servidor le falta su clave maestra",
+    "musicProviderMissing": "Ese servicio musical no está configurado",
     "passwordNotConfigured": "La contraseña del administrador no está configurada",
     "passwordTooShort": "Contraseña demasiado corta",
+    "soundtrackLoginFailed": "Conexión a Soundtrack rechazada",
+    "soundtrackSlow": "Soundtrack tarda demasiado en responder. Limita los intentos repetidos: espera unos minutos antes de reintentar.",
+    "soundtrackTokenMissing": "No hay ningún token de Soundtrack configurado",
+    "soundtrackUnreachable": "Soundtrack no está accesible",
     "unauthorized": "No autorizado",
     "unknownKey": "Clave desconocida"
   },

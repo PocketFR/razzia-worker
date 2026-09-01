@@ -48,11 +48,16 @@ const faireBase = () => {
   }
 }
 
+// `musicProvider` est FIXÉ À SPOTIFY dans ces tests, et ce n'est pas un
+// détail : sans clés Spotify, le choix automatique retiendrait Deezer et les
+// URI attendues plus bas changeraient de préfixe. On veut ici éprouver
+// ecrireQuiz, pas la sélection du catalogue — qui a ses propres tests.
 const cles = {
   mistralKey: "",
   mistralModel: "",
   spotifyId: "",
   spotifySecret: "",
+  musicProvider: "spotify",
 }
 
 // ── identifiant ────────────────────────────────────────────────────────────
@@ -175,14 +180,25 @@ t("validerQuestion : n et start", () => {
 
 // ── media ──────────────────────────────────────────────────────────────────
 t("media : offset omis quand nul", () => {
-  assert.deepStrictEqual(media("1qyJ6XpMHdsJD8pkiA7Qww", 0), {
+  assert.deepStrictEqual(media("spotify", "1qyJ6XpMHdsJD8pkiA7Qww", 0), {
     type: "audio",
     url: "spotify:1qyJ6XpMHdsJD8pkiA7Qww",
   })
-  assert.deepStrictEqual(media("1qyJ6XpMHdsJD8pkiA7Qww", 45), {
+  assert.deepStrictEqual(media("spotify", "1qyJ6XpMHdsJD8pkiA7Qww", 45), {
     type: "audio",
     url: "spotify:1qyJ6XpMHdsJD8pkiA7Qww:45",
   })
+})
+
+t("media : le service fait partie de l'URI", () => {
+  assert.strictEqual(media("deezer", "1132150", 0).url, "deezer:1132150")
+})
+
+// Le décalage est écarté chez Deezer, qui impose son extrait : l'inscrire
+// laisserait croire à un réglage effectif, alors qu'aucun lecteur ne
+// l'honorerait.
+t("media : pas de décalage chez Deezer", () => {
+  assert.strictEqual(media("deezer", "1132150", 45).url, "deezer:1132150")
 })
 
 // ── norm ───────────────────────────────────────────────────────────────────

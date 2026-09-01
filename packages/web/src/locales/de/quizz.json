@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "Antwort hinzufügen...",
   "addQuestion": "Frage hinzufügen",
   "answersCountSuffix": " Antworten",
+  "conversion": {
+    "applied": "{{count}} Titel konvertiert",
+    "apply": "{{count}} Titel konvertieren",
+    "button": "Zu {{service}} konvertieren ({{count}})",
+    "cancel": "Abbrechen",
+    "hint": "Nichts wird gespeichert, bevor du bestätigst. Hake ab, was nicht passt: übersprungene Zeilen behalten ihren ursprünglichen Titel, der weiterhin abspielbar bleibt.",
+    "notFound": "In diesem Katalog nicht gefunden",
+    "title": "Titel zu {{service}} konvertieren"
+  },
   "deleteQuestion": "Frage löschen",
   "groupe": {
     "add": "Zwischenspiel hinzufügen",
@@ -60,9 +69,9 @@
       "video": "Video"
     },
     "mediaUrlPlaceholder": "URL eingeben...",
-    "placeholder": "Beginne deine Frage zu tippen...",
-    "spotify": {
+    "musique": {
       "apply": "Übernehmen",
+      "extraitCourt": "30-Sekunden-Ausschnitt, ohne Konto",
       "listen": "Anhören",
       "loading": "Wird geladen…",
       "noResult": "Kein Ergebnis",
@@ -73,11 +82,13 @@
       "searchButton": "Suchen",
       "start": "Start bei",
       "startHint": "Sekunden",
+      "startUnavailable": "Der Dienst wählt den Ausschnitt: der Startversatz gilt nicht",
       "stop": "Anhalten",
       "tooShort": "Suchbegriff zu kurz",
       "unavailable": "Metadaten nicht verfügbar",
       "unchanged": "Versatz unverändert"
-    }
+    },
+    "placeholder": "Beginne deine Frage zu tippen..."
   },
   "questionType": {
     "bonneteau": "Wette — Hütchenspiel",

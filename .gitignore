@@ -19,3 +19,8 @@ packages/worker/seed.sql
 # base de chaque installation. Le gabarit versionné est wrangler.jsonc.example,
 # que le script de déploiement recopie et complète au premier passage.
 packages/worker/wrangler.jsonc
+# Une configuration PAR INSTALLATION : dériver l'une de l'autre en la modifiant
+# au vol a déjà fait rejouer une migration destructrice sur la mauvaise
+# instance. Voir docs/deploiement.md.
+packages/worker/wrangler.*.jsonc
+!packages/worker/wrangler.jsonc.example

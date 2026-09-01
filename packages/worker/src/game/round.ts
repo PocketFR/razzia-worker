@@ -43,6 +43,7 @@ import type {
 } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
 import { estPari, PARIS, type Tirage } from "@razzia/common/paris"
+import { lireUriMusique } from "@razzia/common/musique"
 import { derouler, type Etape } from "@razzia/common/deroulement"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
@@ -139,6 +140,19 @@ export interface Emetteur {
   // L'émetteur regroupe donc les diffusions rapprochées. Voir l'implantation
   // dans game-room.ts pour la règle exacte.
   compteur(_valeur: number): void
+  /**
+   * Sort le morceau sur la zone sonore configurée, si elle l'est.
+   *
+   * C'est le SEUL appel sortant de la machine à états, et il passe par
+   * l'émetteur comme tous les autres effets : la manche reste une fonction de
+   * l'état, testable sans réseau. Le Durable Object, lui, a l'environnement et
+   * les clés.
+   *
+   * Rien n'est attendu en retour, et c'est délibéré : une zone injoignable ne
+   * doit pas retarder l'énoncé ni faire tomber la manche. Une question muette
+   * se rattrape, une partie bloquée non.
+   */
+  jouerSurZone(_uri: string): void
 }
 
 export interface ContextePartie {
@@ -226,17 +240,19 @@ const etapeCourante = (ctx: ContextePartie): Etape => {
 }
 
 /**
- * Extrait l'identifiant Spotify d'une question sonore.
+ * L'amorce audio d'une question sonore, ou null.
  *
- * Le format « spotify:ID[:offset] » est celui qu'écrit quizia. L'offset sert
- * quand l'introduction rend le morceau trop reconnaissable.
+ * ELLE PORTE L'URI COMPLÈTE — « spotify:ID[:offset] » ou « deezer:ID » — et
+ * non l'identifiant seul : c'est elle qui dit à l'animateur par quel lecteur
+ * jouer. Le décalage y est inclus, à sa place ; il sert quand l'introduction
+ * rend le morceau trop reconnaissable, et Deezer ne l'accepte pas.
  */
-export const pisteSpotify = (question: Question) => {
-  const trouve = /^spotify:([A-Za-z0-9]{22})(?::(\d+))?$/.exec(
-    question.media?.url ?? "",
-  )
+export const pisteMusicale = (question: Question) => {
+  const url = question.media?.url ?? ""
 
-  return trouve ? { id: trouve[1], depart: parseInt(trouve[2], 10) || 0 } : null
+  // On exige un identifiant : « deezer: » sans morceau est un état d'ÉDITION,
+  // pas une amorce à jouer.
+  return lireUriMusique(url)?.id ? { uri: url } : null
 }
 
 // ── Entrée dans les phases ────────────────────────────────────────────────
@@ -444,10 +460,14 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
   })
   // L'amorce part à l'animateur seul : c'est lui qui tient le lecteur, et
   // l'envoyer à tous divulguerait le morceau avant la question.
-  const piste = pisteSpotify(question)
+  const piste = pisteMusicale(question)
 
   if (piste) {
     em.versAnimateur(EVENTS.GAME.AUDIO_CUE, piste)
+    // Chez Soundtrack, le son peut sortir des enceintes du lieu plutôt que du
+    // navigateur. L'émetteur sait si une zone est configurée ; ici on se
+    // contente de lui passer la main.
+    em.jouerSurZone(piste.uri)
   }
 
   em.programmer(ctx.manche.finDePhase)

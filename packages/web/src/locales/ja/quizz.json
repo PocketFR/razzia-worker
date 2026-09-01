@@ -3,6 +3,15 @@
   "addAnswerPlaceholder": "回答を追加...",
   "addQuestion": "質問を追加",
   "answersCountSuffix": "件の回答",
+  "conversion": {
+    "applied": "{{count}} 曲を変換しました",
+    "apply": "{{count}} 曲を変換",
+    "button": "{{service}} に変換（{{count}}）",
+    "cancel": "キャンセル",
+    "hint": "確定するまで何も保存されません。一致しないものはチェックを外してください。除外した行は元の曲のまま残り、引き続き再生できます。",
+    "notFound": "このカタログには見つかりません",
+    "title": "{{service}} に曲を変換"
+  },
   "deleteQuestion": "質問を削除",
   "groupe": {
     "add": "幕間を追加",
@@ -59,9 +68,9 @@
       "video": "動画"
     },
     "mediaUrlPlaceholder": "URLを入力...",
-    "placeholder": "質問を入力してください...",
-    "spotify": {
+    "musique": {
       "apply": "適用",
+      "extraitCourt": "30秒プレビュー、アカウント不要",
       "listen": "再生",
       "loading": "読み込み中…",
       "noResult": "結果なし",
@@ -72,11 +81,13 @@
       "searchButton": "検索",
       "start": "開始位置",
       "startHint": "秒",
+      "startUnavailable": "サービスが再生箇所を選ぶため、開始位置は適用されません",
       "stop": "停止",
       "tooShort": "検索語が短すぎます",
       "unavailable": "メタデータを取得できません",
       "unchanged": "開始位置は変更されていません"
-    }
+    },
+    "placeholder": "質問を入力してください..."
   },
   "questionType": {
     "bonneteau": "賭け — 3枚のカード",

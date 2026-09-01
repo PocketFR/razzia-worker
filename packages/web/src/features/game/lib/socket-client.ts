@@ -15,6 +15,7 @@
 // création par l'animateur, PIN résolu côté joueur, ou reconnexion explicite.
 
 import { EVENTS } from "@razzia/common/constants"
+import type { Fournisseur } from "@razzia/common/musique"
 
 type Ecouteur = (..._args: unknown[]) => void
 
@@ -464,6 +465,78 @@ export class RazziaSocket {
         "content-type": fichier.type,
       })
     }
+  }
+
+  /**
+   * Cherche, dans l'autre catalogue, les morceaux d'un quiz.
+   *
+   * Rien n'est écrit : la réponse sert à un écran de revue où l'animateur
+   * accepte ou écarte chaque correspondance. Une recherche automatique
+   * remonte volontiers un live ou une reprise quand l'original manque, et sur
+   * un blind test la mauvaise version est une question fausse.
+   */
+  async convertirMusique(
+    vers: Fournisseur,
+    morceaux: Array<{ artiste: string; titre: string }>,
+  ) {
+    // Le chemin est SANS « /api » : `appel` le préfixe lui-même. L'oubli
+    // donnait /api/api/musique/convertir, que le routeur rendait en 404 « not
+    // found » — un message qui ne désignait rien de ce qu'on cherchait.
+    const { statut, corps } = await this.appel("/musique/convertir", {
+      method: "POST",
+      body: JSON.stringify({ vers, morceaux }),
+    })
+
+    if (statut !== 200) {
+      throw new Error(corps.error ?? "conversion refusée")
+    }
+
+    return (corps.morceaux ?? []) as Array<{
+      id: string
+      artiste: string
+      titre: string
+      annee: number | null
+    } | null>
+  }
+
+  /**
+   * Ouvre une session Soundtrack avec les identifiants de l'animateur.
+   *
+   * LE MOT DE PASSE NE FAIT QUE PASSER : le serveur l'échange contre un jeton
+   * de rafraîchissement et n'en garde aucune trace. Il ne revient jamais, et
+   * il n'est stocké nulle part côté navigateur non plus.
+   */
+  async connexionMusicale(email: string, password: string) {
+    const { statut, corps } = await this.appel("/musique/connexion", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
+
+    if (statut !== 200) {
+      throw new Error(corps.error ?? "connexion refusée")
+    }
+  }
+
+  /**
+   * Les zones sonores du compte Soundtrack.
+   *
+   * C'est la seule opération de tout le socle musical qui exige vraiment un
+   * abonnement : chercher un morceau et en jouer l'extrait ne demande rien.
+   */
+  async zonesMusicales() {
+    const { statut, corps } = await this.appel("/musique/zones")
+
+    if (statut !== 200) {
+      throw new Error(corps.error ?? "zones indisponibles")
+    }
+
+    return (corps.zones ?? []) as Array<{
+      id: string
+      nom: string
+      compte: string
+      enLigne: boolean
+      appairee: boolean
+    }>
   }
 
   private async brandingEcrit(

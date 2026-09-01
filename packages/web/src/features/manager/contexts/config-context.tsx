@@ -5,6 +5,10 @@ const ConfigContext = createContext<ManagerConfig>({
   quizz: [],
   results: [],
   spotifyClientId: null,
+  // Le repli est Deezer, comme côté serveur : sans configuration, c'est le
+  // seul des deux qui répond.
+  musicProvider: "deezer",
+  musicZone: false,
   iaManquants: [],
 })
 

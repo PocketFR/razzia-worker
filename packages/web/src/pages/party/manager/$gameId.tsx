@@ -7,7 +7,7 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
-import { useLecteurSpotify } from "@razzia/web/features/spotify/hooks/use-lecteur-spotify"
+import { useLecteurMusique } from "@razzia/web/features/musique/hooks/use-lecteur"
 import { useEnchainementAuto } from "@razzia/web/features/game/hooks/use-enchainement-auto"
 import { useLargeurAnnoncee } from "@razzia/web/features/game/hooks/use-largeur-annoncee"
 import { usePleinEcran } from "@razzia/web/features/game/hooks/use-plein-ecran"
@@ -135,7 +135,7 @@ const ManagerGamePage = () => {
     status.name !== STATUS.SHOW_ROOM &&
     status.name !== STATUS.FINISHED
 
-  useLecteurSpotify(config?.spotifyClientId ?? null)
+  useLecteurMusique(config?.spotifyClientId ?? null, config?.musicZone)
 
   const CurrentComponent =
     status && isKeyOf(GAME_STATE_COMPONENTS_MANAGER, status.name)

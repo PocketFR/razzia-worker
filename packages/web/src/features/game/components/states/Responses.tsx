@@ -7,12 +7,12 @@ import {
 } from "@razzia/web/features/game/utils/reponses"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { calculatePercentages } from "@razzia/web/features/game/utils/score"
-import CartePiste from "@razzia/web/features/spotify/components/CartePiste"
+import CartePiste from "@razzia/web/features/musique/components/CartePiste"
 import {
   couleursDuPari,
   HABILLAGES,
 } from "@razzia/web/features/questions/paris/types"
-import { lireUri } from "@razzia/web/features/spotify/hooks/use-piste"
+import { lireUriMusique } from "@razzia/common/musique"
 import clsx from "clsx"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -25,7 +25,7 @@ interface Props {
 const Responses = ({
   data: { question, answers, responses, solutions, media, questionType },
 }: Props) => {
-  const piste = lireUri(media?.url)
+  const piste = lireUriMusique(media?.url)
   const { t } = useTranslation()
 
   // Les libellés d'un pari dont les choix ne se nomment pas viennent de son
@@ -76,7 +76,7 @@ const Responses = ({
           {question}
         </h2>
 
-        {piste?.id && <CartePiste id={piste.id} />}
+        {piste?.id && <CartePiste uri={media?.url ?? ""} />}
 
         <div
           className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}
