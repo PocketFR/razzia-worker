@@ -34,6 +34,17 @@
   // new_sqlite_classes et non new_classes : le stockage SQLite est la seule
   // variante de Durable Object disponible au plan Free, et la seule qui
   // expose le KV synchrone dont dépend la persistance d'état.
+  // LA LISTE DES MIGRATIONS DÉCRIT L'HISTOIRE D'UNE INSTALLATION, PAS LE CODE.
+  //
+  // Cloudflare applique les tags qu'une installation n'a pas encore vus. Copier
+  // la liste d'une installation vers une autre lui fait donc rejouer des
+  // migrations qui ne la concernent pas — et `deleted_classes` DÉTRUIT
+  // l'espace de noms et tout son stockage, sans retour.
+  //
+  // C'est arrivé : une configuration dérivée d'une instance qui avait été
+  // purgée a emporté la seconde avec elle. Une nouvelle installation n'a besoin
+  // que de v1 ; n'ajoutez un tag qu'en sachant ce qu'il fera à CETTE
+  // installation-là.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
 
   "d1_databases": [

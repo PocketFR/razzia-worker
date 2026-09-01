@@ -98,3 +98,18 @@ cd packages/worker && sh scripts/deployer.sh
 ```
 
 Retour au [sommaire](README.md).
+
+## Plusieurs installations : attention aux migrations
+
+La liste `migrations` de `wrangler.jsonc` décrit **l'histoire d'une
+installation**, pas le code. Cloudflare y applique les tags que cette
+installation n'a pas encore vus.
+
+Dériver la configuration d'une instance pour en déployer une autre — en
+changeant seulement l'identifiant D1 et le domaine — lui fait donc rejouer des
+migrations qui ne la concernent pas. Si l'une d'elles est un
+`deleted_classes`, **l'espace de noms de la seconde instance et tout son
+stockage sont détruits**, sans retour.
+
+Une installation neuve n'a besoin que de `v1`. Vérifiez la liste avant chaque
+déploiement vers une instance qui n'est pas celle d'où vient le fichier.
