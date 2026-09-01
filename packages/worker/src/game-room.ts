@@ -51,6 +51,7 @@ import {
   type Emetteur,
   type Manche,
 } from "./game/round"
+import { doitReprogrammer, prochaineEcheance } from "./game/alarme"
 import { authSoundtrack, zoneActive } from "./musique"
 import { jouerSurLaZone } from "./musique/soundtrack"
 import { ecrireCle, lireCles } from "./services/secrets"
@@ -87,6 +88,19 @@ interface EtatPartie {
   // quiz, alors qu'une manche remet son compteur à zéro.
   effectifEnvoyeA: number
   effectifDu: number | null
+  /*
+   * L'échéance actuellement armée, ou null si aucune.
+   *
+   * ELLE EXISTE POUR NE PAS RÉARMER POUR RIEN. Chaque `setAlarm()` est
+   * facturé comme une ligne écrite, et `reprogrammer` était appelée à chaque
+   * écriture — donc à chaque réponse de joueur, en réarmant la même échéance.
+   * Mesuré sur de vraies parties : les alarmes représentaient exactement la
+   * MOITIÉ des écritures, `put` valant toujours `setAlarm + deleteAlarm`.
+   *
+   * Absente des salles créées avant ce champ : `undefined` diffère de toute
+   * échéance, donc la première écriture réarme et le champ s'installe.
+   */
+  alarmeArmee?: number | null
   // Statuts mémorisés pour la reconnexion. L'amont les indexait par socket.id
   // et devait les transposer à chaque retour ; indexés par clientId, ils
   // survivent d'eux-mêmes.
@@ -149,6 +163,16 @@ export class GameRoom implements DurableObject {
   private readonly ctx: DurableObjectState
   private readonly env: Env
 
+  /*
+   * Vrai le temps d'un réveil d'alarme.
+   *
+   * Cloudflare CONSOMME l'alarme en la déclenchant : ce que `alarmeArmee`
+   * retient ne vaut plus rien, et il faut réarmer même si l'échéance calculée
+   * est la même. En mémoire d'instance, et c'est suffisant : le réveil et
+   * l'écriture qui le suit sont la même invocation.
+   */
+  private alarmeConsommee = false
+
   constructor(ctx: DurableObjectState, env: Env) {
     this.ctx = ctx
     this.env = env
@@ -161,8 +185,12 @@ export class GameRoom implements DurableObject {
   }
 
   private ecrire(etat: EtatPartie) {
-    this.ctx.storage.kv.put(CLE, etat)
+    // REPROGRAMMER D'ABORD : elle met à jour `etat.alarmeArmee`, et l'appeler
+    // après l'écriture ne persisterait jamais cette valeur — le garde-fou
+    // comparerait alors éternellement à une échéance périmée et réarmerait à
+    // chaque fois, c'est-à-dire ne servirait à rien.
     this.reprogrammer(etat)
+    this.ctx.storage.kv.put(CLE, etat)
   }
 
   // Un Durable Object n'a QU'UNE alarme — setAlarm écrase la précédente — et
@@ -174,15 +202,32 @@ export class GameRoom implements DurableObject {
   // permet de les recalculer après hibernation. Reprogrammer à chaque
   // écriture garantit qu'aucune ne peut être oubliée.
   private reprogrammer(etat: EtatPartie) {
-    const echeances = [
+    const voulue = prochaineEcheance([
       etat.manche.finDePhase,
       etat.finDeGrace,
-      etat.manche.compteurDu ?? null,
-      etat.effectifDu ?? null,
-    ].filter((d): d is number => typeof d === "number")
+      etat.manche.compteurDu,
+      etat.effectifDu,
+    ])
 
-    if (echeances.length) {
-      void this.ctx.storage.setAlarm(Math.min(...echeances))
+    // RIEN À FAIRE SI ELLE EST DÉJÀ ARMÉE SUR CETTE ÉCHÉANCE. Pendant une
+    // fenêtre de réponses l'échéance ne bouge pas : sur cent réponses,
+    // quatre-vingt-dix-neuf réarmements réécrivaient la même valeur, et
+    // chacun coûtait une ligne.
+    //
+    // SAUF AU RÉVEIL D'UNE ALARME : Cloudflare la consomme en la déclenchant.
+    // L'échéance retenue ici ne correspond alors plus à rien, et sauter le
+    // réarmement laisserait la manche sans minuterie — une partie figée, ce
+    // qui ne se rattrape pas. `executerAlarme` peut très bien rendre la main
+    // sans avoir changé `finDePhase`, quand elle n'a servi qu'à écouler le
+    // compteur de réponses.
+    if (!doitReprogrammer(voulue, etat.alarmeArmee, this.alarmeConsommee)) {
+      return
+    }
+
+    etat.alarmeArmee = voulue
+
+    if (voulue !== null) {
+      void this.ctx.storage.setAlarm(voulue)
     } else {
       void this.ctx.storage.deleteAlarm()
     }
@@ -800,6 +845,8 @@ export class GameRoom implements DurableObject {
    * effacé.
    */
   async alarm() {
+    this.alarmeConsommee = true
+
     try {
       await this.executerAlarme()
       this.ctx.storage.kv.delete(CLE_ECHECS)
@@ -821,6 +868,8 @@ export class GameRoom implements DurableObject {
       const delai = Math.min(60_000, 5_000 * 2 ** Math.min(echecs, 4))
 
       void this.ctx.storage.setAlarm(Date.now() + delai)
+    } finally {
+      this.alarmeConsommee = false
     }
   }
 

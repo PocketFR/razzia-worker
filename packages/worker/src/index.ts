@@ -38,6 +38,7 @@ import {
   estSvg,
   lireImage,
   themePublic,
+  versionDuBranding,
 } from "./services/branding"
 import { routerDeezer, routerSoundtrack, routerSpotify } from "./musique/routes"
 
@@ -184,6 +185,93 @@ export default {
   },
 } satisfies ExportedHandler<Env>
 
+// Une minute pour le navigateur, un an pour le cache de périphérie.
+//
+// LA DISSYMÉTRIE EST VOULUE. La copie mise en cache est rangée sous une clé
+// qui PORTE LA VERSION : elle ne peut jamais devenir fausse, d'où l'année.
+// Celle rendue au client, elle, est servie depuis /branding/theme.json — une
+// adresse sans version — et doit donc rester courte : un navigateur qui
+// n'enverrait pas `no-cache` garderait sinon un thème périmé pendant un an.
+const CACHE_CLIENT = "public, max-age=60"
+const CACHE_PERIPHERIE = "public, max-age=31536000, immutable"
+
+/**
+ * Le thème, servi depuis le cache du Worker.
+ *
+ * TROIS REQUÊTES D1 DEVENAIENT UN OBSTACLE sur le chemin du premier affichage
+ * de chaque joueur. Il en reste une — celle qui donne la version — et le corps
+ * sort du cache.
+ *
+ * LA CLÉ EST CONSTRUITE, jamais la requête entrante : `caches.default.match()`
+ * n'honore que `Range`, `If-Modified-Since` et `If-None-Match`, donc le
+ * `cache: "no-cache"` que pose le client ne la contourne pas ; et une clé à
+ * nous met à l'abri d'un paramètre d'URL parasite qui multiplierait les
+ * entrées.
+ *
+ * L'ABSENCE D'ENTRÉE EST UN CHEMIN ORDINAIRE : le cache s'évince sous pression
+ * mémoire, sans prévenir. On reconstruit, c'est tout. L'année du `max-age`
+ * n'est donc pas une réservation mais un plafond — et elle ne coûte rien :
+ * l'API Cache n'est comptée par aucun quota, contrairement à KV.
+ *
+ * ELLE NE FONCTIONNE QUE SUR UN DOMAINE PERSONNALISÉ. « Workers deployed to
+ * custom domains have access to functional cache operations », dit la
+ * documentation — ni les sous-domaines workers.dev, ni l'éditeur du tableau de
+ * bord n'y ont droit. Une installation déployée SANS domaine, ce que
+ * scripts/deployer.sh permet, verra donc `match` ne jamais rien trouver et
+ * `put` ne rien retenir : le comportement reste juste, simplement sans le
+ * gain, et rien ne le signale. C'est écrit ici pour que personne n'y perde
+ * une demi-journée.
+ */
+async function themeEnCache(env: Env, request: Request): Promise<Response> {
+  const version = await versionDuBranding(env.DB)
+  const cle = `https://razzia.interne/branding/theme.json?v=${version}`
+  const cache = caches.default
+
+  const connu = await cache.match(cle)
+
+  if (connu) {
+    return new Response(connu.body, {
+      headers: {
+        "content-type": "application/json",
+        "cache-control": CACHE_CLIENT,
+      },
+    })
+  }
+
+  const theme = await themePublic(env)
+
+  // Rien en base : on laisse passer le fichier livré avec l'application.
+  // Servir un thème vide effacerait le branding du build, ce qui n'est pas
+  // du tout la même chose que « ne rien avoir personnalisé ». Ce cas n'est
+  // pas mis en cache : il ne coûte qu'une lecture, et l'entrée deviendrait
+  // trompeuse au premier téléversement.
+  if (!theme) {
+    return env.ASSETS.fetch(request)
+  }
+
+  const corps = JSON.stringify(theme)
+
+  // `waitUntil` ne peut pas être utilisé ici — le contexte n'est pas passé à
+  // ce routeur — mais l'écriture est locale et brève : l'attendre coûte moins
+  // qu'un aller-retour de plus au prochain joueur.
+  await cache.put(
+    cle,
+    new Response(corps, {
+      headers: {
+        "content-type": "application/json",
+        "cache-control": CACHE_PERIPHERIE,
+      },
+    }),
+  )
+
+  return new Response(corps, {
+    headers: {
+      "content-type": "application/json",
+      "cache-control": CACHE_CLIENT,
+    },
+  })
+}
+
 // Le branding servi au navigateur, avant toute authentification : les joueurs
 // voient l'écran d'accueil sans se connecter à quoi que ce soit.
 //
@@ -199,24 +287,7 @@ async function routerBranding(
   }
 
   if (url.pathname === "/branding/theme.json") {
-    const theme = await themePublic(env)
-
-    // Rien en base : on laisse passer le fichier livré avec l'application.
-    // Servir un thème vide effacerait le branding du build, ce qui n'est pas
-    // du tout la même chose que « ne rien avoir personnalisé ».
-    if (!theme) {
-      return env.ASSETS.fetch(request)
-    }
-
-    return new Response(JSON.stringify(theme), {
-      headers: {
-        "content-type": "application/json",
-        // Court : ce fichier est lu à chaque démarrage de l'application, et
-        // un changement de couleur doit se voir tout de suite. Ce sont les
-        // images, versionnées, qui portent le cache long.
-        "cache-control": "public, max-age=60",
-      },
-    })
+    return themeEnCache(env, request)
   }
 
   const nom = url.pathname.slice("/branding/asset/".length)

@@ -247,13 +247,38 @@ export const ecrireTheme = async (db: D1Database, theme: Theme | null) => {
 //
 // La taille annoncée est la SOMME : c'est elle qui occupe la base, et c'est la
 // question que se pose celui qui regarde cet écran.
-export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> => {
+interface LigneBranding {
+  name: string
+  mime: string
+  taille: number
+  updated_at: number
+}
+
+// La table entière, en une lecture.
+//
+// `etatDesImages` et `variantesDuFond` la balayaient chacune de leur côté, et
+// `themePublic` les appelle toutes les deux — deux allers-retours pour la même
+// donnée, sur le chemin critique du premier affichage de chaque joueur. Le
+// second était même le pire : `LIKE 'background-%'` ne peut pas se servir de
+// l'index, SQLite comparant sans tenir compte de la casse par défaut.
+//
+// Les deux fonctions restent exportées et lisent toujours d'elles-mêmes —
+// l'écran de configuration n'appelle que la première — mais elles partagent
+// désormais leur tri, que `themePublic` alimente d'une seule lecture.
+const lignesDuBranding = async (db: D1Database) => {
   const { results } = await db
     .prepare(
       `SELECT name, mime, length(bytes) AS taille, updated_at FROM branding`,
     )
-    .all<{ name: string; mime: string; taille: number; updated_at: number }>()
+    .all<LigneBranding>()
 
+  return results
+}
+
+export const etatDesImages = async (db: D1Database): Promise<EtatImage[]> =>
+  imagesDe(await lignesDuBranding(db))
+
+const imagesDe = (results: LigneBranding[]): EtatImage[] => {
   const simples = results
     .filter((l) => estImage(l.name))
     .map((l) => ({
@@ -348,14 +373,11 @@ export const effacerImage = async (db: D1Database, nom: NomStocke) => {
 }
 
 /** Les déclinaisons du fond présentes en base, de la plus étroite à la plus large. */
-export const variantesDuFond = async (db: D1Database) => {
-  const { results } = await db
-    .prepare(
-      `SELECT name, updated_at FROM branding WHERE name LIKE 'background-%'`,
-    )
-    .all<{ name: string; updated_at: number }>()
+export const variantesDuFond = async (db: D1Database) =>
+  variantesDe(await lignesDuBranding(db))
 
-  return results
+const variantesDe = (results: LigneBranding[]) =>
+  results
     .map((l) => ({
       largeur: largeurDeVariante(l.name),
       nom: l.name,
@@ -366,6 +388,36 @@ export const variantesDuFond = async (db: D1Database) => {
         v.largeur !== null,
     )
     .sort((a, b) => a.largeur - b.largeur)
+
+/**
+ * La version du branding : la plus récente des dates de modification.
+ *
+ * ELLE SERT DE CLÉ DE CACHE, et c'est tout son rôle. Une modification — du
+ * thème comme d'une image — change cette valeur, donc la clé, donc rend
+ * l'entrée précédente inatteignable PARTOUT et d'un coup. C'est ce qui permet
+ * de garder le thème en cache un an sans risque d'obsolescence.
+ *
+ * POURQUOI PAS UNE PURGE : `cache.delete()` n'agit que sur le centre de
+ * données courant. L'animateur qui modifie son thème depuis son bureau
+ * viderait le cache du sien ; celui de la salle garderait l'ancien, et avec
+ * une durée longue, il le garderait pour toujours.
+ *
+ * POURQUOI PAS UN COMPTEUR TENU À LA MAIN : il se désynchroniserait à la
+ * première écriture qui oublierait de l'incrémenter, alors que ce MAX dérive
+ * de la donnée elle-même et ne peut pas mentir.
+ */
+export const versionDuBranding = async (db: D1Database): Promise<number> => {
+  const ligne = await db
+    .prepare(
+      `SELECT MAX(u) AS version FROM (
+         SELECT updated_at AS u FROM settings WHERE key = 'brandingTheme'
+         UNION ALL
+         SELECT updated_at FROM branding
+       )`,
+    )
+    .first<{ version: number | null }>()
+
+  return ligne?.version ?? 0
 }
 
 // Le thème tel que le navigateur doit le recevoir.
@@ -381,8 +433,11 @@ export const variantesDuFond = async (db: D1Database) => {
 // un téléversement sans effet visible, et rien de plus déroutant qu'un fichier
 // accepté qui ne s'affiche pas. Effacer l'image rend la main à l'adresse.
 export const themePublic = async (env: Env): Promise<Theme | null> => {
+  // DEUX REQUÊTES, ET PLUS TROIS : le thème, puis la table des images une
+  // seule fois, dont on tire à la fois l'état et les déclinaisons.
   const theme = await lireTheme(env.DB)
-  const images = await etatDesImages(env.DB)
+  const lignes = await lignesDuBranding(env.DB)
+  const images = imagesDe(lignes)
 
   if (!theme && !images.length) {
     return null
@@ -394,7 +449,7 @@ export const themePublic = async (env: Env): Promise<Theme | null> => {
     rendu[image.nom] = `/branding/asset/${image.nom}?v=${image.modifiee}`
   }
 
-  const variantes = await variantesDuFond(env.DB)
+  const variantes = variantesDe(lignes)
 
   if (variantes.length) {
     rendu.backgroundSet = variantes.map((v) => ({

@@ -92,6 +92,18 @@ automatisées :
 
 Voir [Configuration](configuration.md).
 
+## Sans domaine : ce qui change
+
+L'application fonctionne sur l'adresse `workers.dev` que Cloudflare fournit,
+et c'est un déploiement légitime. Une seule chose y est différente, et elle est
+invisible : **l'API Cache n'y opère pas**. Cloudflare ne l'accorde qu'aux
+Workers déployés sur un domaine personnalisé.
+
+Le thème de branding est donc reconstruit à chaque affichage — trois requêtes
+D1 au lieu d'une, sur le chemin du premier rendu de chaque joueur. Rien ne
+casse, rien ne le signale non plus. C'est une raison de plus de brancher un
+domaine, sans en être une obligation. Voir [Quotas](quotas.md).
+
 ## Mettre à jour
 
 Un simple redéploiement suffit ; le schéma et les données ne bougent pas.
