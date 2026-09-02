@@ -15,14 +15,13 @@ et laissé le reste aussi proche de l'amont que possible.
 
 Ce que ce fork ajoute :
 
-- **Hébergement sur le plan gratuit de Cloudflare.** Une soirée consomme quelques
-  pour cent des quotas journaliers ; l'hibernation fait qu'un objet ne coûte que
+- **Hébergement sur le plan gratuit de Cloudflare.** Une soirée (100 joururs/150 questions) consomme environs 16%
+  des quotas journaliers ; l'hibernation fait qu'un objet ne coûte que
   les secondes où il travaille vraiment.
 - **Génération de quiz par IA** à partir d'une phrase, avec les morceaux résolus
   sur le catalogue musical choisi et les questions de culture générale sourcées.
-- **Lecture Spotify ou Deezer** côté animateur : le Web Playback SDK pour les
-  morceaux entiers, les extraits de 30 s de Deezer quand on ne veut ni compte ni
-  clé. Les deux coexistent dans un même quiz.
+- **Lecture Spotify, Deezer ou SoundTrack** côté animateur : le Web Playback SDK pour les
+  morceaux entiers, les extraits de 30 s de Deezer quand on ne veut ni compte ni clé. Sound track permets la lecture sur une Zone ou bien des extraits de 30s sur le navigateur. Les trois peuvent coexister dans un même quiz.
 - **Apparence modifiable depuis l'interface** : nom, couleurs, police, logo,
   fond — sans redéployer.
 - **Clés API saisies dans le navigateur**, chiffrées au repos. Le secret Spotify
@@ -37,12 +36,12 @@ Ce que ce fork ajoute :
   auquel il faut **ajouter** la permission « D1 : Modifier » — elle n'y est pas
   incluse, et c'est l'oubli le plus fréquent.
 - Facultatif : un domaine géré par Cloudflare. Sans lui, l'adresse
-  `workers.dev` fournie gratuitement fait l'affaire.
+  `workers.dev` fournie gratuitement fait l'affaire mais réduit le nombre de parties jouables dans el quota gratuit si un thème custom est appliqué (pas de cache sans domaine personnalisé).
 
 ## Déploiement
 
 ```sh
-git clone <votre-fork> razzia && cd razzia
+git clone https://github.com/PocketFR/razzia-worker.git razzia && cd razzia
 pnpm install
 
 cd packages/worker
@@ -77,6 +76,7 @@ Détails, options et pièges : [docs/deploiement.md](docs/deploiement.md).
 - [Configuration](docs/configuration.md) — mot de passe animateur, clés API, où vit quoi.
 - [Quiz](docs/quiz.md) — éditeur, génération par IA, import/export, format JSON.
 - [Apparence](docs/branding.md) — nom, couleurs, police, images.
+- [Quotas](docs/quotas.md) — ce que consomme une soirée, mesuré, et les optimisations écartées.
 - [Protocole WebSocket](docs/protocole-websocket.md) — pour écrire son propre client, un buzzer physique par exemple.
 
 ## Licence

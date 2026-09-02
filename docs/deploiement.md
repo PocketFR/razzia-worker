@@ -23,13 +23,50 @@ sh scripts/deployer.sh [chemin/vers/config]
 
 **Node 22 au minimum**, éprouvé jusqu'à node 26.
 
-> Une version de ce document affirmait que node 26 faisait planter wrangler en
-> erreur de segmentation. C'était faux : les plantages venaient d'une barrette
-> de mémoire défaillante sur la machine de développement, remplacée depuis.
-> Retesté sur toute la chaîne — appels à l'API Cloudflare, requêtes D1
-> distantes, build, déploiement à blanc — node 26 ne pose aucun problème. La
-> leçon vaut d'être notée : un symptôme reproductible n'est pas
-> nécessairement causé par ce qu'on croit.
+C'est **wrangler seul** qui impose ce plancher, et il ne s'en accommode pas :
+son script d'entrée refuse de se lancer sous une version plus ancienne.
+
+```
+Wrangler requires at least Node.js v22.0.0. You are using v20.19.2.
+```
+
+Le reste de la chaîne se contenterait de node 20.19 — vite, oxlint, vitest et
+typescript l'acceptent — mais sans wrangler il n'y a ni déploiement, ni
+`wrangler dev`, ni administration de la base.
+
+**Debian stable n'est donc pas suffisante en l'état** : Trixie livre nodejs
+20.19, et l'application ne se déploiera pas avec.
+
+### Installer node et pnpm sur Debian Trixie
+
+Le paquet `nodejs` de Debian reste en 20.19 ; on prend donc node chez
+NodeSource, qui n'entre pas en conflit avec lui.
+
+```sh
+sudo apt-get install -y curl ca-certificates
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+node -v   # doit afficher v22.x ou plus
+```
+
+`setup_24.x` fonctionne aussi ; la CI éprouve node 22 et node 26.
+
+Puis pnpm. **Corepack n'est plus livré avec node** — il a été retiré des
+distributions officielles —, donc on passe par npm, qui lui est toujours là :
+
+```sh
+sudo npm install -g pnpm
+
+pnpm -v   # 9 ou plus : le verrou du dépôt est en lockfileVersion 9
+```
+
+**Sans rien installer sur la machine**, un conteneur suffit pour les seules
+commandes qui exigent node :
+
+```sh
+docker run --rm -v "$PWD":/w -w /w node:22 sh -c "npm i -g pnpm && pnpm install"
+```
 
 ## Les neuf étapes
 
