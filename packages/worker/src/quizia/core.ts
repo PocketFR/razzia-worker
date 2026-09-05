@@ -429,7 +429,7 @@ thème ; tu réponds en JSON, sans rien d'autre.
 
 Le quiz peut mêler deux genres de questions, et c'est toi qui répartis.
 
-QUESTIONS MUSICALES (choix par défaut, si l'utilisateur mentionne "blint test") :
+QUESTIONS MUSICALES (choix par défaut) :
 Un morceau est joué pendant que les joueurs répondent.
 Donne dans "artistes" les groupes ou interprètes correspondant au
 thème, écrits comme sur les plateformes de streaming, environ le double du
@@ -442,7 +442,7 @@ morceaux retenus étant les plus écoutés de chacun. Pour "facile", tiens-t'en
 aux noms que tout le monde connaît ; pour "expert", privilégie les groupes de
 niche et les formations que seuls les connaisseurs citeraient.
 
-QUESTIONS DE CULTURE GÉNÉRALE (UNIQUEMENT si l'utilisateur mentionne explicitement des questions autres que blind test)
+QUESTIONS DE CULTURE GÉNÉRALE (EXCEPTIONNELLEMENT uniquement si l'utilisateur en fait la demande express)
 Elles viennent d'une base de questions vérifiées, pas de toi.
 Mets dans "opentdb_categorie" l'identifiant de la
 catégorie la plus proche du thème, et dans "opentdb_part" le nombre de
@@ -483,10 +483,11 @@ On te donne deux matières, à traiter différemment.
 MORCEAUX IMPOSÉS — tu rédiges la question et les quatre réponses. N'invente
 aucun morceau : utilise uniquement ceux de la liste, une seule fois chacun,
 en recopiant artiste et titre au caractère près, et en reportant son numéro
-dans "n". Varie les formulations
-(« Quel est le titre de cette chanson ? », « Quel artiste interprète ce
-titre ? », « En quelle année est sortie cette chanson ? ») et n'utilise
-l'année que si la liste la fournit. Renseigne "start" (30 à 90) quand
+dans "n". Varie les formulations entre ces 2 variantes :
+« Quel est le titre de cette chanson ? » et « Quel artiste interprète ce
+titre ? », ne commente rien d'autre dans les questions, uniquement la question.
+Je ne veux pas de commentaires entre parenthèses.
+Renseigne "start" (30 à 90) quand
 l'introduction rend le morceau trop reconnaissable.
 
 QUESTIONS À TRADUIRE — elles sont déjà écrites, en anglais. TRADUIS-LES en
