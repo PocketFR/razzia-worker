@@ -29,6 +29,23 @@
     "titlePlaceholder": "Morte improvvisa",
     "untitled": "Interludio senza titolo"
   },
+  "import": {
+    "aide": "Le domande del quiz scelto saranno copiate dopo queste. Il quiz di origine non viene modificato, e nulla è salvato finché non premi Salva.",
+    "annuler": "Annulla",
+    "bouton": "Importa da un altro quiz",
+    "choisir": "Scegli un quiz…",
+    "confirmer": "Importa",
+    "fait": "{{count}} domanda/e importata/e",
+    "titre": "Importa da un altro quiz",
+    "vide": "Questo quiz non ha domande"
+  },
+  "melange": {
+    "aide": "L'ordine sarà estratto a sorte. I gruppi restano interi e si spostano in blocco; le loro domande sono mescolate tra loro. Nulla va perso, e uscire senza salvare annulla tutto.",
+    "bouton": "Mescola le domande",
+    "confirmer": "Mescola",
+    "fait": "Domande mescolate",
+    "titre": "Mescolare le domande?"
+  },
   "noQuestionYet": "Nessuna domanda ancora",
   "paris": {
     "duree": "Durata del gioco",

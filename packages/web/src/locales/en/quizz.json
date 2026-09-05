@@ -29,6 +29,23 @@
     "titlePlaceholder": "Sudden death",
     "untitled": "Untitled interlude"
   },
+  "import": {
+    "aide": "The chosen quiz's questions will be copied after these ones. The source quiz is left untouched, and nothing is stored until you click Save.",
+    "annuler": "Cancel",
+    "bouton": "Import from another quiz",
+    "choisir": "Choose a quiz…",
+    "confirmer": "Import",
+    "fait": "{{count}} question(s) imported",
+    "titre": "Import from another quiz",
+    "vide": "That quiz has no questions"
+  },
+  "melange": {
+    "aide": "The question order will be randomised. Groups stay whole and move as one block; their own questions are shuffled among themselves. Nothing is lost, and leaving without saving undoes it.",
+    "bouton": "Shuffle the questions",
+    "confirmer": "Shuffle",
+    "fait": "Questions shuffled",
+    "titre": "Shuffle the questions?"
+  },
   "noQuestionYet": "No question yet",
   "paris": {
     "duree": "Game duration",

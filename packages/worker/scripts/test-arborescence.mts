@@ -7,7 +7,10 @@
 // typecheck. La fonction est donc importée pour de vrai — pas réécrite ici —
 // afin que le test échoue si le code change.
 
-import { deplacerBloc } from "../../web/src/features/quizz/lib/arborescence.ts"
+import {
+  deplacerBloc,
+  melangerBlocs,
+} from "../../web/src/features/quizz/lib/arborescence.ts"
 
 interface Q {
   id: string
@@ -128,6 +131,92 @@ verifier(
   montrer(deplacer(arbre(), "g", null, 0)),
   "[g:b,c],a,d",
 )
+
+// ── Le mélange ────────────────────────────────────────────────────────────
+//
+// CE QU'IL FAUT VÉRIFIER ICI n'est pas le hasard — un tirage ne s'assure pas —
+// mais ce que le mélange PRÉSERVE. Une permutation qui perd une question, ou
+// qui en duplique une, ne se voit pas à l'œil sur un quiz de cent cinquante
+// entrées : elle se découvre en soirée, quand la question manque.
+
+const melanger = (blocs: B[], hasard?: () => number) =>
+  melangerBlocs(blocs, estGroupe, hasard)
+
+// Toutes les questions, groupes aplatis, triées : l'inventaire du quiz.
+const inventaire = (blocs: B[]): string =>
+  blocs
+    .flatMap((bloc) => (estGroupe(bloc) ? bloc.questions : [bloc]))
+    .map((q) => q.id)
+    .sort()
+    .join(",")
+
+// a, [g: b, c], d, e, [h: f]
+const grand = (): B[] => [
+  { id: "a" },
+  { id: "g", questions: [{ id: "b" }, { id: "c" }] },
+  { id: "d" },
+  { id: "e" },
+  { id: "h", questions: [{ id: "f" }] },
+]
+
+console.log("=== le mélange ===")
+
+// Un tirage figé sur zéro : Fisher-Yates échange alors chaque rang avec le
+// premier, ce qui donne une permutation connue d'avance et vérifiable.
+verifier(
+  "une permutation déterminée",
+  montrer(melanger(arbre(), () => 0)),
+  "[g:c,b],d,a",
+)
+
+// La vraie garantie, éprouvée sur deux cents tirages réels : rien ne se perd,
+// rien ne se duplique, et chaque question reste dans son groupe.
+let inventairesIntacts = 0
+let groupesIntacts = 0
+let differents = 0
+const depart = grand()
+
+for (let essai = 0; essai < 200; essai++) {
+  const melange = melanger(grand())
+
+  if (inventaire(melange) === inventaire(depart)) {
+    inventairesIntacts += 1
+  }
+
+  const groupes = melange
+    .filter(estGroupe)
+    .map(
+      (g) =>
+        `${g.id}:${[...g.questions]
+          .map((q) => q.id)
+          .sort()
+          .join("")}`,
+    )
+    .sort()
+    .join("|")
+
+  if (groupes === "g:bc|h:f") {
+    groupesIntacts += 1
+  }
+
+  if (montrer(melange) !== montrer(depart)) {
+    differents += 1
+  }
+}
+
+verifier("rien ne se perd ni ne se duplique", `${inventairesIntacts}`, "200")
+verifier("les groupes restent entiers", `${groupesIntacts}`, "200")
+
+// Un mélange qui rendrait toujours l'ordre de départ passerait les deux
+// contrôles ci-dessus sans rien mélanger du tout.
+verifier("l'ordre change vraiment", `${differents > 150}`, "true")
+
+// L'éditeur garde son état dans un `useState` : rendre le tableau d'origine
+// muté ferait rater le rendu à React, qui compare les références.
+const original = grand()
+const avant = montrer(original)
+melanger(original)
+verifier("la source n'est pas modifiée", montrer(original), avant)
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

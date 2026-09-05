@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
 import {
@@ -7,14 +8,19 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import ConversionMusicale from "@razzia/web/features/quizz/components/ConversionMusicale"
-import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import ImportDepuisQuizz from "@razzia/web/features/quizz/components/ImportDepuisQuizz"
+import {
+  parcourir,
+  useQuizzEditor,
+} from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { useNavigate } from "@tanstack/react-router"
 import type { ChangeEvent } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuizzEditorHeader = () => {
-  const { quizzId, subject, setSubject, questions } = useQuizzEditor()
+  const { quizzId, subject, setSubject, questions, melangerQuestions } =
+    useQuizzEditor()
   // Le service retenu pour le contenu nouveau : c'est vers lui que la
   // conversion propose d'aller. Le bouton s'efface tout seul quand le quiz
   // n'a rien à y porter.
@@ -62,6 +68,30 @@ const QuizzEditorHeader = () => {
       </div>
 
       <div className="flex gap-2">
+        <ImportDepuisQuizz />
+
+        {/* LE MÉLANGE SE CONFIRME. Il ne perd rien — l'ordre seul change, et
+            quitter sans enregistrer l'annule — mais sur un quiz de cent
+            cinquante questions patiemment ordonnées, un clic de trop coûte
+            une reprise entière. */}
+        {parcourir(questions).length > 1 && (
+          <AlertDialog
+            trigger={
+              <Button className="text-md bg-accent text-accent-foreground px-4 py-2 font-semibold">
+                {t("quizz:melange.bouton")}
+              </Button>
+            }
+            title={t("quizz:melange.titre")}
+            description={t("quizz:melange.aide")}
+            confirmLabel={t("quizz:melange.confirmer")}
+            variante="neutre"
+            onConfirm={() => {
+              melangerQuestions()
+              toast.success(t("quizz:melange.fait"))
+            }}
+          />
+        )}
+
         <ConversionMusicale vers={vers} />
         <Button
           className="text-md bg-accent text-accent-foreground px-4 py-2 font-semibold"

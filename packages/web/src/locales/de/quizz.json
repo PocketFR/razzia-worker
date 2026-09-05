@@ -29,6 +29,23 @@
     "titlePlaceholder": "Sudden Death",
     "untitled": "Zwischenspiel ohne Titel"
   },
+  "import": {
+    "aide": "Die Fragen des gewählten Quiz werden hinter diese kopiert. Das Ursprungsquiz bleibt unverändert, und nichts wird gespeichert, bis du auf Speichern klickst.",
+    "annuler": "Abbrechen",
+    "bouton": "Aus einem anderen Quiz importieren",
+    "choisir": "Quiz auswählen…",
+    "confirmer": "Importieren",
+    "fait": "{{count}} Frage(n) importiert",
+    "titre": "Aus einem anderen Quiz importieren",
+    "vide": "Dieses Quiz enthält keine Fragen"
+  },
+  "melange": {
+    "aide": "Die Reihenfolge wird zufällig gezogen. Gruppen bleiben ganz und wandern als Block; ihre eigenen Fragen werden untereinander gemischt. Nichts geht verloren, und Verlassen ohne Speichern macht es rückgängig.",
+    "bouton": "Fragen mischen",
+    "confirmer": "Mischen",
+    "fait": "Fragen gemischt",
+    "titre": "Fragen mischen?"
+  },
   "noQuestionYet": "Noch keine Fragen",
   "paris": {
     "duree": "Spieldauer",

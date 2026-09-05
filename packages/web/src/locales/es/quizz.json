@@ -29,6 +29,23 @@
     "titlePlaceholder": "Muerte súbita",
     "untitled": "Interludio sin título"
   },
+  "import": {
+    "aide": "Las preguntas del cuestionario elegido se copiarán a continuación de estas. El original no se modifica, y no se guarda nada hasta que pulses Guardar.",
+    "annuler": "Cancelar",
+    "bouton": "Importar desde otro cuestionario",
+    "choisir": "Elegir un cuestionario…",
+    "confirmer": "Importar",
+    "fait": "{{count}} pregunta(s) importada(s)",
+    "titre": "Importar desde otro cuestionario",
+    "vide": "Ese cuestionario no tiene preguntas"
+  },
+  "melange": {
+    "aide": "El orden de las preguntas se sorteará. Los grupos permanecen enteros y se mueven en bloque; sus preguntas se mezclan entre sí. No se pierde nada, y salir sin guardar lo deshace.",
+    "bouton": "Mezclar las preguntas",
+    "confirmer": "Mezclar",
+    "fait": "Preguntas mezcladas",
+    "titre": "¿Mezclar las preguntas?"
+  },
   "noQuestionYet": "Aún no hay preguntas",
   "paris": {
     "duree": "Duración del juego",

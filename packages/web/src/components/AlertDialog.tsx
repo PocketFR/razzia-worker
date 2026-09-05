@@ -8,6 +8,13 @@ interface Props {
   title: string
   description: string
   confirmLabel?: string
+  /**
+   * Le rouge annonce une perte. Il est donc le défaut — la quasi-totalité des
+   * confirmations d'ici portent sur une suppression — mais une confirmation
+   * qui ne détruit rien ne doit pas l'emprunter : à force de teindre en rouge
+   * ce qui ne l'est pas, plus rien ne se lit comme un avertissement.
+   */
+  variante?: "danger" | "neutre"
   onConfirm: () => void
 }
 
@@ -16,6 +23,7 @@ const AlertDialog = ({
   title,
   description,
   confirmLabel,
+  variante = "danger",
   onConfirm,
 }: Props) => {
   const { t } = useTranslation()
@@ -48,7 +56,9 @@ const AlertDialog = ({
 
             <RadixAlertDialog.Action asChild>
               <Button
-                className="bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:brightness-95 active:brightness-90"
+                className={`px-4 py-2 text-sm font-semibold hover:brightness-95 active:brightness-90 ${
+                  variante === "danger" ? "bg-red-500 text-white" : "bg-primary"
+                }`}
                 onClick={onConfirm}
               >
                 {confirmLabel ?? t("common:confirm")}

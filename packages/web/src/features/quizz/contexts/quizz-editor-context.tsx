@@ -6,7 +6,10 @@ import {
   type Question,
   type QuizzWithId,
 } from "@razzia/common/types/game"
-import { deplacerBloc } from "@razzia/web/features/quizz/lib/arborescence"
+import {
+  deplacerBloc,
+  melangerBlocs,
+} from "@razzia/web/features/quizz/lib/arborescence"
 import {
   createContext,
   useContext,
@@ -57,6 +60,10 @@ interface QuizzEditorContextType {
   reorder: (_from: number, _to: number) => void
   reorderDansGroupe: (_groupeId: string, _from: number, _to: number) => void
   deplacer: (_id: string, _groupeCible: string | null, _rang: number) => void
+  /** Recopie les blocs d'un autre quiz à la suite de celui-ci. */
+  importerBlocs: (_blocs: BlocQuizz[]) => void
+  /** Mélange l'ordre des questions, groupes préservés. */
+  melangerQuestions: () => void
 }
 
 const QuizzEditorContext = createContext<QuizzEditorContextType | null>(null)
@@ -232,6 +239,18 @@ export const QuizzEditorProvider = ({
   // Déplace un bloc d'un conteneur à l'autre : du sommet vers un groupe, d'un
   // groupe vers le sommet, ou d'un groupe à un autre. Le remaniement lui-même
   // vit dans un module pur, sous test.
+  // LES IDENTIFIANTS SONT REFAITS, et c'est le point qui compte : `toBlocWithId`
+  // en attribue de neufs. Recopier ceux du quiz d'origine donnerait deux blocs
+  // de même identifiant dans l'éditeur, dont la sélection, le glissé-déposé et
+  // la suppression confondraient les deux.
+  const importerBlocs = (blocs: BlocQuizz[]) => {
+    setQuestions((prev) => [...prev, ...blocs.map(toBlocWithId)])
+  }
+
+  const melangerQuestions = () => {
+    setQuestions((prev) => melangerBlocs(prev, estGroupeAvecId))
+  }
+
   const deplacer = (id: string, groupeCible: string | null, rang: number) => {
     setQuestions((prev) =>
       deplacerBloc(prev, estGroupeAvecId, { id, groupe: groupeCible, rang }),
@@ -260,6 +279,8 @@ export const QuizzEditorProvider = ({
         reorder,
         reorderDansGroupe,
         deplacer,
+        importerBlocs,
+        melangerQuestions,
       }}
     >
       {children}

@@ -81,3 +81,39 @@ export const deplacerBloc = <B extends { id: string }>(
   // suppression : il serait de toute façon refusé à l'enregistrement.
   return remanie.filter((bloc) => !estGroupe(bloc) || bloc.questions.length > 0)
 }
+
+/**
+ * Mélange l'ordre des questions.
+ *
+ * DEUX NIVEAUX, ET LES GROUPES RESTENT DES GROUPES. Un groupe est un
+ * interlude : ses questions forment une manche à élimination avec son propre
+ * pot. Les disperser au premier niveau ne mélangerait pas le quiz, ça le
+ * démonterait. Le groupe se déplace donc d'un bloc, et ses questions sont
+ * mélangées entre elles.
+ *
+ * `hasard` est injectable pour que le test puisse imposer une permutation :
+ * un mélange qu'on ne peut pas prédire ne se vérifie que par ses invariants,
+ * et « rien n'est perdu » est le seul qui compte vraiment ici.
+ */
+export const melangerBlocs = <B extends { id: string }>(
+  blocs: B[],
+  estGroupe: (_bloc: B) => _bloc is B & { questions: B[] },
+  hasard: () => number = Math.random,
+): B[] => {
+  const battre = <T>(liste: T[]): T[] => {
+    const copie = [...liste]
+
+    for (let i = copie.length - 1; i > 0; i--) {
+      const j = Math.floor(hasard() * (i + 1))
+      ;[copie[i], copie[j]] = [copie[j], copie[i]]
+    }
+
+    return copie
+  }
+
+  return battre(
+    blocs.map((bloc) =>
+      estGroupe(bloc) ? { ...bloc, questions: battre(bloc.questions) } : bloc,
+    ),
+  )
+}

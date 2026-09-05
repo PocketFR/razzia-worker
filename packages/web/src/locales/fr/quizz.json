@@ -29,6 +29,23 @@
     "titlePlaceholder": "Mort subite",
     "untitled": "Interlude sans titre"
   },
+  "import": {
+    "aide": "Les questions du quiz choisi seront recopiées à la suite de celles-ci. Le quiz d'origine n'est pas modifié, et rien n'est enregistré tant que tu n'as pas cliqué sur Enregistrer.",
+    "annuler": "Annuler",
+    "bouton": "Importer depuis un autre quiz",
+    "choisir": "Choisir un quiz…",
+    "confirmer": "Importer",
+    "fait": "{{count}} question(s) importée(s)",
+    "titre": "Importer depuis un autre quiz",
+    "vide": "Ce quiz ne contient aucune question"
+  },
+  "melange": {
+    "aide": "L'ordre des questions sera tiré au hasard. Les groupes restent entiers et se déplacent d'un bloc ; leurs questions sont mélangées entre elles. Rien n'est perdu, et quitter sans enregistrer annule le mélange.",
+    "bouton": "Mélanger les questions",
+    "confirmer": "Mélanger",
+    "fait": "Questions mélangées",
+    "titre": "Mélanger les questions ?"
+  },
   "noQuestionYet": "Aucune question pour l'instant",
   "paris": {
     "duree": "Durée du jeu",

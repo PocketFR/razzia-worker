@@ -24,3 +24,6 @@ packages/worker/wrangler.jsonc
 # instance. Voir docs/deploiement.md.
 packages/worker/wrangler.*.jsonc
 !packages/worker/wrangler.jsonc.example
+
+# Cache incrémental de tsc, régénéré à chaque « tsc -b »
+*.tsbuildinfo
