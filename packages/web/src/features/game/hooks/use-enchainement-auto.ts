@@ -18,6 +18,7 @@
 // pas juste.
 
 import { EVENTS } from "@razzia/common/constants"
+import type { GameUpdateQuestion } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
 import {
   useEvent,
@@ -45,7 +46,9 @@ export const useEnchainementAuto = (gameId: string | null) => {
   // décochage pendant l'attente resterait invisible.
   const actifRef = useRef(actif)
   const partieRef = useRef(gameId)
-  const avancement = useRef<{ current: number; total: number } | null>(null)
+  // `current` vaut null sur une diapo : elle ne compte ni dans le rythme du
+  // classement, ni pour reconnaître la dernière question.
+  const avancement = useRef<GameUpdateQuestion | null>(null)
 
   actifRef.current = actif
   partieRef.current = gameId
@@ -117,7 +120,10 @@ export const useEnchainementAuto = (gameId: string | null) => {
         // L'annonce d'un interlude attend l'animateur, qui la commente au
         // micro. En enchaînement automatique il n'y a personne pour cliquer :
         // sans elle, la partie s'arrêtait net sur cet écran.
-        if (name === STATUS.SHOW_INTERLUDE) {
+        //
+        // Une diapo aussi. Sur la dernière étape, c'est le serveur qui conclut
+        // la manche en recevant « question suivante ».
+        if (name === STATUS.SHOW_INTERLUDE || name === STATUS.SHOW_SLIDE) {
           if (!actifRef.current || !partieRef.current) {
             return
           }

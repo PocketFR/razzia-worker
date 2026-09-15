@@ -1,5 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
-import type { Status } from "@razzia/common/types/game/status"
+import { STATUS, type Status } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
 import GameBackground from "@razzia/web/components/GameBackground"
 import Loader from "@razzia/web/components/Loader"
@@ -48,11 +48,12 @@ const GameWrapper = ({
       return
     }
 
-    const { current, total } = etat
+    const { current, total, fond } = etat
 
     setQuestionStates({
       current,
       total,
+      fond,
     })
   })
 
@@ -73,7 +74,15 @@ const GameWrapper = ({
 
   return (
     <section className="relative flex min-h-dvh">
-      <GameBackground />
+      {/* Le fond de l'étape, sauf en salle d'attente et au podium : ces écrans
+          appartiennent à la soirée, pas à la dernière question jouée. */}
+      <GameBackground
+        fond={
+          statusName === STATUS.SHOW_ROOM || statusName === STATUS.FINISHED
+            ? undefined
+            : questionStates?.fond
+        }
+      />
 
       <div className="z-10 flex w-full flex-1 flex-col justify-between">
         {!isConnected && !statusName ? (
@@ -86,7 +95,8 @@ const GameWrapper = ({
         ) : (
           <>
             <div className="flex w-full justify-between p-4">
-              {questionStates && (
+              {/* Pas de compteur sur une diapo : elle n'est pas une question. */}
+              {questionStates && questionStates.current !== null && (
                 <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
                   {`${questionStates.current} / ${questionStates.total}`}
                 </div>

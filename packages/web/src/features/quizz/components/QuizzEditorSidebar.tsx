@@ -18,6 +18,7 @@ import {
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
+import { QUESTION_TYPES } from "@razzia/common/constants"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import QuizzEditorCard from "@razzia/web/features/quizz/components/QuizzEditorCard"
@@ -178,7 +179,7 @@ const Groupe = ({
               <Deplacable key={question.id} id={question.id}>
                 <QuizzEditorCard
                   question={question}
-                  index={(numeros.get(question.id) ?? 1) - 1}
+                  numero={numeros.get(question.id) ?? null}
                   isActive={currentId === question.id}
                   canDelete
                   onClick={() => selectionner(question.id)}
@@ -230,18 +231,24 @@ const QuizzEditorSidebar = () => {
   // Le numéro affiché suit l'ORDRE DE JEU, groupes aplatis : c'est celui que
   // l'animateur verra à l'écran. Le rang dans le tableau de premier niveau
   // n'aurait aucun sens dès qu'un interlude s'y trouve.
+  //
+  // Les diapos n'ont pas de numéro, ici comme à l'écran : le compteur de la
+  // partie ne compte que les questions.
   const numeros = new Map<string, number>()
   let compteur = 0
 
+  const numeroter = (question: QuestionWithId) => {
+    if (question.type !== QUESTION_TYPES.DIAPO) {
+      compteur += 1
+      numeros.set(question.id, compteur)
+    }
+  }
+
   for (const bloc of questions) {
     if (estGroupeAvecId(bloc)) {
-      for (const question of bloc.questions) {
-        compteur += 1
-        numeros.set(question.id, compteur)
-      }
+      bloc.questions.forEach(numeroter)
     } else {
-      compteur += 1
-      numeros.set(bloc.id, compteur)
+      numeroter(bloc)
     }
   }
 
@@ -356,7 +363,7 @@ const QuizzEditorSidebar = () => {
                 <Deplacable key={bloc.id} id={bloc.id}>
                   <QuizzEditorCard
                     question={bloc}
-                    index={(numeros.get(bloc.id) ?? 1) - 1}
+                    numero={numeros.get(bloc.id) ?? null}
                     isActive={currentId === bloc.id}
                     canDelete={questionsAuSommet.length > 1}
                     onClick={() => selectionner(bloc.id)}

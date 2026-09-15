@@ -34,17 +34,23 @@ import {
   MEDIA_TYPES,
   NO_TIME_LIMIT,
 } from "@razzia/common/constants"
-import type {
-  Answer,
-  Player,
-  Question,
-  QuestionResult,
-  QuizzWithId,
+import {
+  urlDuMedia,
+  type Answer,
+  type Player,
+  type Question,
+  type QuestionResult,
+  type QuizzWithId,
 } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
 import { estPari, PARIS, type Tirage } from "@razzia/common/paris"
 import { lireUriMusique } from "@razzia/common/musique"
-import { derouler, type Etape } from "@razzia/common/deroulement"
+import {
+  avancement,
+  derouler,
+  estDiapo,
+  type Etape,
+} from "@razzia/common/deroulement"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
 /** Phases temporisées. Les écrans de résultats attendent l'animateur. */
@@ -56,6 +62,7 @@ export const PHASE = {
   REPONSES: "SELECT_ANSWER",
   ANNONCE: "SHOW_INTERLUDE",
   TIRAGE: "SHOW_DRAW",
+  DIAPO: "SHOW_SLIDE",
 } as const
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE]
@@ -86,6 +93,14 @@ export interface Manche {
   /* Le rang du groupe en cours dans le quiz, pour savoir quand il change. */
   groupeIndex: number | null
   /*
+   * Le rang du groupe dont le verdict est déjà tombé. Les diapos placées après
+   * sa dernière question se jouent APRÈS le verdict, et appartiennent pourtant
+   * encore au groupe : sans cette marque, les atteindre le rouvrirait —
+   * nouvelle annonce, et tout le monde remis en lice. Facultatif : un état
+   * écrit avant son existence le lit comme `undefined`, c'est-à-dire aucun.
+   */
+  groupeClos?: number | null
+  /*
    * Le tirage d'un pari : l'indice gagnant, et la graine dont les clients
    * rejouent l'animation. Null hors pari, et tant que le tirage n'a pas eu
    * lieu.
@@ -112,6 +127,7 @@ export const mancheNeuve = (): Manche => ({
   compteurDu: null,
   enLice: null,
   groupeIndex: null,
+  groupeClos: null,
   tirage: null,
   graine: null,
   classement: [],
@@ -248,7 +264,7 @@ const etapeCourante = (ctx: ContextePartie): Etape => {
  * rend le morceau trop reconnaissable, et Deezer ne l'accepte pas.
  */
 export const pisteMusicale = (question: Question) => {
-  const url = question.media?.url ?? ""
+  const url = urlDuMedia(question.media) ?? ""
 
   // On exige un identifiant : « deezer: » sans morceau est un état d'ÉDITION,
   // pas une amorce à jouer.
@@ -321,6 +337,11 @@ const survivants = (ctx: ContextePartie) => {
 const suivreLeGroupe = (ctx: ContextePartie) => {
   const index = etapeCourante(ctx).groupeIndex
 
+  // Un groupe conclu ne se rouvre pas : ce sont ses diapos finales qu'on joue.
+  if (index !== null && index === (ctx.manche.groupeClos ?? null)) {
+    return
+  }
+
   if (index === ctx.manche.groupeIndex) {
     return
   }
@@ -347,7 +368,10 @@ const entrerAnnonce = (
   em.statutPourTous(STATUS.SHOW_INTERLUDE, {
     titre: groupe.titre,
     points: groupe.points,
-    questions: groupe.questions.length,
+    // Les diapos du groupe ne sont pas des épreuves : on annonce le nombre de
+    // questions qu'il faudra survivre.
+    questions: groupe.questions.filter((question) => !estDiapo(question))
+      .length,
   })
 }
 
@@ -406,22 +430,59 @@ const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
   }
 
   const { question } = etapeCourante(ctx)
+  const ouEnEst = avancement(etapes(ctx), ctx.manche.question)
 
-  ctx.manche.phase = PHASE.PREPARATION
-  ctx.manche.finDePhase = dans(DUREE_PREPARATION)
   // Le tirage appartient à une question : il repart à zéro avec elle.
   ctx.manche.tirage = null
   ctx.manche.graine = null
 
-  em.diffuser(EVENTS.GAME.UPDATE_QUESTION, {
-    current: ctx.manche.question + 1,
-    total: etapes(ctx).length,
-  })
+  // Annoncé pour toute étape, diapo comprise : c'est ce message qui porte le
+  // fond de l'étape, et qui masque le compteur quand elle n'est pas une
+  // question.
+  em.diffuser(EVENTS.GAME.UPDATE_QUESTION, ouEnEst)
+
+  if (estDiapo(question)) {
+    entrerDiapo(ctx, em, question)
+
+    return
+  }
+
+  ctx.manche.phase = PHASE.PREPARATION
+  ctx.manche.finDePhase = dans(DUREE_PREPARATION)
+
   em.statutPourTous(STATUS.SHOW_PREPARED, {
     totalAnswers: question.answers.length,
-    questionNumber: ctx.manche.question + 1,
+    questionNumber: ouEnEst.current ?? ctx.manche.question + 1,
   })
   em.programmer(ctx.manche.finDePhase)
+}
+
+/*
+ * Une diapo : ni préparation, ni énoncé minuté, ni réponses.
+ *
+ * AUCUNE ÉCHÉANCE, comme l'annonce d'un interlude : la diapo attend
+ * l'animateur, qui la commente peut-être au micro. C'est aussi le cas le plus
+ * favorable à l'hibernation — l'objet dort tant que personne ne clique.
+ *
+ * La musique passe par le même chemin qu'une question : l'amorce à
+ * l'animateur, et la zone Soundtrack si elle est configurée.
+ */
+const entrerDiapo = (ctx: ContextePartie, em: Emetteur, question: Question) => {
+  ctx.manche.phase = PHASE.DIAPO
+  ctx.manche.finDePhase = null
+
+  em.statutPourTous(STATUS.SHOW_SLIDE, {
+    titre: question.question,
+    media: question.media,
+    fond: question.fond,
+  })
+
+  const piste = pisteMusicale(question)
+
+  if (piste) {
+    em.versAnimateur(EVENTS.GAME.AUDIO_CUE, piste)
+    em.jouerSurZone(piste.uri)
+  }
 }
 
 const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
@@ -635,6 +696,10 @@ export const avancer = (ctx: ContextePartie, em: Emetteur): void => {
 
       return
 
+    // Une diapo n'a pas d'échéance : seul l'animateur la fait avancer.
+    case PHASE.DIAPO:
+      return
+
     default:
       // Alarme orpheline : la phase a changé entre la programmation et le
       // réveil (tout le monde a répondu, ou l'animateur a tranché).
@@ -840,18 +905,24 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
         points: part || undefined,
       })
 
-      // On se place sur la DERNIÈRE étape du groupe : « question suivante »
+      // On se place sur la DERNIÈRE QUESTION du groupe : « question suivante »
       // sortira alors de l'interlude au lieu d'y rester.
+      //
+      // La dernière question, pas la dernière étape. Les diapos qui la suivent
+      // appartiennent au groupe mais se jouent après le verdict — un « bravo
+      // aux survivants » n'a de sens qu'une fois les survivants connus. Sauter
+      // à la dernière étape les aurait escamotées. En cas de fin anticipée,
+      // les questions restantes et les diapos glissées entre elles sont
+      // sautées comme avant ; seules les diapos finales restent.
       const liste = etapes(ctx)
-      const fin = liste.reduce(
-        (dernier, e, index) =>
-          e.groupeIndex === etape.groupeIndex ? index : dernier,
-        ctx.manche.question,
+      const fin = liste.findIndex(
+        (e) => e.groupeIndex === etape.groupeIndex && e.finDeGroupe,
       )
 
-      ctx.manche.question = fin
+      ctx.manche.question = fin === -1 ? ctx.manche.question : fin
       ctx.manche.enLice = null
       ctx.manche.groupeIndex = null
+      ctx.manche.groupeClos = etape.groupeIndex
     } else {
       em.statutAnimateur(STATUS.SHOW_RESPONSES, {
         ...question,
@@ -910,6 +981,10 @@ export const questionSuivante = (
 
   return true
 }
+
+/** La manche en est-elle à une diapo sans étape après elle ? */
+export const estDiapoFinale = (ctx: ContextePartie) =>
+  ctx.manche.phase === PHASE.DIAPO && !etapes(ctx)[ctx.manche.question + 1]
 
 export const estDerniereQuestion = (ctx: ContextePartie) =>
   ctx.manche.question + 1 === etapes(ctx).length

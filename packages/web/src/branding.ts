@@ -16,6 +16,10 @@ const brandingSchema = z.object({
     .array(z.object({ w: z.number(), url: z.string() }))
     .optional(),
   sounds: z.object({ answersMusic: z.boolean().optional() }).optional(),
+  // Un réglage de l'instance plutôt que du branding : `/cdn-cgi/image` est-il
+  // disponible ? Il voyage ici parce que chaque appareil charge déjà ce
+  // fichier, depuis le cache. Absent, les images sont servies telles quelles.
+  transformationsImages: z.boolean().optional(),
 })
 
 export type BrandingTheme = z.infer<typeof brandingSchema>

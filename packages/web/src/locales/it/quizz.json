@@ -13,6 +13,10 @@
     "title": "Converti i brani in {{service}}"
   },
   "deleteQuestion": "Elimina domanda",
+  "diapo": {
+    "aide": "Una diapositiva appare senza risposte su tutti gli schermi e attende il conduttore per proseguire. Non conta né per i punti né nella numerazione delle domande.",
+    "reglages": "Niente da impostare: né tempo né punti. Il conduttore prosegue quando vuole."
+  },
   "groupe": {
     "add": "Aggiungi un interludio",
     "addQuestion": "domanda",
@@ -39,6 +43,11 @@
     "titre": "Importa da un altro quiz",
     "vide": "Questo quiz non ha domande"
   },
+  "media": {
+    "televerse": "File caricato",
+    "televerser": "Carica",
+    "textePlaceholder": "Testo da mostrare…"
+  },
   "melange": {
     "aide": "L'ordine sarà estratto a sorte. I gruppi restano interi e si spostano in blocco; le loro domande sono mescolate tra loro. Nulla va perso, e uscire senza salvare annulla tutto.",
     "bouton": "Mescola le domande",
@@ -60,6 +69,9 @@
       "answerMode": "Modalità risposta",
       "answerTime": "Tempo di risposta",
       "answerTimeHint": "Tempo che i giocatori hanno per rispondere",
+      "fond": "Sfondo",
+      "fondAide": "Facoltativo. Sostituisce lo sfondo del tema durante questo passaggio, su tutti gli schermi.",
+      "fondPlaceholder": "Link dell'immagine, o caricala",
       "maxPoints": "Punti max",
       "maxPointsHint": "Punti massimi assegnati per una risposta corretta",
       "noTimeLimit": "Nessun limite di tempo",
@@ -83,6 +95,7 @@
     "media": {
       "audio": "Audio",
       "image": "Immagine",
+      "texte": "Testo",
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Inserisci URL...",
@@ -109,6 +122,7 @@
   },
   "questionType": {
     "bonneteau": "Scommessa — gioco delle tre carte",
+    "diapo": "Diapositiva",
     "multi": "Scelta multipla",
     "pmu": "Scommessa — corsa di cavalli",
     "rouge-noir": "Scommessa — rosso o nero",

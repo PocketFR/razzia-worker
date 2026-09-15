@@ -5,15 +5,65 @@ import {
   SCORING_MODES,
   TYPE_GROUPE,
 } from "@razzia/common/constants"
+import { RE_URL_MEDIA } from "@razzia/common/media"
 import { DUREE_PARI, estPari } from "@razzia/common/paris"
+import type { QuestionMedia } from "@razzia/common/types/game"
 import { z } from "zod"
 
-export const questionMediaValidator = z.object({
-  type: z
-    .enum([MEDIA_TYPES.IMAGE, MEDIA_TYPES.VIDEO, MEDIA_TYPES.AUDIO])
-    .optional(),
-  url: z.url("errors:quizz.invalidMediaUrl"),
-})
+/**
+ * L'adresse d'un fichier : absolue, ou exactement `/media/<uuid>`.
+ *
+ * `z.url` refusait tout lien relatif, donc le fichier téléversé. On n'ouvre
+ * pas pour autant la porte à n'importe quel chemin : seule la forme exacte
+ * d'un média local passe, et rien de ce qui ressemble à `/media/../`.
+ */
+export const urlDeMediaValidator = z
+  .string()
+  .refine(
+    (valeur) => RE_URL_MEDIA.test(valeur) || z.url().safeParse(valeur).success,
+    "errors:quizz.invalidMediaUrl",
+  )
+
+export const TEXTE_MAX = 2000
+
+// Un objet vérifié puis RÉÉCRIT en union, plutôt qu'une union zod : une union
+// qui échoue rend une erreur générique, et l'éditeur afficherait « entrée
+// invalide » là où il doit dire « adresse invalide » ou « texte vide ». La
+// transformation, elle, jette ce qui n'appartient pas à la forme retenue — une
+// adresse oubliée sur un texte ne voyage pas jusqu'à l'écran.
+export const questionMediaValidator = z
+  .object({
+    type: z.enum(MEDIA_TYPES).optional(),
+    url: z.string().optional(),
+    texte: z.string().max(TEXTE_MAX, "errors:quizz.texteTropLong").optional(),
+  })
+  .superRefine((media, ctx) => {
+    if (media.type === MEDIA_TYPES.TEXTE) {
+      if (!media.texte?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["texte"],
+          message: "errors:quizz.texteVide",
+        })
+      }
+
+      return
+    }
+
+    if (!urlDeMediaValidator.safeParse(media.url ?? "").success) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["url"],
+        message: "errors:quizz.invalidMediaUrl",
+      })
+    }
+  })
+  .transform(
+    (media): QuestionMedia =>
+      media.type === MEDIA_TYPES.TEXTE
+        ? { type: media.type, texte: media.texte ?? "" }
+        : { type: media.type, url: media.url ?? "" },
+  )
 
 const multiOptionsValidator = z.object({
   scoringMode: z.enum(SCORING_MODES).default(SCORING_MODES.BALANCED),
@@ -34,15 +84,32 @@ const questionValidator = z
         }
       }
 
+      // Une diapo n'a ni réponses ni solutions. On les vide plutôt que de les
+      // refuser : passer une question en diapo dans l'éditeur laisse ses
+      // réponses derrière elle, souvent vides, et l'enregistrement échouerait
+      // alors sur « réponse vide » pour des champs que plus rien n'affiche.
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        (data as Record<string, unknown>).type === QUESTION_TYPES.DIAPO
+      ) {
+        return {
+          ...(data as Record<string, unknown>),
+          answers: [],
+          solutions: [],
+        }
+      }
+
       return data
     },
     z.object({
       type: z.enum(QUESTION_TYPES),
       question: z.string().min(1, "errors:quizz.questionEmpty"),
       media: questionMediaValidator.optional(),
+      // Le minimum de deux réponses dépend du type — une diapo n'en a aucune —
+      // et se pose donc plus bas.
       answers: z
         .array(z.string().min(1, "errors:quizz.answerEmpty"))
-        .min(2, "errors:quizz.tooFewAnswers")
         .max(4, "errors:quizz.tooManyAnswers"),
       // Le tableau peut être VIDE ici : un pari n'a pas de bonne réponse écrite
       // dans le quiz, le serveur la tire au moment de jouer. L'exigence d'au
@@ -62,11 +129,24 @@ const questionValidator = z
         .optional(),
       penalty: z.number().int().min(0).optional(),
       options: multiOptionsValidator.optional(),
+      fond: urlDeMediaValidator.optional(),
     }),
   )
-  .superRefine(({ type, solutions, time }, ctx) => {
-    // Deux règles qui dépendent du type, et qu'aucun champ pris isolément ne
+  .superRefine(({ type, solutions, time, answers }, ctx) => {
+    // Les règles qui dépendent du type, et qu'aucun champ pris isolément ne
     // peut porter.
+    if (type === QUESTION_TYPES.DIAPO) {
+      return
+    }
+
+    if (answers.length < 2) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["answers"],
+        message: "errors:quizz.tooFewAnswers",
+      })
+    }
+
     if (estPari(type)) {
       // Sans échéance, les mises ne se ferment jamais et le tirage n'a jamais
       // lieu : la partie resterait figée sur l'écran de réponses.
@@ -95,11 +175,22 @@ const questionValidator = z
 // Ses `questions` sont validées par le validateur de QUESTION, jamais par
 // celui de bloc : c'est ce qui interdit un groupe dans un groupe, au même
 // titre que le type. La règle n'a donc nulle part où être contournée.
+//
+// UNE VRAIE QUESTION AU MOINS. Les diapos y sont permises, mais le verdict —
+// le partage du pot, les survivants — tombe au résultat de la dernière
+// question du groupe. Un groupe fait uniquement de diapos n'en aurait aucune :
+// il s'annoncerait, puis ne se refermerait jamais.
 const groupeValidator = z.object({
   type: z.literal(TYPE_GROUPE),
   titre: z.string().optional(),
   points: z.number().int().min(0).optional(),
-  questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
+  questions: z
+    .array(questionValidator)
+    .min(1, "errors:quizz.noQuestions")
+    .refine(
+      (questions) => questions.some((q) => q.type !== QUESTION_TYPES.DIAPO),
+      "errors:quizz.groupeSansQuestion",
+    ),
 })
 
 // Une union et non un discriminatedUnion : le validateur de question est

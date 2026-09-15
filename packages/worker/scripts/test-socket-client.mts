@@ -8,6 +8,7 @@
 // Il vit ici plutôt que dans packages/web pour rejoindre les autres suites :
 // c'est le seul endroit du dépôt où tsx est disponible.
 import assert from "node:assert"
+import { BATTEMENT } from "../../common/src/constants.ts"
 
 // Un faux WebSocket qui n'aboutit jamais tout seul : c'est exactement le cas
 // des écrans d'administration, où rien ne viendrait le résoudre.
@@ -19,6 +20,7 @@ class FauxWS {
     this.url = url
     this.readyState = 0
     this.ecouteurs = {}
+    this.envoyes = []
   }
   addEventListener(n, f) {
     ;(this.ecouteurs[n] ??= []).push(f)
@@ -27,7 +29,9 @@ class FauxWS {
     this.readyState = 3
     this.emettre("close")
   }
-  send() {}
+  send(trame) {
+    this.envoyes.push(trame)
+  }
   emettre(n, ev = {}) {
     for (const f of this.ecouteurs[n] ?? []) {
       f(ev)
@@ -40,6 +44,20 @@ class FauxWS {
 }
 
 globalThis.WebSocket = FauxWS
+// Un document minimal : c'est lui qui porte les écouteurs de reprise, et ils
+// s'enregistrent à la construction — donc avant tout ce qui suit.
+globalThis.document = {
+  visibilityState: "visible",
+  ecouteurs: {},
+  addEventListener(n, f) {
+    ;(this.ecouteurs[n] ??= []).push(f)
+  },
+  reprendre() {
+    for (const f of this.ecouteurs.visibilitychange ?? []) {
+      f()
+    }
+  },
+}
 globalThis.location = {
   protocol: "https:",
   host: "razzia.example",
@@ -278,6 +296,171 @@ verifier(
   )
 
   globalThis.fetch = vraiFetch
+}
+
+// ── le battement de cœur ─────────────────────────────────────────────────
+//
+// LE CAS QU'AUCUN AUTRE TEST NE COUVRE, et qu'aucun événement ne signale :
+// une veille involontaire coupe le réseau sans fermer la connexion. La socket
+// annonce toujours OPEN, `send()` ne lève rien, et il n'y a ni `close` ni
+// `disconnect`. La page reste figée jusqu'à un rechargement manuel — observé
+// en soirée. La seule mesure disponible est l'absence de réponse.
+//
+// Le temps est simulé : attendre les quatre-vingt-dix secondes de tolérance
+// pour de vrai rendrait la suite inutilisable.
+{
+  const vraiSetInterval = globalThis.setInterval
+  const vraiClearInterval = globalThis.clearInterval
+  const vraiDateNow = Date.now
+
+  let horloge = 1_000_000
+  let battre = null
+  let sonder = null
+
+  Date.now = () => horloge
+  globalThis.setInterval = (fn) => {
+    battre = fn
+
+    return 1
+  }
+  globalThis.clearInterval = () => {
+    battre = null
+  }
+  globalThis.setTimeout = (fn) => {
+    sonder = fn
+
+    return 2
+  }
+  globalThis.clearTimeout = () => {
+    sonder = null
+  }
+
+  // Ouvre une partie et rend sa socket, prête à battre.
+  const enPartie = (nom) => {
+    const client = new RazziaSocket()
+    client.configurer(nom)
+    client.connect()
+    client.viser(`partie-${nom}`)
+    FauxWS.dernier.ouvrir()
+
+    return client
+  }
+
+  // ── la chaîne du ping est un contrat, pas une commodité ────────────────
+  const a = enPartie("a")
+  const wsA = FauxWS.dernier
+
+  verifier("le battement démarre à l'ouverture", battre !== null)
+
+  battre()
+  verifier(
+    "le ping part littéralement, tel que l'objet l'attend",
+    wsA.envoyes.at(-1) === BATTEMENT.PING,
+    JSON.stringify(wsA.envoyes.at(-1)),
+  )
+
+  // ── le pong n'est pas une trame applicative ────────────────────────────
+  let pongsVus = 0
+  a.on("pong", () => pongsVus++)
+  wsA.emettre("message", { data: BATTEMENT.PONG })
+  verifier("le pong ne remonte à aucun écouteur", pongsVus === 0)
+
+  // ── LE CŒUR : une socket muette est remplacée, même en annonçant OPEN ──
+  let coupures = 0
+  a.on("disconnect", () => coupures++)
+
+  const ouverturesAvant = FauxWS.ouvertures
+  horloge += BATTEMENT.TOLERANCE_MS + 1
+  battre()
+
+  verifier(
+    "le silence prolongé force une nouvelle socket",
+    FauxWS.ouvertures === ouverturesAvant + 1,
+  )
+  verifier(
+    "alors que l'ancienne se disait encore ouverte",
+    wsA.readyState === 3,
+  )
+
+  // CE QUE LE DÉTACHEMENT PROTÈGE. La socket morte est retirée de `this.ws`
+  // AVANT d'être fermée ; sans quoi sa fermeture rejoue un `disconnect` et
+  // programme une seconde reconnexion par-dessus celle qu'on vient de lancer.
+  // La coupure est une, elle ne doit être annoncée qu'une fois.
+  verifier(
+    "la coupure n'est signalée qu'une fois",
+    coupures === 1,
+    `${coupures}`,
+  )
+
+  // ── un pong reçu suffit à la garder ────────────────────────────────────
+  const b = enPartie("b")
+  const wsB = FauxWS.dernier
+  const ouverturesB = FauxWS.ouvertures
+
+  horloge += BATTEMENT.TOLERANCE_MS - 1
+  wsB.emettre("message", { data: BATTEMENT.PONG })
+  horloge += BATTEMENT.TOLERANCE_MS - 1
+  battre()
+
+  verifier(
+    "un pong récent ne provoque aucune reconnexion",
+    FauxWS.ouvertures === ouverturesB,
+  )
+  verifier("et le battement continue", b.connected)
+
+  // ── la sonde du retour au premier plan ─────────────────────────────────
+  //
+  // C'est elle qui traite la veille, et non le battement : le minuteur dort
+  // avec l'appareil, et ne conclurait qu'après une minute et demie — la
+  // question en cours serait perdue.
+  const c = enPartie("c")
+  const wsC = FauxWS.dernier
+  const envoyesAvant = wsC.envoyes.length
+
+  sonder = null
+  globalThis.document.reprendre()
+
+  verifier(
+    "le retour au premier plan sonde tout de suite",
+    wsC.envoyes.length === envoyesAvant + 1 &&
+      wsC.envoyes.at(-1) === BATTEMENT.PING,
+  )
+  verifier("et arme un délai court", sonder !== null)
+
+  // LE COMPTE SE PREND JUSTE AVANT, et pas avant la reprise : celle-ci
+  // réveille TOUS les clients construits dans cette suite, et seul ce que la
+  // sonde de c provoque nous intéresse.
+  const ouverturesC = FauxWS.ouvertures
+  horloge += BATTEMENT.SONDE_MS
+  sonder()
+
+  verifier(
+    "sans réponse, la socket est remplacée en trois secondes",
+    FauxWS.ouvertures === ouverturesC + 1,
+  )
+  verifier("l'ancienne est refermée", wsC.readyState === 3)
+
+  // ── mais une connexion saine survit à la reprise ───────────────────────
+  const d = enPartie("d")
+  const wsD = FauxWS.dernier
+
+  sonder = null
+  globalThis.document.reprendre()
+  wsD.emettre("message", { data: BATTEMENT.PONG })
+
+  const ouverturesD = FauxWS.ouvertures
+  horloge += BATTEMENT.SONDE_MS
+  sonder()
+
+  verifier(
+    "une reprise sans coupure ne coupe rien",
+    FauxWS.ouvertures === ouverturesD,
+  )
+  verifier("et la connexion reste utilisable", d.connected)
+
+  Date.now = vraiDateNow
+  globalThis.setInterval = vraiSetInterval
+  globalThis.clearInterval = vraiClearInterval
 }
 
 globalThis.setTimeout = vraiSetTimeout

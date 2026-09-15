@@ -40,6 +40,7 @@
     "deezer": "Deezer",
     "deezerHint": "Deezer non richiede alcuna chiave: il catalogo e le anteprime di 30 s rispondono senza account. È sempre disponibile nell'editor.",
     "ia": "Generazione con IA",
+    "medias": "Media",
     "missing": "{{count}} chiave/i mancante/i",
     "notConfigured": "Non configurato",
     "nothingToDo": "Nulla da configurare",
@@ -108,6 +109,13 @@
     "unset": "Non definita"
   },
   "logout": "Disconnetti",
+  "medias": {
+    "activees": "Attivate",
+    "desactivees": "Disattivate",
+    "occupation": "{{occupe}} MB su {{plafond}} GB",
+    "transformations": "Trasformazioni di immagini Cloudflare",
+    "transformationsAide": "Attivalo solo se «Images → Transformations» è attivo sulla zona Cloudflare di questo sito: le immagini caricate vengono allora servite alla dimensione giusta per ogni schermo. Non disponibile su un indirizzo workers.dev."
+  },
   "password": {
     "change": "Cambia",
     "changed": "Password cambiata",

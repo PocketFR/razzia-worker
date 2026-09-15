@@ -25,7 +25,10 @@
       // cette ligne les assets répondraient d'abord, et le branding
       // enregistré en base ne serait jamais servi.
       "/branding/theme.json",
-      "/branding/asset/*"
+      "/branding/asset/*",
+      // Les médias téléversés des quiz, lus dans R2. Servis par le Worker au
+      // premier appareil, puis par le cache de Cloudflare sans invocation.
+      "/media/*"
     ]
   },
 
@@ -48,6 +51,22 @@
   // que de v1 ; n'ajoutez un tag qu'en sachant ce qu'il fera à CETTE
   // installation-là.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
+
+  // Workers Cache : le cache de Cloudflare placé DEVANT le Worker. Une réponse
+  // en cache ne l'invoque pas du tout — ni temps processeur, ni requête
+  // comptée. C'est ce qui rend gratuits, en soirée, les médias et le thème.
+  //
+  // UNE RÉPONSE GET SANS `Cache-Control` Y EST MISE EN CACHE PAR HEURISTIQUE.
+  // Tout ce qui doit rester frais le dit donc explicitement (`no-store`). Les
+  // requêtes portant `Authorization` et les WebSocket ne sont jamais mises en
+  // cache. Chaque déploiement vide le cache : la version du Worker fait partie
+  // de la clé.
+  "cache": { "enabled": true },
+
+  // Les fichiers téléversés. Le bucket doit exister avant le déploiement, et
+  // R2 exige un moyen de paiement sur le compte, même en offre gratuite. Les
+  // garde-fous qui tiennent razzia sous le quota sont dans services/media.ts.
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "razzia-media" }],
 
   "d1_databases": [
     {

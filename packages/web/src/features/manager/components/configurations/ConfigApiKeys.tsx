@@ -64,6 +64,13 @@ const SANS_ZONE = "-"
 // jeton ne se saisit ni ne se relit.
 const SESSION = "SOUNDTRACK_REFRESH"
 
+// Un interrupteur, pas un texte : "1" active /cdn-cgi/image pour les médias
+// téléversés. Il ne s'active qu'une fois le service allumé sur la zone — sans
+// quoi les images seraient cassées.
+const CHOIX_TRANSFORMATIONS = "IMAGES_TRANSFORMATIONS"
+
+const Mo = 1024 * 1024
+
 // Chaque clé sous le service dont elle relève. L'ordre de cette table est
 // celui de l'écran ; une clé absente d'ici n'apparaîtrait nulle part, ce que
 // le test de couverture vérifie.
@@ -71,6 +78,7 @@ const PAR_SERVICE: Record<string, string[]> = {
   ia: ["MISTRAL_API_KEY", "MISTRAL_MODEL", CHOIX_MUSIQUE],
   spotify: ["SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"],
   soundtrack: [SESSION, "SOUNDTRACK_API_TOKEN", CHOIX_ZONE],
+  medias: [CHOIX_TRANSFORMATIONS],
 }
 
 // La première valeur renseignée : la saisie en cours, sinon celle du serveur,
@@ -120,6 +128,19 @@ const ConfigApiKeys = () => {
   const [stEmail, setStEmail] = useState("")
   const [stMotDePasse, setStMotDePasse] = useState("")
   const [spotifyConnecte, setSpotifyConnecte] = useState(false)
+  const [occupation, setOccupation] = useState<{
+    occupe: number
+    plafond: number
+  } | null>(null)
+
+  // La place prise par les médias : une lecture D1, sans toucher R2. Un échec
+  // laisse simplement l'en-tête du groupe sans chiffre.
+  useEffect(() => {
+    socketClient
+      .occupationMedias()
+      .then(setOccupation)
+      .catch(() => setOccupation(null))
+  }, [])
 
   // Les zones ne sont chargées qu'À LA DEMANDE : lister les zones d'un compte
   // est le seul appel de tout ce socle qui exige un abonnement, et l'écran des
@@ -468,6 +489,51 @@ const ConfigApiKeys = () => {
         {/* Il ne se relit pas : il est stocké en empreinte. Le changer exige
             donc l'actuel, ce qui protège aussi contre un écran laissé
             ouvert. */}
+        {/* ── Médias ────────────────────────────────────────────────────── */}
+        <Groupe
+          titre={t("groups.medias")}
+          etat={
+            occupation
+              ? t("medias.occupation", {
+                  occupe: (occupation.occupe / Mo).toFixed(1),
+                  plafond: Math.round(occupation.plafond / (1024 * Mo)),
+                })
+              : ""
+          }
+        >
+          <div className="flex flex-col gap-1">
+            <label
+              className="font-semibold"
+              htmlFor={`cle-${CHOIX_TRANSFORMATIONS}`}
+            >
+              {t("medias.transformations")}
+            </label>
+            <span className="text-xs opacity-60">
+              {t("medias.transformationsAide")}
+            </span>
+
+            <Select
+              value={
+                (saisies[CHOIX_TRANSFORMATIONS] ||
+                  parNom(CHOIX_TRANSFORMATIONS)?.valeur) === "1"
+                  ? "1"
+                  : "0"
+              }
+              onValueChange={(v) =>
+                setSaisies((s) => ({ ...s, [CHOIX_TRANSFORMATIONS]: v }))
+              }
+            >
+              <SelectTrigger id={`cle-${CHOIX_TRANSFORMATIONS}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">{t("medias.desactivees")}</SelectItem>
+                <SelectItem value="1">{t("medias.activees")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </Groupe>
+
         <Groupe titre={t("groups.password")} etat={t("password.subtitle")}>
           <label className="flex flex-col gap-1">
             <span className="font-semibold">{t("password.current")}</span>

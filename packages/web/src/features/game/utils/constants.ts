@@ -11,6 +11,9 @@ import Question from "@razzia/web/features/game/components/states/Question"
 import Responses from "@razzia/web/features/game/components/states/Responses"
 import Result from "@razzia/web/features/game/components/states/Result"
 import Room from "@razzia/web/features/game/components/states/Room"
+import Slide, {
+  SlideAnimateur,
+} from "@razzia/web/features/game/components/states/Slide"
 import Start from "@razzia/web/features/game/components/states/Start"
 import Survivors from "@razzia/web/features/game/components/states/Survivors"
 import Wait from "@razzia/web/features/game/components/states/Wait"
@@ -37,6 +40,7 @@ export const GAME_STATE_COMPONENTS = {
   [STATUS.SELECT_ANSWER]: Answers,
   [STATUS.SHOW_DRAW]: Draw,
   [STATUS.SHOW_QUESTION]: Question,
+  [STATUS.SHOW_SLIDE]: Slide,
   [STATUS.WAIT]: Wait,
   [STATUS.SHOW_START]: Start,
   [STATUS.SHOW_RESULT]: Result,
@@ -50,6 +54,7 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
   [STATUS.SHOW_SURVIVORS]: Survivors,
+  [STATUS.SHOW_SLIDE]: SlideAnimateur,
   [STATUS.FINISHED]: Podium,
 }
 
@@ -88,6 +93,9 @@ export const MANAGER_SKIP_EVENTS = {
   // Depuis l'annonce, « suivant » lance le groupe. Le serveur sait que la
   // question courante est déjà la bonne et ne l'incrémente pas.
   [STATUS.SHOW_INTERLUDE]: EVENTS.MANAGER.NEXT_QUESTION,
+  // Une diapo attend l'animateur. Sur la dernière étape, le serveur conclut la
+  // manche au lieu d'avancer : le bouton n'a pas à le savoir.
+  [STATUS.SHOW_SLIDE]: EVENTS.MANAGER.NEXT_QUESTION,
   // La proclamation des survivants est l'écran de RÉSULTAT du groupe : elle
   // mène au classement, comme SHOW_RESPONSES, et non directement à la question
   // suivante.
@@ -118,6 +126,7 @@ export const MANAGER_SKIP_BTN = {
   [STATUS.SHOW_START]: null,
   [STATUS.SHOW_PREPARED]: null,
   [STATUS.SHOW_QUESTION]: null,
+  [STATUS.SHOW_SLIDE]: "common:next",
   [STATUS.SELECT_ANSWER]: "common:skip",
   // Le tirage se termine tout seul, et l'interrompre priverait la salle de
   // l'animation qu'elle attend. Pas de bouton.

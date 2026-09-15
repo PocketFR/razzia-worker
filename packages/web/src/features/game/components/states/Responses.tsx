@@ -13,6 +13,7 @@ import {
   HABILLAGES,
 } from "@razzia/web/features/questions/paris/types"
 import { lireUriMusique } from "@razzia/common/musique"
+import { urlDuMedia } from "@razzia/common/types/game"
 import clsx from "clsx"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -25,7 +26,7 @@ interface Props {
 const Responses = ({
   data: { question, answers, responses, solutions, media, questionType },
 }: Props) => {
-  const piste = lireUriMusique(media?.url)
+  const piste = lireUriMusique(urlDuMedia(media))
   const { t } = useTranslation()
 
   // Les libellés d'un pari dont les choix ne se nomment pas viennent de son
@@ -76,7 +77,7 @@ const Responses = ({
           {question}
         </h2>
 
-        {piste?.id && <CartePiste uri={media?.url ?? ""} />}
+        {piste?.id && <CartePiste uri={urlDuMedia(media) ?? ""} />}
 
         <div
           className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}

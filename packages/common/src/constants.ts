@@ -97,6 +97,55 @@ export const EVENTS = {
   },
 } as const
 
+// Le battement de cœur de la WebSocket.
+//
+// POURQUOI IL EXISTE. Une veille involontaire coupe le réseau sans fermer la
+// connexion TCP : la radio s'éteint, personne n'envoie de FIN. Au réveil, le
+// navigateur annonce toujours `readyState === OPEN` et `send()` ne lève rien
+// — il met en tampon. Aucun `close`, donc aucune reconnexion, donc un écran
+// figé dont le seul remède était de recharger la page. Observé en soirée.
+//
+// Seul un aller-retour applicatif révèle le mensonge : l'API WebSocket du
+// navigateur n'expose aucun moyen d'émettre une trame de contrôle ping.
+//
+// LES DEUX CHAÎNES SONT LITTÉRALES, ET C'EST UN CONTRAT. Côté objet, elles
+// arment `setWebSocketAutoResponse`, qui répond depuis la périphérie sans
+// réveiller l'objet hiberné — donc sans durée facturée. La correspondance y
+// est EXACTE, sur le message entier : il ne peut donc y avoir ni horodatage
+// ni numéro de séquence dedans, et le client doit les envoyer telles quelles
+// plutôt que par `emit()`, qui reconstruit la trame et pourrait en changer
+// la forme un jour.
+//
+// L'ÉCHEC SERAIT SILENCIEUX : une chaîne qui ne correspond plus n'est pas
+// rejetée, elle réveille l'objet, tombe dans `webSocketMessage` où aucun
+// événement ne lui répond, et le client conclut à une coupure générale. D'où
+// le test de bout en bout dans smoke-ws.mjs, qui les éprouve contre le vrai
+// runtime plutôt que contre notre idée de son comportement.
+export const BATTEMENT = {
+  PING: '{"e":"ping"}',
+  PONG: '{"e":"pong"}',
+
+  /** Rythme du battement quand l'onglet est au premier plan. */
+  PERIODE_MS: 30_000,
+
+  /**
+   * Silence toléré avant de conclure que la socket est morte. Trois périodes :
+   * un pong perdu ne doit pas coûter une reconnexion à toute la salle.
+   */
+  TOLERANCE_MS: 90_000,
+
+  /**
+   * Le délai de la SONDE, celle qu'on lance au retour au premier plan.
+   *
+   * Il est court parce que le cas est déjà connu : l'appareil sort de veille,
+   * et si la connexion a survécu le pong revient en quelques dizaines de
+   * millisecondes. Attendre la tolérance ordinaire ferait perdre la question
+   * en cours — le minuteur du battement dort pendant la veille, lui aussi, et
+   * ne s'apercevrait de rien avant une minute et demie.
+   */
+  SONDE_MS: 3_000,
+} as const
+
 export const NO_TIME_LIMIT = -1
 
 export const MAX_POINTS = 1000
@@ -110,6 +159,10 @@ export const QUESTION_TYPES = {
   ROUGE_NOIR: "rouge-noir",
   BONNETEAU: "bonneteau",
   PMU: "pmu",
+  // Une diapo : un titre et un élément, sans réponses ni points. Elle se joue
+  // dans le déroulé comme une étape, attend l'animateur pour avancer, et
+  // n'entre ni dans la numérotation des questions ni dans l'historique.
+  DIAPO: "diapo",
 } as const
 
 // Le discriminant d'un bloc de quiz. Un bloc est soit une question — dont le
@@ -126,6 +179,9 @@ export const MEDIA_TYPES = {
   IMAGE: "image",
   VIDEO: "video",
   AUDIO: "audio",
+  // Le seul média sans fichier : un texte, écrit dans le quiz. Il n'a donc pas
+  // d'adresse, et c'est pourquoi `QuestionMedia` est une union.
+  TEXTE: "texte",
 } as const
 
 export const EXAMPLE_QUIZZ = {

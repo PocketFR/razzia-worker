@@ -8,6 +8,8 @@
 // qui remplace le socket.id de l'amont, et donc ce qui décide qu'un joueur
 // revenu après un rechargement est bien le même joueur.
 
+import { BATTEMENT } from "../../common/src/constants.ts"
+
 const base = process.argv[2] ?? "http://localhost:8787"
 const motDePasse =
   process.argv[3] ?? process.env.RAZZIA_MDP ?? "MotDePasse-De-Test"
@@ -217,6 +219,43 @@ verifier(
   retour?.status?.data?.inviteCode === partie.inviteCode,
   `reçu ${retour?.status?.data?.inviteCode}`,
 )
+
+// ── le battement de cœur, contre le vrai runtime ──────────────────────────
+//
+// LE SEUL ENDROIT OÙ LA CORRESPONDANCE EXACTE SE VÉRIFIE. `setWebSocketAutoResponse`
+// compare le message ENTIER, à l'octet près, et son échec est silencieux : une
+// chaîne qui ne correspond plus n'est pas rejetée, elle réveille l'objet, tombe
+// dans webSocketMessage où aucun événement ne lui répond, et le client conclut
+// à une coupure — pour toute la salle. Les tests unitaires ne peuvent que lier
+// le client à la constante ; c'est ici qu'on éprouve le contrat côté objet.
+{
+  const veilleur = await connecter(partie.gameId, "client-battement", "player")
+
+  // Le pong ne porte pas de charge : `attendre` rendrait `undefined` aussi
+  // bien à l'arrivée qu'au délai dépassé. C'est la file qu'il faut regarder.
+  const pongRecu = (depuis) =>
+    veilleur.recus.slice(depuis).some((t) => t.e === "pong")
+
+  const depuis = veilleur.marquer()
+  veilleur.ws.send(BATTEMENT.PING)
+  await veilleur.attendre("pong", 3000, depuis)
+
+  verifier("le ping reçoit un pong", pongRecu(depuis))
+
+  // Une chaîne VOISINE ne doit rien déclencher : c'est ce qui prouve que la
+  // correspondance porte sur le message entier, et non sur ce qu'il contient.
+  // Celle-ci est un JSON valide et équivalent — seul l'octet d'espace diffère.
+  const depuisFaux = veilleur.marquer()
+  veilleur.ws.send(`${BATTEMENT.PING} `)
+  await pause(1000)
+
+  verifier(
+    "une chaîne approchante n'est pas auto-répondue",
+    !pongRecu(depuisFaux),
+  )
+
+  veilleur.fermer()
+}
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

@@ -40,6 +40,7 @@
     "deezer": "Deezer",
     "deezerHint": "Deezer no necesita ninguna clave: su catálogo y sus fragmentos de 30 s responden sin cuenta. Siempre está disponible en el editor.",
     "ia": "Generación por IA",
+    "medias": "Medios",
     "missing": "Faltan {{count}} clave(s)",
     "notConfigured": "Sin configurar",
     "nothingToDo": "Nada que configurar",
@@ -108,6 +109,13 @@
     "unset": "Sin definir"
   },
   "logout": "Cerrar sesión",
+  "medias": {
+    "activees": "Activadas",
+    "desactivees": "Desactivadas",
+    "occupation": "{{occupe}} MB de {{plafond}} GB",
+    "transformations": "Transformaciones de imágenes de Cloudflare",
+    "transformationsAide": "Actívalo solo si «Images → Transformations» está activado en la zona de Cloudflare de este sitio: las imágenes subidas se sirven entonces al tamaño adecuado para cada pantalla. No disponible en una dirección workers.dev."
+  },
   "password": {
     "change": "Cambiar",
     "changed": "Contraseña cambiada",

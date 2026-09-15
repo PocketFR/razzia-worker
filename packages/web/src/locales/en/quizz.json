@@ -13,6 +13,10 @@
     "title": "Convert tracks to {{service}}"
   },
   "deleteQuestion": "Delete question",
+  "diapo": {
+    "aide": "A slide shows on every screen without answers and waits for the host to move on. It counts neither for points nor in the question numbering.",
+    "reglages": "Nothing to set: no timer, no points. The host moves on when ready."
+  },
   "groupe": {
     "add": "Add an interlude",
     "addQuestion": "question",
@@ -39,6 +43,11 @@
     "titre": "Import from another quiz",
     "vide": "That quiz has no questions"
   },
+  "media": {
+    "televerse": "File uploaded",
+    "televerser": "Upload",
+    "textePlaceholder": "Text to display…"
+  },
   "melange": {
     "aide": "The question order will be randomised. Groups stay whole and move as one block; their own questions are shuffled among themselves. Nothing is lost, and leaving without saving undoes it.",
     "bouton": "Shuffle the questions",
@@ -60,6 +69,9 @@
       "answerMode": "Answer mode",
       "answerTime": "Answer time",
       "answerTimeHint": "Time players have to answer",
+      "fond": "Background",
+      "fondAide": "Optional. Replaces the theme background during this step, on every screen.",
+      "fondPlaceholder": "Image link, or upload it",
       "maxPoints": "Max points",
       "maxPointsHint": "Maximum points awarded for a correct answer",
       "noTimeLimit": "No time limit",
@@ -83,6 +95,7 @@
     "media": {
       "audio": "Audio",
       "image": "Image",
+      "texte": "Text",
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Enter URL...",
@@ -109,6 +122,7 @@
   },
   "questionType": {
     "bonneteau": "Bet — three-card monte",
+    "diapo": "Slide",
     "multi": "Multiple choice",
     "pmu": "Bet — horse race",
     "rouge-noir": "Bet — red or black",

@@ -38,7 +38,8 @@ const QuestionEditor = () => {
         <QuestionEditorMedia />
         <QuestionEditorAnswers />
 
-        <GameBackground />
+        {/* Le fond de la question en aperçu, tel que la salle le verra. */}
+        <GameBackground fond={currentQuestion.fond} />
       </main>
       <QuestionEditorConfig />
     </div>

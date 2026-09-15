@@ -19,6 +19,7 @@ import {
   lireUriMusique,
   type Fournisseur,
 } from "@razzia/common/musique"
+import { urlDuMedia } from "@razzia/common/types/game"
 import Button from "@razzia/web/components/Button"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 // Le client concret, et non le socket typé du contexte : la conversion est un
@@ -59,10 +60,11 @@ const ConversionMusicale = ({ vers }: { vers: Fournisseur }) => {
   // Les questions à convertir : celles qui portent un morceau de l'AUTRE
   // service. Celles du service visé sont déjà à leur place.
   const aConvertir = parcourir(questions).flatMap((q) => {
-    const lue = lireUriMusique(q.media?.url)
+    const uri = urlDuMedia(q.media)
+    const lue = lireUriMusique(uri)
 
     return lue?.id && lue.fournisseur !== vers
-      ? [{ question: q, uri: q.media?.url ?? "", lue }]
+      ? [{ question: q, uri: uri ?? "", lue }]
       : []
   })
 

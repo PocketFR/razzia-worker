@@ -29,6 +29,7 @@ import type { Env } from "../index"
 import { deriverCle } from "./session"
 
 export const CLES_CONNUES = [
+  "IMAGES_TRANSFORMATIONS",
   "MISTRAL_API_KEY",
   "MISTRAL_MODEL",
   "MUSIC_PROVIDER",
@@ -76,6 +77,9 @@ const FORMATS: Partial<Record<NomDeCle, RegExp>> = {
   // Un identifiant de zone sonore, tel que l'API le rend. Même prudence que
   // pour l'identifiant Spotify : on borne le jeu de caractères, pas la forme.
   SOUNDTRACK_ZONE: /^[\w:.~-]{4,128}$/u,
+  // Un interrupteur : "1" ou "0". Vide rend la main à la liaison, et à défaut
+  // le service reste désactivé.
+  IMAGES_TRANSFORMATIONS: /^[01]$/u,
 }
 
 /** La valeur est-elle acceptable pour cette clé ? */
@@ -148,7 +152,7 @@ const lignesDesCles = async (db: D1Database) => {
   const { results } = await db
     .prepare(
       `SELECT key, value, encrypted, updated_at FROM settings WHERE key IN
-       ('MISTRAL_API_KEY','MISTRAL_MODEL','MUSIC_PROVIDER',
+       ('IMAGES_TRANSFORMATIONS','MISTRAL_API_KEY','MISTRAL_MODEL','MUSIC_PROVIDER',
         'SOUNDTRACK_API_TOKEN','SOUNDTRACK_REFRESH','SOUNDTRACK_ZONE',
         'SPOTIFY_CLIENT_ID','SPOTIFY_CLIENT_SECRET')`,
     )

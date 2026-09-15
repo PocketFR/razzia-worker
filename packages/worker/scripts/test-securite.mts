@@ -6,6 +6,9 @@
 // but n'est pas de couvrir le code, mais d'empêcher un retour en arrière :
 // ces défauts-là se réintroduisent d'une ligne, et ne se voient pas à l'usage.
 
+import { placesDuPodium } from "../src/game/podium"
+import { examinerEnvoi, signatureReconnue } from "../src/services/media"
+import { RE_CLE_MEDIA } from "../../common/src/media.ts"
 import { pageCallbackSpotify } from "../src/quizia/core"
 import { formatValide } from "../src/services/secrets"
 import { verifierAcces } from "../src/services/config"
@@ -312,6 +315,99 @@ const baseFactice = (valeurInitiale: string | null) => {
     (await verifierAcces(db, MAITRESSE, "n-importe-quoi")) === "absent",
   )
   verifier("et rien n'y est écrit", db.ecrits.length === 0)
+}
+
+// ── Le podium ne transporte aucune identité ───────────────────────────────
+//
+// Il partait vers tous les joueurs avec les `Player` entiers, `clientId`
+// compris. L'objet reconnaissant un joueur à ce seul identifiant, n'importe
+// quel participant pouvait se reconnecter à la place d'un des trois premiers
+// dès la manche suivante — les joueurs survivent d'une manche à l'autre dans
+// une même salle. Un `slice` suffisait à le réintroduire.
+console.log("=== le podium ne transporte aucune identité ===")
+{
+  const joueur = (username: string, points: number, n: number) => ({
+    id: `0199a1b2-c3d4-7e5f-8a9b-00000000000${n}`,
+    clientId: `0199a1b2-c3d4-7e5f-8a9b-00000000000${n}`,
+    connected: true,
+    username,
+    points,
+    streak: 2,
+  })
+  const classement = [
+    joueur("Alice", 900, 1),
+    joueur("Bob", 700, 2),
+    joueur("Chloé", 500, 3),
+    joueur("Dédé", 100, 4),
+  ]
+  const podium = placesDuPodium(classement)
+  const serialise = JSON.stringify(podium)
+
+  verifier("trois places, pas davantage", podium.length === 3)
+  verifier(
+    "dans l'ordre du classement",
+    podium.map((p) => p.username).join() === "Alice,Bob,Chloé",
+  )
+  verifier(
+    "aucun clientId ne sort",
+    !classement.some((j) => serialise.includes(j.clientId)),
+    serialise,
+  )
+  verifier(
+    "seuls le pseudo et les points",
+    podium.every((p) => Object.keys(p).sort().join() === "points,username"),
+    serialise,
+  )
+}
+
+// ── Les médias téléversés : rien d'exécutable depuis notre domaine ─────────
+//
+// Un fichier téléversé est servi depuis NOTRE origine. Un SVG ou un HTML y
+// exécuterait son script avec notre stockage — le jeton de l'animateur y vit.
+// C'est une faille XSS stockée qu'un seul envoi suffirait à poser.
+console.log("=== médias : rien d'exécutable ===")
+{
+  const refusDe = (mime: string) => {
+    const r = examinerEnvoi(mime, 1000, 0)
+
+    return "refus" in r ? r.refus : null
+  }
+
+  for (const mime of [
+    "image/svg+xml",
+    "text/html",
+    "application/xhtml+xml",
+    "application/javascript",
+  ]) {
+    verifier(
+      `${mime} est refusé à l'envoi`,
+      refusDe(mime) === "errors:media.type",
+    )
+  }
+
+  // Le type annoncé vient du client : il ne suffit pas.
+  const html = Uint8Array.from("<!doctype html><script>", (c) =>
+    c.charCodeAt(0),
+  )
+
+  verifier(
+    "du HTML annoncé comme image PNG est refusé",
+    !signatureReconnue(html, "image/png"),
+  )
+  verifier(
+    "du HTML annoncé comme vidéo MP4 est refusé",
+    !signatureReconnue(html, "video/mp4"),
+  )
+
+  // La clé désigne un objet R2 : rien d'autre qu'un UUID ne doit l'atteindre.
+  for (const cle of [
+    "../api/manager/config",
+    "0199a1b2-c3d4-4e5f-8a9b-0123456789ab/../x",
+    "",
+    "0199A1B2-C3D4-4E5F-8A9B-0123456789AB",
+  ]) {
+    verifier(`clé refusée : « ${cle} »`, !RE_CLE_MEDIA.test(cle))
+  }
 }
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)

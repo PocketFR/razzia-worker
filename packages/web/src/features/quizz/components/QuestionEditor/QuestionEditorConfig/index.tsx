@@ -11,6 +11,7 @@ import {
   QUESTION_REGISTRY,
   QUESTION_TYPE_LIST,
 } from "@razzia/web/features/questions"
+import ChampFond from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ChampFond"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
 import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { LayoutList } from "lucide-react"
@@ -78,6 +79,8 @@ const QuestionEditorConfig = () => {
       </ConfigField>
 
       <ConfigComponent />
+
+      <ChampFond />
     </aside>
   )
 }

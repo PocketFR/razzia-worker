@@ -37,6 +37,14 @@
     "unauthorized": "No autorizado",
     "unknownKey": "Clave desconocida"
   },
+  "media": {
+    "envoi": "La subida del archivo ha fallado",
+    "plafond": "El espacio de medios está lleno (8 GB). Un archivo se elimina automáticamente 24 h después de que ningún cuestionario lo use.",
+    "signature": "El contenido del archivo no corresponde a su tipo",
+    "tailleInconnue": "Tamaño de archivo desconocido: subida rechazada",
+    "tropGros": "Archivo demasiado grande: {{max}} MB como máximo para este tipo",
+    "type": "Tipo de archivo no aceptado: imágenes JPEG, PNG, WebP, GIF o AVIF, audio MP3, M4A u OGG, vídeo MP4 o WebM"
+  },
   "notFound": {
     "back": "Volver al inicio",
     "description": "La página que buscas no existe.",
@@ -47,6 +55,7 @@
     "failedToDelete": "Error al eliminar el cuestionario",
     "failedToSave": "El cuestionario está incompleto, asegúrate de que todas las preguntas tengan un título y al menos una respuesta correcta",
     "failedToUpdate": "Error al actualizar el cuestionario",
+    "groupeSansQuestion": "Un grupo de eliminación necesita al menos una pregunta, no solo diapositivas",
     "invalidMediaUrl": "La URL del medio debe ser una URL válida",
     "noQuestions": "Un cuestionario debe tener al menos una pregunta",
     "noSolution": "Una pregunta necesita al menos una respuesta correcta",
@@ -54,6 +63,8 @@
     "pariSansLimite": "Una apuesta necesita un límite de tiempo: sin él, las apuestas no se cierran nunca",
     "questionEmpty": "La pregunta no puede estar vacía",
     "subjectEmpty": "El tema no puede estar vacío",
+    "texteTropLong": "El texto supera los 2000 caracteres",
+    "texteVide": "El texto está vacío",
     "tooFewAnswers": "Una pregunta debe tener al menos 2 respuestas",
     "tooManyAnswers": "Una pregunta no puede tener más de 4 respuestas"
   },

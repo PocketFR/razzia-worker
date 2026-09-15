@@ -6,12 +6,32 @@ import type {
   QuestionType,
 } from "@razzia/common/types/game"
 
+/**
+ * Une place du podium, telle qu'elle sort du serveur.
+ *
+ * PAS UN `Player`, ET C'EST UNE FAILLE CORRIGÉE. Le podium transportait les
+ * joueurs entiers, `clientId` compris — et il partait vers TOUS les joueurs.
+ * Or l'objet reconnaît un joueur à ce seul identifiant : le connaître, c'est
+ * pouvoir se reconnecter à sa place. Les joueurs survivant d'une manche à
+ * l'autre dans une même salle, n'importe quel participant pouvait, dès la
+ * manche suivante, répondre au nom d'un des trois premiers.
+ *
+ * LE TYPE NE SUFFIT PAS À L'EMPÊCHER, et c'est pourquoi il n'en est pas la
+ * garde : un `Player[]` est structurellement assignable à ce type, champs en
+ * trop compris. Ce qui protège est la projection explicite côté serveur,
+ * `placesDuPodium`, et le test qui l'éprouve.
+ */
+export type PlaceDuPodium = Pick<Player, "username" | "points">
+
 export const STATUS = {
   SHOW_ROOM: "SHOW_ROOM",
   SHOW_START: "SHOW_START",
   SHOW_PREPARED: "SHOW_PREPARED",
   SHOW_QUESTION: "SHOW_QUESTION",
   SELECT_ANSWER: "SELECT_ANSWER",
+  // Une diapo : un titre et un élément, sans réponses. Elle attend
+  // l'animateur pour avancer.
+  SHOW_SLIDE: "SHOW_SLIDE",
   // Le tirage d'un pari, joué après la fermeture des mises.
   SHOW_DRAW: "SHOW_DRAW",
   SHOW_RESULT: "SHOW_RESULT",
@@ -31,6 +51,10 @@ export type Status = (typeof STATUS)[keyof typeof STATUS]
 
 export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
+  // Tout le monde voit la même chose, le média compris — y compris une URI
+  // musicale, que SHOW_QUESTION retire parce qu'elle donnerait la réponse. Une
+  // diapo n'a pas de réponse à trahir.
+  SHOW_SLIDE: { titre: string; media?: QuestionMedia; fond?: string }
   SHOW_PREPARED: { totalAnswers: number; questionNumber: number }
   SHOW_QUESTION: {
     question: string
@@ -100,7 +124,9 @@ export interface CommonStatusDataMap {
     aheadOfMe: string | null
   }
   WAIT: { text: string }
-  FINISHED: { subject: string; top: Player[]; rank?: number }
+  // `top` pour l'animateur, `rank` pour le joueur — jamais l'inverse. Voir
+  // PlaceDuPodium : le podium ne transporte plus de Player.
+  FINISHED: { subject: string; top?: PlaceDuPodium[]; rank?: number }
 }
 
 interface ManagerExtraStatus {

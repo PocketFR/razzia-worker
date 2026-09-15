@@ -1,6 +1,14 @@
+import { MEDIA_TYPES } from "@razzia/common/constants"
 import { estProposable, estUriMusique } from "@razzia/common/musique"
-import type { QuestionMediaType } from "@razzia/common/types/game"
-import { questionMediaValidator } from "@razzia/common/validators/quizz"
+import {
+  estMediaTexte,
+  urlDuMedia,
+  type QuestionMediaType,
+} from "@razzia/common/types/game"
+import {
+  questionMediaValidator,
+  TEXTE_MAX,
+} from "@razzia/common/validators/quizz"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
@@ -8,7 +16,8 @@ import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import MediaMusique from "@razzia/web/features/quizz/components/QuestionEditor/MediaMusique"
 import { useQuestionEditee } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
-import { Image, ImageOff, Music, Video } from "lucide-react"
+import BoutonTeleversement from "@razzia/web/features/media/components/BoutonTeleversement"
+import { Image, ImageOff, Music, Type, Video } from "lucide-react"
 import { type ChangeEvent } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -22,7 +31,7 @@ const QuestionEditorMedia = () => {
   const hadnleChangeMediaType = (type: QuestionMediaType) => () => {
     const result = questionMediaValidator.safeParse({
       type,
-      url: questionMedia?.url,
+      url: urlDuMedia(questionMedia),
     })
 
     if (!result.success) {
@@ -48,9 +57,30 @@ const QuestionEditorMedia = () => {
     })
   }
 
+  // Un texte se saisit ici même : il n'a ni adresse à valider, ni fichier.
+  const handleChangeTexte = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    updateQuestion(currentId, {
+      media: { type: MEDIA_TYPES.TEXTE, texte: e.target.value },
+    })
+  }
+
   return (
     <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-4">
-      {questionMedia && estUriMusique(questionMedia.url) ? (
+      {estMediaTexte(questionMedia) ? (
+        <Card className="my-auto flex w-full max-w-3xl flex-col gap-2">
+          <textarea
+            autoFocus
+            className="text-foreground min-h-40 w-full resize-y rounded-md bg-transparent p-2 text-lg outline-none"
+            placeholder={t("quizz:media.textePlaceholder")}
+            maxLength={TEXTE_MAX}
+            value={questionMedia.texte}
+            onChange={handleChangeTexte}
+          />
+          <p className="text-muted-foreground self-end text-xs tabular-nums">
+            {questionMedia.texte.length} / {TEXTE_MAX}
+          </p>
+        </Card>
+      ) : questionMedia && estUriMusique(questionMedia.url) ? (
         // Le lecteur <audio> natif reste inerte sur une URI spotify: ou
         // deezer: — on montre le morceau plutôt qu'un contrôle qui ne répond
         // pas. Le préfixe suffit, sans identifiant : c'est précisément l'état
@@ -69,13 +99,23 @@ const QuestionEditorMedia = () => {
           <p className="text-accent-foreground text-center text-sm">
             {t("quizz:question.addMediaHint")}
           </p>
-          <Input
-            variant="sm"
-            className="w-full max-w-md"
-            placeholder={t("quizz:question.mediaUrlPlaceholder")}
-            value={questionMedia?.url ?? ""}
-            onChange={handleChangeMedia}
-          />
+          <div className="flex w-full max-w-md items-center gap-2">
+            <Input
+              variant="sm"
+              className="w-full"
+              placeholder={t("quizz:question.mediaUrlPlaceholder")}
+              value={urlDuMedia(questionMedia) ?? ""}
+              onChange={handleChangeMedia}
+            />
+            {/* Le lien relatif du fichier arrive dans le même champ qu'une
+                adresse saisie : un média téléversé est un média comme un
+                autre, et son type se déduit du fichier. */}
+            <BoutonTeleversement
+              onTermine={(url, genre) =>
+                updateQuestion(currentId, { media: { type: genre, url } })
+              }
+            />
+          </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Button
               onClick={hadnleChangeMediaType("image")}
@@ -102,6 +142,19 @@ const QuestionEditorMedia = () => {
               <div className="flex items-center gap-1.5">
                 <Music className="size-6" />
                 <p>{t("quizz:question.media.audio")}</p>
+              </div>
+            </Button>
+            <Button
+              onClick={() =>
+                updateQuestion(currentId, {
+                  media: { type: MEDIA_TYPES.TEXTE, texte: "" },
+                })
+              }
+              className={`bg-accent text-accent-foreground hover:bg-accent transition-colors`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Type className="size-6" />
+                <p>{t("quizz:question.media.texte")}</p>
               </div>
             </Button>
             {/* Raccourcis vers les cadres musicaux : sans eux il fallait

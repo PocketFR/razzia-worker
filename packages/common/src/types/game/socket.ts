@@ -59,12 +59,11 @@ export interface ServerToClientEvents {
   // Null remet le compteur à néant : c'est ce qui se passe quand la salle
   // revient en attente entre deux quiz, l'avancement du précédent n'ayant
   // plus aucun sens.
-  [EVENTS.GAME.UPDATE_QUESTION]: (
-    _data: null | {
-      current: number
-      total: number
-    },
-  ) => void
+  //
+  // `current` vaut null sur une diapo, qui n'est pas une question : le
+  // compteur se masque le temps de l'afficher. `total` ne compte que les
+  // questions. `fond` est celui de l'étape, absent quand le thème s'applique.
+  [EVENTS.GAME.UPDATE_QUESTION]: (_data: null | GameUpdateQuestion) => void
   [EVENTS.GAME.PLAYER_ANSWER]: (_count: number) => void
 
   // Player events

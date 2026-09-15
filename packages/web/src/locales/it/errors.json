@@ -37,6 +37,14 @@
     "unauthorized": "Non autorizzato",
     "unknownKey": "Chiave sconosciuta"
   },
+  "media": {
+    "envoi": "Il caricamento del file non è riuscito",
+    "plafond": "Lo spazio dei media è pieno (8 GB). Un file viene eliminato automaticamente 24 ore dopo che nessun quiz lo usa più.",
+    "signature": "Il contenuto del file non corrisponde al suo tipo",
+    "tailleInconnue": "Dimensione del file sconosciuta: caricamento rifiutato",
+    "tropGros": "File troppo grande: massimo {{max}} MB per questo tipo",
+    "type": "Tipo di file non accettato: immagini JPEG, PNG, WebP, GIF o AVIF, audio MP3, M4A o OGG, video MP4 o WebM"
+  },
   "notFound": {
     "back": "Torna alla home",
     "description": "La pagina che cerchi non esiste.",
@@ -47,6 +55,7 @@
     "failedToDelete": "Impossibile eliminare il quiz",
     "failedToSave": "Il quiz è incompleto, assicurati che tutte le domande abbiano un titolo e almeno una risposta corretta",
     "failedToUpdate": "Impossibile aggiornare il quiz",
+    "groupeSansQuestion": "Un gruppo a eliminazione deve contenere almeno una domanda, non solo diapositive",
     "invalidMediaUrl": "L'URL del media deve essere un URL valido",
     "noQuestions": "Un quiz deve avere almeno una domanda",
     "noSolution": "Una domanda deve avere almeno una risposta esatta",
@@ -54,6 +63,8 @@
     "pariSansLimite": "Una scommessa richiede un limite di tempo: senza, le puntate non si chiudono mai",
     "questionEmpty": "La domanda non può essere vuota",
     "subjectEmpty": "Il soggetto non può essere vuoto",
+    "texteTropLong": "Il testo supera i 2000 caratteri",
+    "texteVide": "Il testo è vuoto",
     "tooFewAnswers": "Una domanda deve avere almeno 2 risposte",
     "tooManyAnswers": "Una domanda non può avere più di 4 risposte"
   },

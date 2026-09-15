@@ -21,7 +21,7 @@ import {
   lireUriMusique,
   type Fournisseur,
 } from "@razzia/common/musique"
-import type { QuestionMedia } from "@razzia/common/types/game"
+import type { MediaFichier, QuestionMedia } from "@razzia/common/types/game"
 import Button from "@razzia/web/components/Button"
 import Input from "@razzia/web/components/Input"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
@@ -54,7 +54,8 @@ const decrire = (p: Piste) =>
     .join(" · ")
 
 interface Props {
-  media: QuestionMedia
+  // Un fichier, jamais un texte : ce cadre ne s'ouvre que sur une URI musicale.
+  media: MediaFichier
   onChange: (_media: QuestionMedia) => void
 }
 

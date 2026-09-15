@@ -40,6 +40,7 @@
     "deezer": "Deezer",
     "deezerHint": "Deezer ne demande aucune clé : son catalogue et ses extraits de 30 s répondent sans compte. Il est proposé dans l'éditeur en permanence.",
     "ia": "Génération par IA",
+    "medias": "Médias",
     "missing": "{{count}} clé(s) manquante(s)",
     "notConfigured": "Non configuré",
     "nothingToDo": "Rien à configurer",
@@ -68,12 +69,12 @@
     },
     "rejected_one": "{{count}} question écartée à l'enregistrement.",
     "rejected_other": "{{count}} questions écartées à l'enregistrement.",
-    "subject": "Titre du quizz",
+    "subject": "Titre du quiz",
     "subjectPlaceholder": "Blind Test Rock français 80s",
-    "subtitle": "Décrivez le quizz voulu : l'IA choisit les morceaux, cherche les questions et les rédige. Comptez une minute.",
+    "subtitle": "Décrivez le quiz voulu : l'IA choisit les morceaux, cherche les questions et les rédige. Comptez une minute.",
     "summary_one": "{{count}} question — {{sonores}} sonore(s), niveau {{niveau}}, {{tokens}} jetons. Enregistré.",
     "summary_other": "{{count}} questions — {{sonores}} sonore(s), niveau {{niveau}}, {{tokens}} jetons. Enregistré.",
-    "title": "Créer un quizz par IA",
+    "title": "Créer un quiz par IA",
     "unavailable": "Clés API à renseigner d'abord : {{cles}}"
   },
   "keys": {
@@ -108,6 +109,13 @@
     "unset": "Non définie"
   },
   "logout": "Déconnexion",
+  "medias": {
+    "activees": "Activées",
+    "desactivees": "Désactivées",
+    "occupation": "{{occupe}} Mo sur {{plafond}} Go",
+    "transformations": "Transformations d'images Cloudflare",
+    "transformationsAide": "À activer seulement si « Images → Transformations » est activé sur la zone Cloudflare de ce site : les images téléversées sont alors servies à la bonne taille pour chaque écran. Impossible sur une adresse workers.dev."
+  },
   "password": {
     "change": "Changer",
     "changed": "Mot de passe changé",
@@ -119,15 +127,15 @@
   "passwordPlaceholder": "Mot de passe",
   "quizz": {
     "create": "Créer manuellement",
-    "delete": "Supprimer le quizz",
+    "delete": "Supprimer le quiz",
     "deleteConfirm": "Supprimer \"{{name}}\" ? Cette action est irréversible.",
-    "deleted": "Quizz supprimé",
-    "export": "Exporter le quizz (JSON)",
-    "import": "Importer un quizz (JSON)",
-    "none": "Aucun quizz créé",
-    "notFound": "Aucun quizz trouvé",
-    "pleaseCreate": "Veuillez d'abord créer un quizz",
-    "pleaseSelect": "Veuillez sélectionner un quizz",
+    "deleted": "Quiz supprimé",
+    "export": "Exporter le quiz (JSON)",
+    "import": "Importer un quiz (JSON)",
+    "none": "Aucun quiz créé",
+    "notFound": "Aucun quiz trouvé",
+    "pleaseCreate": "Veuillez d'abord créer un quiz",
+    "pleaseSelect": "Veuillez sélectionner un quiz",
     "startGame": "Démarrer la partie"
   },
   "result": {
@@ -165,7 +173,7 @@
     "branding": "Apparence",
     "keys": "Clés API",
     "play": "Jouer",
-    "quizz": "Quizz",
+    "quizz": "Quiz",
     "results": "Résultats",
     "settings": "Paramètres"
   }

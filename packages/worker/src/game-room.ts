@@ -31,8 +31,8 @@
 // persisté côté navigateur : le joueur redevient lui-même sans rien
 // transposer, et toute une classe de bugs de reconnexion disparaît.
 
-import { derouler } from "@razzia/common/deroulement"
-import { EVENTS } from "@razzia/common/constants"
+import { avancement, derouler } from "@razzia/common/deroulement"
+import { BATTEMENT, EVENTS } from "@razzia/common/constants"
 import { lireUriMusique } from "@razzia/common/musique"
 import type { GameResult, Player, QuizzWithId } from "@razzia/common/types/game"
 import { STATUS } from "@razzia/common/types/game/status"
@@ -43,6 +43,7 @@ import {
   PHASE,
   pisteMusicale,
   estDerniereQuestion,
+  estDiapoFinale,
   mancheNeuve,
   cloturerReponses,
   questionSuivante,
@@ -52,6 +53,7 @@ import {
   type Manche,
 } from "./game/round"
 import { doitReprogrammer, prochaineEcheance } from "./game/alarme"
+import { placesDuPodium } from "./game/podium"
 import { authSoundtrack, zoneActive } from "./musique"
 import { jouerSurLaZone } from "./musique/soundtrack"
 import { ecrireCle, lireCles } from "./services/secrets"
@@ -176,6 +178,27 @@ export class GameRoom implements DurableObject {
   constructor(ctx: DurableObjectState, env: Env) {
     this.ctx = ctx
     this.env = env
+
+    // Le battement, armé ICI et pas à l'acceptation d'une socket.
+    //
+    // La paire vaut pour TOUTES les sockets attachées à l'objet, et il n'y en
+    // a qu'une : la poser par connexion réécrirait la même valeur cent fois.
+    // Le constructeur, lui, rejoue à chaque réveil d'hibernation — c'est donc
+    // le seul endroit qui garantit qu'elle est armée quel que soit le cycle
+    // de vie, y compris après une éviction, ce que la documentation ne
+    // précise pas.
+    //
+    // La règle « rien de lourd dans le constructeur » est respectée : c'est
+    // une affectation, sans entrée-sortie ni lecture d'état.
+    //
+    // CE QUE ÇA ACHÈTE. Les pings sont répondus depuis la périphérie sans
+    // réveiller l'objet : aucune durée facturée, et `webSocketMessage` n'est
+    // jamais appelé pour eux. Ils comptent en revanche comme messages
+    // entrants, à 20 pour 1 — environ 1 800 requêtes pour la partie de
+    // référence, là où l'écriture borne à 16 %. Voir docs/quotas.md.
+    ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(BATTEMENT.PING, BATTEMENT.PONG),
+    )
   }
 
   // ── État ────────────────────────────────────────────────────────────────
@@ -380,17 +403,16 @@ export class GameRoom implements DurableObject {
     // Rien avant le lancement : le salon d'attente n'a pas de question en
     // cours, et annoncer « 1 / 20 » y ferait apparaître un compteur qui ne
     // veut rien dire.
-    const avancement = etat.manche.demarree
-      ? {
-          current: etat.manche.question + 1,
-          total: derouler(etat.quizz.questions).length,
-        }
+    // Le même calcul que pendant la manche : diapos hors compteur, et le fond
+    // de l'étape, qu'un téléphone revenu doit retrouver.
+    const ouEnEst = etat.manche.demarree
+      ? avancement(derouler(etat.quizz.questions), etat.manche.question)
       : null
 
     if (roleReel === "manager") {
       this.envoyer(server, EVENTS.MANAGER.SUCCESS_RECONNECT, {
         gameId: etat.gameId,
-        currentQuestion: avancement,
+        currentQuestion: ouEnEst,
         status:
           etat.statutAnimateur ??
           etat.dernierStatut ??
@@ -405,7 +427,7 @@ export class GameRoom implements DurableObject {
         this.ecrire(etat)
         this.envoyer(server, EVENTS.PLAYER.SUCCESS_RECONNECT, {
           gameId: etat.gameId,
-          currentQuestion: avancement,
+          currentQuestion: ouEnEst,
           status: etat.statutsJoueurs[clientId] ??
             etat.dernierStatut ?? {
               name: STATUS.WAIT,
@@ -435,14 +457,17 @@ export class GameRoom implements DurableObject {
     // Une coupure de WebSocket n'a rien d'exceptionnel : un écran qui se
     // verrouille suffit. La reconnexion doit donc remettre le client à
     // niveau, pas seulement lui rendre son écran.
-    if (avancement) {
-      this.envoyer(server, EVENTS.GAME.UPDATE_QUESTION, avancement)
+    if (ouEnEst) {
+      this.envoyer(server, EVENTS.GAME.UPDATE_QUESTION, ouEnEst)
     }
 
     if (roleReel === "manager" && etat.manche.demarree) {
+      // La diapo aussi : une diapo musicale doit rejouer sa musique chez un
+      // animateur qui revient, comme une question.
       const enJeu =
         etat.manche.phase === PHASE.ENONCE ||
-        etat.manche.phase === PHASE.REPONSES
+        etat.manche.phase === PHASE.REPONSES ||
+        etat.manche.phase === PHASE.DIAPO
 
       if (enJeu) {
         const etape = derouler(etat.quizz.questions)[etat.manche.question]
@@ -1250,7 +1275,18 @@ export class GameRoom implements DurableObject {
       return
     }
 
-    if (questionSuivante(this.contexte(etat), this.emetteur(etat))) {
+    const contexte = this.contexte(etat)
+    const em = this.emetteur(etat)
+
+    // Avancer sur une diapo finale conclut la manche : il n'y a pas de
+    // classement à montrer entre elle et le podium.
+    if (estDiapoFinale(contexte)) {
+      this.terminerManche(etat, em)
+
+      return
+    }
+
+    if (questionSuivante(contexte, em)) {
       this.ecrire(etat)
     }
   }
@@ -1278,14 +1314,32 @@ export class GameRoom implements DurableObject {
     }
 
     // Dernière question : la manche s'achève.
+    this.terminerManche(etat, em)
+  }
+
+  /*
+   * La fin de manche : podium, rang de chacun, archive.
+   *
+   * Extraite parce qu'on y arrive par deux chemins : le classement après la
+   * dernière question, et l'avance sur une diapo finale — une manche peut
+   * très bien se conclure par un « merci d'avoir joué ».
+   */
+  private terminerManche(etat: EtatPartie, em: Emetteur) {
     etat.manche.demarree = false
 
-    const top = etat.manche.classement.slice(0, 3)
+    // Un quiz fait uniquement de diapos n'a jamais produit de classement.
+    // Sans ce repli, personne ne recevrait son écran de fin, et les
+    // téléphones resteraient sur la dernière diapo.
+    const classement = etat.manche.classement.length
+      ? etat.manche.classement
+      : etat.players
+
+    const top = placesDuPodium(classement)
     const resultat: GameResult = {
       id: `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       subject: etat.quizz.subject,
       date: new Date().toISOString(),
-      players: etat.manche.classement.map((joueur, index) => ({
+      players: classement.map((joueur, index) => ({
         username: joueur.username,
         points: joueur.points,
         rank: index + 1,
@@ -1295,10 +1349,14 @@ export class GameRoom implements DurableObject {
 
     em.statutAnimateur(STATUS.FINISHED, { subject: etat.quizz.subject, top })
 
-    etat.manche.classement.forEach((joueur, index) => {
+    // LE JOUEUR NE REÇOIT PAS LE PODIUM. Son écran n'affiche que son rang,
+    // et le podium qu'on lui envoyait portait les `clientId` des trois
+    // premiers — de quoi se reconnecter à leur place dès la manche suivante.
+    // Ce qu'on n'affiche pas, on ne l'envoie pas : même réduit à des pseudos,
+    // il ne servirait à rien ici.
+    classement.forEach((joueur, index) => {
       em.statutJoueur(joueur.clientId, STATUS.FINISHED, {
         subject: etat.quizz.subject,
-        top,
         rank: index + 1,
       })
     })

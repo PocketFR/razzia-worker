@@ -158,6 +158,31 @@ echo "== 4. schéma"
 npx wrangler d1 execute razzia --remote --yes --file schema.sql >/dev/null
 echo "   tables créées ou déjà présentes"
 
+echo "== 4 bis. stockage des médias"
+# Le bucket R2 des fichiers téléversés dans les quiz.
+#
+# R2 EXIGE UN MOYEN DE PAIEMENT sur le compte, même pour l'offre gratuite.
+# Sans lui, Cloudflare refuse toute création (code 10042), et le déploiement
+# échouerait plus loin sur une liaison vers un bucket absent, avec un message
+# qui ne dirait pas pourquoi. On le dit ici. Les garde-fous qui tiennent razzia
+# sous le quota gratuit sont dans src/services/media.ts.
+if npx wrangler r2 bucket list 2>/dev/null | grep -q "razzia-media"; then
+  echo "   bucket razzia-media déjà présent"
+else
+  SORTIE=$(npx wrangler r2 bucket create razzia-media 2>&1) || {
+    echo "$SORTIE" >&2
+
+    if echo "$SORTIE" | grep -qE "10042|enable R2"; then
+      echo "! R2 n'est pas activé sur ce compte. L'activer depuis le tableau de" >&2
+      echo "  bord Cloudflare (R2) — un moyen de paiement est demandé, même pour" >&2
+      echo "  l'offre gratuite — puis relancer ce script." >&2
+    fi
+
+    exit 1
+  }
+  echo "   bucket razzia-media créé"
+fi
+
 echo "== 5. reprise des données"
 DEJA=$(compter "SELECT count(*) AS n FROM quizz")
 

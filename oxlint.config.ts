@@ -14,8 +14,10 @@ export default defineConfig({
     DurableObject: "readonly",
     DurableObjectNamespace: "readonly",
     DurableObjectState: "readonly",
+    FixedLengthStream: "readonly",
     ScheduledController: "readonly",
     WebSocketPair: "readonly",
+    WebSocketRequestResponsePair: "readonly",
   },
   jsPlugins: ["@stylistic/eslint-plugin"],
   options: {

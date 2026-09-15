@@ -13,6 +13,10 @@
     "title": "Convertir las canciones a {{service}}"
   },
   "deleteQuestion": "Eliminar pregunta",
+  "diapo": {
+    "aide": "Una diapositiva se muestra sin respuestas en todas las pantallas y espera al presentador para avanzar. No cuenta para los puntos ni en la numeración de las preguntas.",
+    "reglages": "Nada que ajustar: ni tiempo ni puntos. El presentador avanza cuando quiera."
+  },
   "groupe": {
     "add": "Añadir un interludio",
     "addQuestion": "pregunta",
@@ -39,6 +43,11 @@
     "titre": "Importar desde otro cuestionario",
     "vide": "Ese cuestionario no tiene preguntas"
   },
+  "media": {
+    "televerse": "Archivo subido",
+    "televerser": "Subir",
+    "textePlaceholder": "Texto que se mostrará…"
+  },
   "melange": {
     "aide": "El orden de las preguntas se sorteará. Los grupos permanecen enteros y se mueven en bloque; sus preguntas se mezclan entre sí. No se pierde nada, y salir sin guardar lo deshace.",
     "bouton": "Mezclar las preguntas",
@@ -60,6 +69,9 @@
       "answerMode": "Modo de respuesta",
       "answerTime": "Tiempo de respuesta",
       "answerTimeHint": "Tiempo que tienen los jugadores para responder",
+      "fond": "Fondo",
+      "fondAide": "Opcional. Sustituye el fondo del tema durante este paso, en todas las pantallas.",
+      "fondPlaceholder": "Enlace de la imagen, o súbela",
       "maxPoints": "Puntos máx.",
       "maxPointsHint": "Puntos máximos otorgados por una respuesta correcta",
       "noTimeLimit": "Sin límite de tiempo",
@@ -83,6 +95,7 @@
     "media": {
       "audio": "Audio",
       "image": "Imagen",
+      "texte": "Texto",
       "video": "Video"
     },
     "mediaUrlPlaceholder": "Introduce la URL...",
@@ -109,6 +122,7 @@
   },
   "questionType": {
     "bonneteau": "Apuesta — trile",
+    "diapo": "Diapositiva",
     "multi": "Opción múltiple",
     "pmu": "Apuesta — carrera de caballos",
     "rouge-noir": "Apuesta — rojo o negro",

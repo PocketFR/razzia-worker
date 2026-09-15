@@ -39,10 +39,13 @@ import {
 } from "./musique/soundtrack"
 import { genererQuiz, manquePourGenerer } from "./quizia/core"
 import {
+  CLE_TRANSFORMATIONS,
   dangerDuSvg,
   effacerImage,
   ecrireImage,
   ecrireTheme,
+  ETIQUETTE_BRANDING,
+  marquerBrandingModifie,
   estNomStocke,
   estSvg,
   etatDesImages,
@@ -52,6 +55,16 @@ import {
   type Theme,
 } from "./services/branding"
 import { CHEMIN_ETAT } from "./game-room"
+import {
+  confirmerMedia,
+  examinerEnvoi,
+  occupationMedias,
+  oublierMedia,
+  reserverMedia,
+  verifierLaSignature,
+  type RefusDEnvoi,
+} from "./services/media"
+import { PLAFOND_STOCKAGE_MEDIA, urlDuMediaLocal } from "@razzia/common/media"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -83,10 +96,39 @@ const creerCodeInvitation = () => {
   return Array.from(octets, (o) => "0123456789"[o % 10]).join("")
 }
 
+/**
+ * Après toute écriture du branding : la version avance, et le cache est purgé.
+ *
+ * DEUX CACHES, DEUX GESTES. `/branding/theme.json` est gardé un an au bord
+ * de Cloudflare : sans purge, une couleur changée ne se verrait qu'à
+ * l'expiration. Et le Worker range son thème sous une clé versionnée, qui
+ * doit changer même quand on SUPPRIME — sans quoi elle retombe sur une entrée
+ * périmée. Un échec de purge est signalé sans faire échouer l'écriture, déjà
+ * faite.
+ */
+const brandingModifie = async (env: Env, ctx?: ExecutionContext) => {
+  await marquerBrandingModifie(env.DB)
+
+  try {
+    await ctx?.cache?.purge({ tags: [ETIQUETTE_BRANDING] })
+  } catch (raison) {
+    console.error("! purge du branding impossible :", raison)
+  }
+}
+
+/** Le code HTTP d'un refus d'envoi de média. */
+const STATUT_DU_REFUS: Record<RefusDEnvoi, number> = {
+  "errors:media.type": 415,
+  "errors:media.tailleInconnue": 411,
+  "errors:media.tropGros": 413,
+  "errors:media.plafond": 507,
+}
+
 export async function routerApi(
   request: Request,
   env: Env,
   url: URL,
+  ctx?: ExecutionContext,
 ): Promise<Response> {
   if (!env.RAZZIA_MASTER_KEY) {
     // Sans clé maîtresse, aucune session ne peut être signée. Mieux vaut le
@@ -329,6 +371,7 @@ export async function routerApi(
       }
 
       await ecrireTheme(env.DB, corps.theme ?? null)
+      await brandingModifie(env, ctx)
 
       return json({ ok: true })
     }
@@ -338,6 +381,7 @@ export async function routerApi(
 
       if (methode === "DELETE") {
         await effacerImage(env.DB, nom)
+        await brandingModifie(env, ctx)
 
         return json({ ok: true })
       }
@@ -392,6 +436,7 @@ export async function routerApi(
         }
 
         await ecrireImage(env.DB, nom, mime, octets.buffer)
+        await brandingModifie(env, ctx)
 
         return json({ ok: true })
       }
@@ -601,8 +646,97 @@ export async function routerApi(
         await ecrireCle(env, nom as NomDeCle, valeur.trim())
       }
 
+      // Le réglage des transformations d'images voyage dans le thème.
+      if (CLE_TRANSFORMATIONS in corps) {
+        await brandingModifie(env, ctx)
+      }
+
       return json({ keys: await etatDesCles(env) })
     }
+  }
+
+  // --- médias téléversés ----------------------------------------------------
+  //
+  // UN CORPS BINAIRE EN FLUX, et non du base64 dans du JSON comme le branding.
+  // Une vidéo de 25 Mo ferait 33 Mo de JSON à décoder, bien au-delà des dix
+  // millisecondes de processeur d'une requête. Ici les octets passent de la
+  // requête à R2 sans jamais être tenus en mémoire d'un bloc.
+  //
+  // Le type et la taille viennent des en-têtes, et sont vérifiés AVANT de
+  // recevoir quoi que ce soit : le plafond et la taille maximale ne doivent pas
+  // se découvrir après avoir écrit dans R2. `FixedLengthStream` tient ensuite
+  // la taille annoncée pour vraie — un corps plus long ou plus court échoue.
+  if (section === "media" && !reste[0]) {
+    if (methode === "GET") {
+      return json({
+        occupe: await occupationMedias(env.DB),
+        plafond: PLAFOND_STOCKAGE_MEDIA,
+      })
+    }
+
+    if (methode === "PUT") {
+      const mime = (request.headers.get("content-type") ?? "")
+        .split(";")[0]
+        .trim()
+        .toLowerCase()
+      const taille = Number(request.headers.get("content-length") ?? NaN)
+      const examen = examinerEnvoi(mime, taille, await occupationMedias(env.DB))
+
+      if ("refus" in examen) {
+        return erreur(examen.refus, STATUT_DU_REFUS[examen.refus])
+      }
+
+      if (!request.body) {
+        return erreur("errors:media.tailleInconnue", 411)
+      }
+
+      const cle = crypto.randomUUID()
+      const signature = verifierLaSignature(mime)
+
+      // La ligne AVANT l'objet : un envoi interrompu laisse une ligne
+      // incomplète que le ramassage retrouve, jamais un objet orphelin.
+      await reserverMedia(env.DB, { cle, mime, genre: examen.genre, taille })
+
+      try {
+        await env.MEDIA.put(
+          cle,
+          request.body
+            .pipeThrough(signature.flux)
+            .pipeThrough(new FixedLengthStream(taille)),
+          { httpMetadata: { contentType: mime } },
+        )
+      } catch (e) {
+        console.error(`! envoi du média ${cle} interrompu :`, e)
+        // Supprimer dans R2 une clé absente ne coûte rien et ne lève rien.
+        await env.MEDIA.delete(cle).catch(() => undefined)
+        await oublierMedia(env.DB, cle)
+
+        return signature.refusee()
+          ? erreur("errors:media.signature", 415)
+          : erreur("errors:media.envoi", 400)
+      }
+
+      await confirmerMedia(env.DB, cle)
+
+      return json({ url: urlDuMediaLocal(cle), mime, taille }, 201)
+    }
+  }
+
+  // --- vieillissement d'un média, pour les tests ----------------------------
+  // Le ramassage ne touche qu'aux médias de plus d'un jour. Fermé hors
+  // développement, comme les deux leviers qui suivent.
+  if (section === "__vieillir-media" && methode === "POST") {
+    if (!env.GRACE_MS) {
+      return erreur("not found", 404)
+    }
+
+    const { cle } = (await request.json().catch(() => ({}))) as { cle?: string }
+
+    await env.DB.prepare(`UPDATE media SET created_at = ? WHERE cle = ?`)
+      .bind(Date.now() - 48 * 60 * 60 * 1000, cle ?? "")
+      .run()
+
+    return json({ ok: true })
   }
 
   // --- diagnostic d'objet, pour les tests -----------------------------------

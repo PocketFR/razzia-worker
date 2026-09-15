@@ -284,6 +284,70 @@ animateur.envoyer("manager:showLeaderboard", { gameId: partie.gameId })
 const fin = await animateur.statut("FINISHED")
 verifier("la manche se termine", fin !== undefined)
 verifier("le podium est renseigné", fin?.d?.data?.top?.length > 0)
+verifier(
+  "le podium de l'animateur ne porte que pseudos et points",
+  (fin?.d?.data?.top ?? []).every(
+    (p) => Object.keys(p).sort().join() === "points,username",
+  ),
+  JSON.stringify(fin?.d?.data?.top),
+)
+
+// ── aucun joueur n'apprend l'identité d'un autre ───────────────────────────
+//
+// L'invariant général, et pas seulement le podium : l'objet reconnaît un
+// joueur à son seul clientId, donc tout clientId reçu par un autre joueur est
+// une usurpation possible. Le podium de fin les livrait tous les trois, ce
+// qui permettait de répondre au nom des premiers dès la manche suivante.
+//
+// On parcourt TOUTES les trames reçues pendant la manche, et on relève chaque
+// valeur rangée sous une clé qui désigne un joueur. Chercher la chaîne brute
+// ne vaudrait rien : les pseudos ressemblent aux identifiants de ce test.
+const finAlice = await aliceRevenue.statut("FINISHED")
+const finBob = await bob.statut("FINISHED")
+
+verifier(
+  "le joueur connaît son rang",
+  typeof finAlice?.d?.data?.rank === "number",
+)
+verifier(
+  "mais ne reçoit pas le podium",
+  finAlice?.d?.data?.top === undefined && finBob?.d?.data?.top === undefined,
+)
+
+const identitesRecues = (trames) => {
+  const vues = new Set()
+  const parcourir = (valeur) => {
+    if (Array.isArray(valeur)) {
+      valeur.forEach(parcourir)
+    } else if (valeur && typeof valeur === "object") {
+      for (const [cle, v] of Object.entries(valeur)) {
+        if (
+          ["clientId", "id", "playerId"].includes(cle) &&
+          typeof v === "string"
+        ) {
+          vues.add(v)
+        }
+
+        parcourir(v)
+      }
+    }
+  }
+  trames.forEach((t) => parcourir(t.d))
+
+  return vues
+}
+
+const fuites = [
+  ...[...identitesRecues([...alice.recus, ...aliceRevenue.recus])].filter(
+    (v) => v === "bob",
+  ),
+  ...[...identitesRecues(bob.recus)].filter((v) => v === "alice"),
+]
+verifier(
+  "aucune trame ne livre à un joueur le clientId d'un autre",
+  fuites.length === 0,
+  `fuites : ${fuites.join(", ")}`,
+)
 
 await new Promise((r) => setTimeout(r, 600))
 const config = await fetch(`${base}/api/manager/config`, {

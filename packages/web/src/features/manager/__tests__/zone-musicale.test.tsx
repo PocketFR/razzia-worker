@@ -56,6 +56,8 @@ const ZONES = [
 vi.mock("@razzia/web/features/game/lib/socket-client", () => ({
   socketClient: {
     zonesMusicales: async () => ZONES,
+    // L'écran des réglages lit aussi la place prise par les médias.
+    occupationMedias: async () => ({ occupe: 0, plafond: 8 * 1024 ** 3 }),
     connexionMusicale: async () => undefined,
   },
 }))

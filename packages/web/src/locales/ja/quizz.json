@@ -13,6 +13,10 @@
     "title": "{{service}} に曲を変換"
   },
   "deleteQuestion": "質問を削除",
+  "diapo": {
+    "aide": "スライドは回答なしで全画面に表示され、司会者が進めるまで待機します。得点にも問題番号にも数えられません。",
+    "reglages": "設定はありません。時間も得点もなく、司会者が好きなときに進めます。"
+  },
   "groupe": {
     "add": "幕間を追加",
     "addQuestion": "問題",
@@ -38,6 +42,11 @@
     "titre": "他のクイズから取り込む",
     "vide": "このクイズには問題がありません"
   },
+  "media": {
+    "televerse": "ファイルをアップロードしました",
+    "televerser": "アップロード",
+    "textePlaceholder": "表示するテキスト…"
+  },
   "melange": {
     "aide": "問題の順序をランダムに並べ替えます。グループはひとまとまりのまま移動し、その中の問題どうしがシャッフルされます。失われるものはなく、保存せずに離れれば元に戻ります。",
     "bouton": "問題をシャッフル",
@@ -59,6 +68,9 @@
       "answerMode": "回答モード",
       "answerTime": "回答時間",
       "answerTimeHint": "プレイヤーが回答できる時間",
+      "fond": "背景",
+      "fondAide": "任意。このステップの間、すべての画面でテーマの背景を置き換えます。",
+      "fondPlaceholder": "画像のリンク、またはアップロード",
       "maxPoints": "最大ポイント",
       "maxPointsHint": "正解に対して付与される最大ポイント数",
       "noTimeLimit": "制限時間なし",
@@ -82,6 +94,7 @@
     "media": {
       "audio": "音声",
       "image": "画像",
+      "texte": "テキスト",
       "video": "動画"
     },
     "mediaUrlPlaceholder": "URLを入力...",
@@ -108,6 +121,7 @@
   },
   "questionType": {
     "bonneteau": "賭け — 3枚のカード",
+    "diapo": "スライド",
     "multi": "複数選択",
     "pmu": "賭け — 競馬",
     "rouge-noir": "賭け — 赤か黒か",

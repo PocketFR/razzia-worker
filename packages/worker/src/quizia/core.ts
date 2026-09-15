@@ -1165,9 +1165,15 @@ const json = (donnees: unknown, code = 200) =>
     },
   })
 
+// `no-store` : la page de retour d'autorisation porte un code à usage unique
+// dans son adresse. Workers Cache garderait sinon, par heuristique, une
+// réponse qui ne dit rien de sa fraîcheur.
 const html = (contenu: string) =>
   new Response(contenu, {
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    },
   })
 
 /** Génération complète, protégée par le mot de passe manager. */

@@ -14,7 +14,8 @@
 // La WebSocket s'ouvre PARESSEUSEMENT, quand la partie devient connue :
 // création par l'animateur, PIN résolu côté joueur, ou reconnexion explicite.
 
-import { EVENTS } from "@razzia/common/constants"
+import { BATTEMENT, EVENTS } from "@razzia/common/constants"
+import { mediasReferences, urlDuMediaLocal } from "@razzia/common/media"
 import type { Fournisseur } from "@razzia/common/musique"
 
 type Ecouteur = (..._args: unknown[]) => void
@@ -75,6 +76,24 @@ export class RazziaSocket {
   // Dernier numéro de statut appliqué. Remis à zéro à chaque ouverture : le
   // serveur rejoue alors l'écran courant, dont le numéro est antérieur.
   private dernierSeq = 0
+  /** Date du dernier pong reçu. C'est la seule preuve que la socket vit. */
+  private dernierPong = 0
+  /**
+   * Nombre de pongs reçus, dont la SONDE seule se sert.
+   *
+   * Elle ne peut pas se contenter de la date : elle demande « un pong est-il
+   * arrivé DEPUIS que j'ai sondé ? », et deux horodatages égaux — le cas
+   * quand tout se joue dans la même milliseconde — se lisent alors à
+   * l'envers, un pong antérieur passant pour une réponse. Un compteur répond
+   * sans ambiguïté et sans dépendre de l'horloge.
+   */
+  private pongs = 0
+  private battement: ReturnType<typeof setInterval> | null = null
+  private sonde: ReturnType<typeof setTimeout> | null = null
+
+  constructor() {
+    this.surveillerLaReprise()
+  }
 
   configurer(clientId: string) {
     this.clientId = clientId
@@ -116,6 +135,7 @@ export class RazziaSocket {
 
   disconnect() {
     this.ferme = true
+    this.arreterBattement()
     this.ws?.close()
     this.ws = null
     this.connected = false
@@ -127,6 +147,17 @@ export class RazziaSocket {
   }
 
   emit(evenement: string, charge?: unknown) {
+    // Un nouveau quiz dans la même salle : ses fichiers sont froids, comme à
+    // la création d'une partie.
+    if (evenement === EVENTS.MANAGER.NEW_QUIZZ) {
+      const { quizzId } =
+        (charge as { data?: { quizzId?: string } } | undefined)?.data ?? {}
+
+      if (quizzId) {
+        void this.prechaufferMedias(quizzId)
+      }
+    }
+
     const traite = this.viaHttp(evenement, charge)
 
     if (traite) {
@@ -468,6 +499,112 @@ export class RazziaSocket {
   }
 
   /**
+   * Téléverse un fichier de quiz. Rend son adresse, `/media/<uuid>`.
+   *
+   * EN XHR ET NON EN `fetch` : `fetch` ne dit rien de l'avancement d'un
+   * envoi, et une vidéo de 25 Mo sur la connexion d'une salle mérite une
+   * barre de progression plutôt qu'un bouton figé.
+   *
+   * Le corps part en binaire, avec son type et sa taille dans les en-têtes :
+   * le serveur refuse avant de recevoir ce qui ne passerait pas — un type
+   * refusé, un fichier trop gros, un plafond atteint.
+   */
+  televerserMedia(
+    fichier: File,
+    progression?: (_fraction: number) => void,
+  ): Promise<string> {
+    return new Promise((resoudre, rejeter) => {
+      const xhr = new XMLHttpRequest()
+
+      xhr.open("PUT", "/api/media")
+      xhr.setRequestHeader("content-type", fichier.type)
+
+      const { jeton } = this
+
+      if (jeton) {
+        xhr.setRequestHeader("authorization", `Bearer ${jeton}`)
+      }
+
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          progression?.(ev.loaded / ev.total)
+        }
+      }
+
+      xhr.onload = () => {
+        let corps: { url?: string; error?: string } = {}
+
+        try {
+          corps = JSON.parse(xhr.responseText) as typeof corps
+        } catch {
+          // Corps illisible : le statut suffira à dire l'échec.
+        }
+
+        if (xhr.status === 401) {
+          this.local(EVENTS.MANAGER.UNAUTHORIZED)
+        }
+
+        if (xhr.status === 201 && corps.url) {
+          resoudre(corps.url)
+
+          return
+        }
+
+        rejeter(new Error(corps.error ?? "errors:media.envoi"))
+      }
+
+      xhr.onerror = () => rejeter(new Error("errors:media.envoi"))
+      xhr.send(fichier)
+    })
+  }
+
+  /**
+   * Charge une fois chaque fichier téléversé d'un quiz, depuis l'écran de
+   * l'animateur, avant l'arrivée des téléphones.
+   *
+   * CE N'EST PAS UNE AVANCE DE CONFORT, C'EST UNE PARADE À LA RUÉE. Chaque
+   * déploiement vide le cache de Cloudflare. Sans préchauffage, cent
+   * téléphones demanderaient la même vidéo froide au même instant, et chacun
+   * pourrait réveiller le Worker et relire R2 avant que le premier n'ait
+   * rempli le cache. Une requête, ici, suffit pour tous.
+   *
+   * Seules les SOURCES sont chauffées, jamais les largeurs `/cdn-cgi/image` :
+   * mesuré le 15/09/2026, une largeur inédite lit sa source dans le cache sans
+   * rien réveiller. Les chauffer ne ferait que consommer le quota d'images.
+   *
+   * L'une après l'autre, et sans jamais faire échouer la création de partie :
+   * c'est une optimisation, pas une étape.
+   */
+  private async prechaufferMedias(quizzId: string) {
+    try {
+      const { statut, corps } = await this.appel(`/quizz/${quizzId}`)
+
+      if (statut !== 200) {
+        return
+      }
+
+      for (const cle of mediasReferences(JSON.stringify(corps))) {
+        await fetch(urlDuMediaLocal(cle))
+          .then((reponse) => reponse.arrayBuffer())
+          .catch(() => undefined)
+      }
+    } catch {
+      // Rien à signaler : le premier téléphone remplira le cache à la place.
+    }
+  }
+
+  /** La place prise par les médias, et le plafond. */
+  async occupationMedias() {
+    const { statut, corps } = await this.appel("/media")
+
+    if (statut !== 200) {
+      throw new Error(corps.error ?? "errors:media.envoi")
+    }
+
+    return corps as unknown as { occupe: number; plafond: number }
+  }
+
+  /**
    * Cherche, dans l'autre catalogue, les morceaux d'un quiz.
    *
    * Rien n'est écrit : la réponse sert à un écran de revue où l'animateur
@@ -647,6 +784,7 @@ export class RazziaSocket {
 
     this.role = "manager"
     this.viser(corps.gameId)
+    void this.prechaufferMedias(quizzId)
     this.local(EVENTS.MANAGER.GAME_CREATED, {
       gameId: corps.gameId,
       inviteCode: corps.inviteCode ?? "",
@@ -728,9 +866,14 @@ export class RazziaSocket {
     this.ws = ws
 
     ws.addEventListener("open", () => {
+      if (this.ws !== ws) {
+        return
+      }
+
       this.connected = true
       this.tentatives = 0
       this.dernierSeq = 0
+      this.demarrerBattement()
 
       const differes = this.enAttente
       this.enAttente = []
@@ -743,6 +886,20 @@ export class RazziaSocket {
     })
 
     ws.addEventListener("message", (ev) => {
+      if (this.ws !== ws) {
+        return
+      }
+
+      // Le pong de l'auto-réponse. Comparé AVANT l'analyse JSON : il ne
+      // concerne aucun écouteur, et la comparaison littérale reste juste même
+      // si la forme des trames applicatives change un jour.
+      if (ev.data === BATTEMENT.PONG) {
+        this.dernierPong = Date.now()
+        this.pongs += 1
+
+        return
+      }
+
       let trame: { e: string; d?: unknown }
 
       try {
@@ -781,6 +938,16 @@ export class RazziaSocket {
     })
 
     ws.addEventListener("close", () => {
+      // UNE SOCKET DÉJÀ REMPLACÉE NE PARLE PLUS. C'est ce qui rend la
+      // reconnexion forcée sûre : elle détache la socket morte avant de la
+      // fermer, et la fermeture qui s'ensuit ne vient plus provoquer un
+      // second cycle de reconnexion en concurrence avec le premier.
+      if (this.ws !== ws) {
+        return
+      }
+
+      this.arreterBattement()
+
       // Fermeture voulue : on reste utilisable, la cible ayant simplement
       // disparu. Fermeture subie en partie : on signale la coupure et on
       // retente, c'est ce que l'interface doit montrer.
@@ -794,8 +961,167 @@ export class RazziaSocket {
     })
 
     ws.addEventListener("error", () => {
+      if (this.ws !== ws) {
+        return
+      }
+
       this.local("connect_error", new Error("websocket"))
     })
+  }
+
+  // ── Le battement de cœur ────────────────────────────────────────────────
+  //
+  // LE PROBLÈME QU'IL TRAITE. Une veille involontaire coupe le réseau sans
+  // fermer la connexion : la radio s'éteint, aucun FIN ne part. Au réveil, la
+  // socket annonce toujours `OPEN` et `send()` ne lève rien — il met en
+  // tampon. Il n'y a donc ni `close`, ni `disconnect`, ni reconnexion : la
+  // page reste figée sur son dernier écran, et recharger était le seul
+  // remède. Observé en soirée, à plusieurs reprises.
+  //
+  // Rien d'autre ne peut le détecter. `readyState` ment, `send()` ne se
+  // plaint pas, et l'API du navigateur n'expose aucune trame de contrôle
+  // ping. Seul un aller-retour applicatif tranche, et son absence de réponse
+  // est la seule mesure disponible.
+
+  /**
+   * Écoute les deux moments où une socket a de bonnes raisons d'être morte
+   * sans le dire : le retour au premier plan, et le retour du réseau.
+   *
+   * ENREGISTRÉ UNE FOIS POUR TOUTES, à la construction : ces écouteurs
+   * portent sur le document, pas sur une socket, et survivent donc aux
+   * reconnexions successives.
+   */
+  private surveillerLaReprise() {
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          this.sonder()
+        }
+      })
+    }
+
+    if (typeof addEventListener !== "undefined") {
+      addEventListener("online", () => this.sonder())
+    }
+  }
+
+  private demarrerBattement() {
+    this.arreterBattement()
+    // L'ouverture vaut preuve de vie : sans cette remise à l'heure, le premier
+    // battement comparerait à zéro et conclurait aussitôt à une socket morte.
+    this.dernierPong = Date.now()
+
+    this.battement = setInterval(() => {
+      // LE SILENCE SE JUGE AVANT D'ÉMETTRE, sur les pings déjà partis — pas
+      // sur celui qu'on s'apprête à envoyer, à qui on n'a pas laissé le temps
+      // de revenir.
+      if (Date.now() - this.dernierPong > BATTEMENT.TOLERANCE_MS) {
+        this.forcerReconnexion()
+
+        return
+      }
+
+      this.envoyerPing()
+    }, BATTEMENT.PERIODE_MS)
+  }
+
+  private arreterBattement() {
+    if (this.battement !== null) {
+      clearInterval(this.battement)
+      this.battement = null
+    }
+
+    if (this.sonde !== null) {
+      clearTimeout(this.sonde)
+      this.sonde = null
+    }
+  }
+
+  /**
+   * LA CHAÎNE PART TELLE QUELLE, sans passer par `emit()`.
+   *
+   * L'auto-réponse de l'objet compare le message ENTIER, à l'octet près. La
+   * faire fabriquer par `emit()` la rendrait tributaire de la forme des
+   * trames, et le jour où celle-ci changerait la correspondance échouerait —
+   * en silence, le ping se contentant de réveiller l'objet pour rien pendant
+   * que le client conclurait à une coupure générale.
+   */
+  private envoyerPing() {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(BATTEMENT.PING)
+    }
+  }
+
+  /**
+   * Interroge la socket tout de suite, et tranche vite.
+   *
+   * C'est cette sonde, et non le battement, qui traite la sortie de veille :
+   * le minuteur du battement dort avec l'appareil et ne reprendrait qu'après
+   * une période, puis ne conclurait qu'après la tolérance — une minute et
+   * demie pendant laquelle une question chronométrée est perdue. Ici la
+   * réponse est attendue en trois secondes, parce qu'on sait déjà que la
+   * connexion vient d'être mise à l'épreuve.
+   */
+  private sonder() {
+    if (!this.gameId || this.ferme) {
+      return
+    }
+
+    // Socket absente ou déjà fermée : le chemin ordinaire suffit, sa propre
+    // garde décidant s'il y a lieu d'ouvrir.
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      this.ouvrir()
+
+      return
+    }
+
+    const vus = this.pongs
+    this.envoyerPing()
+
+    if (this.sonde !== null) {
+      clearTimeout(this.sonde)
+    }
+
+    this.sonde = setTimeout(() => {
+      this.sonde = null
+
+      // Aucun pong depuis la sonde : la socket annonce `OPEN` et ne rapporte
+      // rien. C'est le mensonge qu'on cherchait.
+      if (this.ws?.readyState === WebSocket.OPEN && this.pongs === vus) {
+        this.forcerReconnexion()
+      }
+    }, BATTEMENT.SONDE_MS)
+  }
+
+  /**
+   * Remplace une socket que rien ne fermera.
+   *
+   * `ouvrir()` refuse d'agir tant que `readyState` vaut `OPEN` — et c'est
+   * précisément l'état d'une socket à moitié morte. Il faut donc la détacher
+   * ICI, avant toute chose : `this.ws` cesse de la désigner, ses écouteurs se
+   * taisent d'eux-mêmes, et sa fermeture ne peut plus déclencher un second
+   * cycle de reconnexion par-dessus celui qu'on lance.
+   */
+  private forcerReconnexion() {
+    const morte = this.ws
+
+    this.ws = null
+    this.arreterBattement()
+
+    if (this.connected) {
+      this.connected = false
+      this.local("disconnect")
+    }
+
+    // Par correction du protocole. Elle peut ne jamais aboutir : personne
+    // n'est en face pour répondre à la trame de fermeture.
+    morte?.close()
+
+    // Le compte des tentatives repart : ce n'est pas la énième reprise d'une
+    // panne en cours, c'est la première d'une coupure qu'on vient de
+    // découvrir.
+    this.tentatives = 0
+    this.ouvrir()
   }
 
   // Reconnexion à délai croissant, plafonnée — l'amont réessayait sans fin.

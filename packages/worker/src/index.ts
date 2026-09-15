@@ -34,13 +34,18 @@
 
 import { routerApi } from "./api"
 import {
+  ETIQUETTE_BRANDING,
   estNomStocke,
   estSvg,
   lireImage,
   themePublic,
+  transformationsActivees,
   versionDuBranding,
+  type Theme,
 } from "./services/branding"
 import { routerDeezer, routerSoundtrack, routerSpotify } from "./musique/routes"
+import { etiquetteDuMedia, lireMedia, ramasserMedias } from "./services/media"
+import { RE_CLE_MEDIA } from "@razzia/common/media"
 
 import { CHEMIN_PURGE, GameRoom } from "./game-room"
 
@@ -53,6 +58,9 @@ export interface Env {
   // Secret. Ne sert jamais telle quelle : deux clés en sont dérivées, une
   // pour signer les sessions, une pour chiffrer les clés API.
   RAZZIA_MASTER_KEY: string
+  // Les fichiers téléversés des quiz. Les métadonnées vivent dans D1, table
+  // `media` : voir services/media.ts.
+  MEDIA: R2Bucket
 
   // Clés de quizia. Servent de valeurs par défaut : à l'étape 7, une valeur
   // saisie dans l'interface les surchargera. SPOTIFY_CLIENT_ID n'est pas un
@@ -74,6 +82,9 @@ export interface Env {
   SOUNDTRACK_API_TOKEN?: string
   SOUNDTRACK_REFRESH?: string
   SOUNDTRACK_ZONE?: string
+  // "1" active /cdn-cgi/image pour les médias téléversés. Comme les autres,
+  // une valeur enregistrée depuis l'interface l'emporte.
+  IMAGES_TRANSFORMATIONS?: string
 }
 
 // Balayage quotidien des parties anciennes.
@@ -95,7 +106,12 @@ const RETENTION_MS = 24 * 60 * 60 * 1000
 // budget comme n'importe quelle requête. Ce qui reste attend le lendemain :
 // une ligne d'un jour de plus ne gêne personne, un balayage interrompu au
 // milieu, si.
-const PAR_PASSAGE = 50
+//
+// Quarante et non cinquante : une invocation n'a droit qu'à cinquante requêtes
+// D1, et le ramassage des médias en prend trois au même passage. À cinquante
+// salles, la dernière suppression aurait échoué — et avec elle la ligne qu'elle
+// devait retirer.
+const PAR_PASSAGE = 40
 
 export default {
   /*
@@ -111,7 +127,28 @@ export default {
    *
    * En cas d'échec, la ligne RESTE : c'est ce qui permet de réessayer demain.
    */
-  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+  async scheduled(
+    _event: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    // Les médias d'abord : trois requêtes D1 au plus, quel que soit le nombre
+    // de fichiers. Un échec ici ne doit pas priver les salles de leur purge.
+    try {
+      const retires = await ramasserMedias(env)
+
+      if (retires.length) {
+        // Purgé du cache aussi : sans cela, un fichier supprimé resterait
+        // servi un an à qui connaît son adresse. Mesuré : la purge par
+        // étiquette agit depuis le cron. Les variantes /cdn-cgi/image, elles,
+        // ne se purgent pas.
+        await ctx.cache?.purge({ tags: retires.map(etiquetteDuMedia) })
+        console.log(`${retires.length} média(s) inutilisé(s) supprimé(s)`)
+      }
+    } catch (erreur) {
+      console.error("ramassage des médias impossible :", erreur)
+    }
+
     const { results } = await env.DB.prepare(
       `SELECT game_id AS gameId FROM games WHERE created_at < ? LIMIT ?`,
     )
@@ -148,7 +185,11 @@ export default {
     }
   },
 
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url)
 
     if (url.pathname === "/ws") {
@@ -156,7 +197,11 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/")) {
-      return routerApi(request, env, url)
+      return routerApi(request, env, url, ctx)
+    }
+
+    if (url.pathname.startsWith("/media/")) {
+      return routerMedia(request, env, url)
     }
 
     // Les deux catalogues, côte à côte : l'éditeur propose l'un et l'autre,
@@ -178,7 +223,7 @@ export default {
     }
 
     // Inatteignable en pratique : run_worker_first ne dirige ici que /ws,
-    // /api/*, /spotify/*, /deezer/*, /soundtrack/* et /branding/*. Le repli existe pour le développement
+    // /api/*, /media/*, /spotify/*, /deezer/*, /soundtrack/* et /branding/*. Le repli existe pour le développement
     // local et les erreurs de configuration, qui autrement se manifesteraient
     // par une page blanche.
     return env.ASSETS.fetch(request)
@@ -193,6 +238,17 @@ export default {
 // adresse sans version — et doit donc rester courte : un navigateur qui
 // n'enverrait pas `no-cache` garderait sinon un thème périmé pendant un an.
 const CACHE_CLIENT = "public, max-age=60"
+
+/**
+ * À poser sur toute réponse qui ne doit pas sortir du cache de Cloudflare.
+ *
+ * DEPUIS L'ACTIVATION DE WORKERS CACHE, L'ABSENCE D'EN-TÊTE N'EST PLUS NEUTRE :
+ * une réponse GET sans `Cache-Control` y est mise en cache par heuristique. Un
+ * 404 sur un média en cours d'envoi, ou une erreur passagère, resterait alors
+ * servi à tout le monde. Ce qui doit être frais le dit.
+ */
+export const SANS_CACHE = { "cache-control": "no-store" }
+
 const CACHE_PERIPHERIE = "public, max-age=31536000, immutable"
 
 /**
@@ -230,30 +286,30 @@ async function themeEnCache(env: Env, request: Request): Promise<Response> {
   const connu = await cache.match(cle)
 
   if (connu) {
-    return new Response(connu.body, {
-      headers: {
-        "content-type": "application/json",
-        "cache-control": CACHE_CLIENT,
-      },
-    })
+    return reponseDuTheme(connu.body)
   }
 
-  const theme = await themePublic(env)
+  // Le thème de la base, ou à défaut celui livré avec l'application. Servir un
+  // thème vide effacerait le branding du build, ce qui n'est pas du tout la
+  // même chose que « ne rien avoir personnalisé ».
+  const theme = (await themePublic(env)) ?? (await themeDuBuild(env, request))
 
-  // Rien en base : on laisse passer le fichier livré avec l'application.
-  // Servir un thème vide effacerait le branding du build, ce qui n'est pas
-  // du tout la même chose que « ne rien avoir personnalisé ». Ce cas n'est
-  // pas mis en cache : il ne coûte qu'une lecture, et l'entrée deviendrait
-  // trompeuse au premier téléversement.
   if (!theme) {
     return env.ASSETS.fetch(request)
   }
 
-  const corps = JSON.stringify(theme)
+  // LE RÉGLAGE DES TRANSFORMATIONS D'IMAGES VOYAGE ICI, et pas dans une route
+  // à part : chaque appareil charge déjà ce fichier au démarrage, et il sort
+  // du cache. Une route de plus serait une requête de plus par téléphone.
+  //
+  // Le thème du build est désormais mis en cache lui aussi. Il ne l'était pas,
+  // parce que l'entrée serait devenue trompeuse au premier téléversement ; la
+  // version porte maintenant ce réglage et le branding, et change avec eux.
+  const corps = JSON.stringify({
+    ...theme,
+    transformationsImages: await transformationsActivees(env),
+  } satisfies Theme)
 
-  // `waitUntil` ne peut pas être utilisé ici — le contexte n'est pas passé à
-  // ce routeur — mais l'écriture est locale et brève : l'attendre coûte moins
-  // qu'un aller-retour de plus au prochain joueur.
   await cache.put(
     cle,
     new Response(corps, {
@@ -264,26 +320,126 @@ async function themeEnCache(env: Env, request: Request): Promise<Response> {
     }),
   )
 
-  return new Response(corps, {
+  return reponseDuTheme(corps)
+}
+
+/**
+ * La réponse du thème : courte pour le navigateur, longue pour Cloudflare.
+ *
+ * L'ÉTIQUETTE REND LA DURÉE SANS DANGER. Chaque écriture de branding purge
+ * `branding` : la modification se voit au rechargement suivant, pas au bout
+ * d'un an. Le navigateur, lui, garde sa minute — l'adresse ne porte pas de
+ * version, et une purge au bord n'atteint pas son cache.
+ */
+const reponseDuTheme = (corps: BodyInit | null) =>
+  new Response(corps, {
     headers: {
       "content-type": "application/json",
       "cache-control": CACHE_CLIENT,
+      "cloudflare-cdn-cache-control": "max-age=31536000",
+      "cache-tag": ETIQUETTE_BRANDING,
     },
   })
-}
+
+/** Le thème livré avec l'application, ou null s'il n'y en a pas. */
+const themeDuBuild = async (
+  env: Env,
+  request: Request,
+): Promise<Theme | null> =>
+  env.ASSETS.fetch(new URL("/branding/theme.json", request.url).toString())
+    .then((r) => (r.ok ? r.json<Theme>() : null))
+    .catch(() => null)
 
 // Le branding servi au navigateur, avant toute authentification : les joueurs
 // voient l'écran d'accueil sans se connecter à quoi que ce soit.
 //
 // Rien de confidentiel n'y passe — un logo et des couleurs sont publics par
 // construction, ils s'affichent sur l'écran de la soirée.
+/**
+ * Un média téléversé, depuis R2.
+ *
+ * TOUT CE QUI PEUT ÉCHOUER SANS R2 ÉCHOUE AVANT R2. Un identifiant mal formé,
+ * une adresse à paramètres ou une clé inconnue de D1 ne coûtent jamais une
+ * lecture dans le bucket : ce sont les seules requêtes qu'un tiers peut
+ * fabriquer à volonté, et R2 facture au-delà du quota.
+ *
+ * La réponse est IMMUABLE UN AN : une clé n'est jamais réutilisée, un fichier
+ * remplacé en reçoit une autre. Le premier appareil réveille le Worker, tous
+ * les suivants sont servis par le cache sans invocation — y compris les
+ * largeurs que `/cdn-cgi/image` en tire, qui lisent leur source depuis ce même
+ * cache. Mesuré le 15/09/2026.
+ */
+async function routerMedia(
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: SANS_CACHE,
+    })
+  }
+
+  const cle = url.pathname.slice("/media/".length)
+
+  if (!RE_CLE_MEDIA.test(cle)) {
+    return new Response("Not found", { status: 404, headers: SANS_CACHE })
+  }
+
+  // Chaque variante d'adresse est une entrée de cache à part, donc une lecture
+  // R2 de plus. La redirection est elle-même mise en cache : répétée, la même
+  // variante ne réveille plus rien.
+  if (url.search) {
+    return new Response(null, {
+      status: 301,
+      headers: {
+        location: url.pathname,
+        "cache-control": "public, max-age=31536000",
+      },
+    })
+  }
+
+  const ligne = await lireMedia(env.DB, cle)
+
+  if (!ligne?.complet) {
+    return new Response("Not found", { status: 404, headers: SANS_CACHE })
+  }
+
+  const objet = await env.MEDIA.get(cle)
+
+  if (!objet) {
+    return new Response("Not found", { status: 404, headers: SANS_CACHE })
+  }
+
+  return new Response(request.method === "HEAD" ? null : objet.body, {
+    headers: {
+      "content-type": ligne.mime,
+      "content-length": String(objet.size),
+      etag: objet.httpEtag,
+      "cache-control": "public, max-age=31536000, immutable",
+      "cloudflare-cdn-cache-control": "max-age=31536000",
+      "cache-tag": `media, ${etiquetteDuMedia(cle)}`,
+      // Le type fait foi, jamais le contenu deviné par le navigateur.
+      "x-content-type-options": "nosniff",
+      // Ouverte directement, l'adresse ne doit jamais devenir un document de
+      // notre origine. Les types acceptés n'en sont pas capables — SVG et HTML
+      // sont refusés à l'envoi —, c'est la seconde barrière, pas la première.
+      "content-security-policy": "default-src 'none'; sandbox",
+    },
+  })
+}
+
 async function routerBranding(
   request: Request,
   env: Env,
   url: URL,
 ): Promise<Response> {
   if (request.method !== "GET") {
-    return new Response("Method not allowed", { status: 405 })
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: SANS_CACHE,
+    })
   }
 
   if (url.pathname === "/branding/theme.json") {
@@ -296,7 +452,7 @@ async function routerBranding(
     const image = await lireImage(env.DB, nom)
 
     if (!image) {
-      return new Response("Not found", { status: 404 })
+      return new Response("Not found", { status: 404, headers: SANS_CACHE })
     }
 
     return new Response(image.octets, {
@@ -335,7 +491,10 @@ function routerVersLaPartie(
   url: URL,
 ): Response | Promise<Response> {
   if (request.headers.get("upgrade") !== "websocket") {
-    return new Response("Expected websocket", { status: 426 })
+    return new Response("Expected websocket", {
+      status: 426,
+      headers: SANS_CACHE,
+    })
   }
 
   const gameId = url.searchParams.get("game")
@@ -343,7 +502,7 @@ function routerVersLaPartie(
   if (!gameId) {
     // Sans partie, il n'y a pas d'objet à qui parler. Le client doit d'abord
     // passer par /api (création ou vérification du PIN).
-    return new Response("Missing game", { status: 400 })
+    return new Response("Missing game", { status: 400, headers: SANS_CACHE })
   }
 
   const id = env.GAME_ROOM.idFromName(gameId)

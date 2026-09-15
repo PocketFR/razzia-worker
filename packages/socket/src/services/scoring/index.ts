@@ -14,4 +14,7 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [QUESTION_TYPES.ROUGE_NOIR]: single.scoring,
   [QUESTION_TYPES.BONNETEAU]: single.scoring,
   [QUESTION_TYPES.PMU]: single.scoring,
+  // Une diapo n'a pas de réponses, et le déroulé ne l'envoie jamais au
+  // barème. L'entrée n'existe que parce que le registre est exhaustif.
+  [QUESTION_TYPES.DIAPO]: () => 0,
 }

@@ -1,6 +1,6 @@
 import {
   TYPE_GROUPE,
-  type MEDIA_TYPES,
+  MEDIA_TYPES,
   type QUESTION_TYPES,
   type SCORING_MODES,
 } from "@razzia/common/constants"
@@ -34,10 +34,31 @@ export type QuestionMediaType =
   | (typeof MEDIA_TYPES)[keyof typeof MEDIA_TYPES]
   | undefined
 
-export interface QuestionMedia {
-  type?: QuestionMediaType
+/** Un média porté par un fichier : une adresse, absolue ou `/media/<uuid>`. */
+export interface MediaFichier {
+  type?: Exclude<QuestionMediaType, typeof MEDIA_TYPES.TEXTE>
   url: string
 }
+
+/** Un texte écrit dans le quiz. Il n'a pas d'adresse. */
+export interface MediaTexte {
+  type: typeof MEDIA_TYPES.TEXTE
+  texte: string
+}
+
+// UNE UNION ET NON UN CHAMP `url` VIDE. Un texte n'a pas d'adresse ; lui en
+// donner une vide aurait fait passer chaque lecture de `media.url` pour
+// valide, alors qu'elle ne désigne rien. L'union oblige chaque lecture à
+// savoir ce qu'elle lit — `urlDuMedia` le fait pour celles qui ne cherchent
+// qu'une adresse.
+export type QuestionMedia = MediaFichier | MediaTexte
+
+export const estMediaTexte = (media?: QuestionMedia): media is MediaTexte =>
+  media?.type === MEDIA_TYPES.TEXTE
+
+/** L'adresse d'un média, ou `undefined` pour un texte ou une absence. */
+export const urlDuMedia = (media?: QuestionMedia): string | undefined =>
+  media && !estMediaTexte(media) ? media.url : undefined
 
 export interface Question {
   type: QuestionType
@@ -53,6 +74,12 @@ export interface Question {
   // Absente, celle du type s'applique (voir PARIS dans paris.ts).
   dureePari?: number
   options?: QuestionOptions
+  /**
+   * Le fond propre à cette étape, absolu ou `/media/<uuid>`. Absent, le fond
+   * du thème s'applique. Il vaut pour tous les types, diapo comprise, et sur
+   * tous les écrans.
+   */
+  fond?: string
 }
 
 // Un groupe de questions à élimination — un « interlude ».
@@ -90,9 +117,17 @@ export interface QuizzMeta {
   subject: string
 }
 
+/**
+ * Où en est la manche.
+ *
+ * `current` vaut null sur une diapo, qui n'est pas une question : le compteur
+ * se masque le temps de l'afficher. `total` ne compte que les questions.
+ * `fond` est celui de l'étape, absent quand le thème s'applique.
+ */
 export interface GameUpdateQuestion {
-  current: number
+  current: number | null
   total: number
+  fond?: string
 }
 
 export interface PlayerAnswerRecord {

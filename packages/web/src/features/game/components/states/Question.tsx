@@ -1,6 +1,7 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import { SFX } from "@razzia/web/features/game/utils/constants"
+import { attributsImage } from "@razzia/web/features/media/lib"
 import Bonneteau from "@razzia/web/features/questions/paris/components/Bonneteau"
 import { useEffect } from "react"
 import useSound from "use-sound"
@@ -45,7 +46,8 @@ const Question = ({
           media?.type === MEDIA_TYPES.IMAGE && (
             <img
               alt={question}
-              src={media.url}
+              {...attributsImage(media.url)}
+              sizes="(min-width: 640px) 60vw, 100vw"
               className="max-h-60 w-auto rounded-md sm:max-h-100"
             />
           )

@@ -34,10 +34,21 @@ désigne le nombre de joueurs et `Q` celui des questions.
 | Lectures Durable Object      | 5 000 000 lignes / jour      |
 | D1 — lignes lues / écrites   | 5 000 000 / 100 000 par jour |
 | KV — lectures / écritures    | 100 000 / 1 000 par jour     |
+| R2 — stockage                | 10 Go / mois, **au compte**  |
+| R2 — écritures / lectures    | 1 M / 10 M par mois          |
+| Images — transformations     | 5 000 / mois, **au compte**  |
 
 **Les requêtes vers les assets statiques sont gratuites et illimitées.** Seuls
 les chemins listés dans `run_worker_first` sont facturés — c'est-à-dire le
 strictement dynamique.
+
+**Une réponse servie par Workers Cache ne compte pas non plus** : elle n'invoque
+pas le Worker. C'est ce qui rend gratuits, en soirée, les médias téléversés et
+le thème. Voir [Les médias téléversés](#les-médias-téléversés).
+
+**Deux dépassements ne se valent pas.** Au-delà du quota, Images refuse la
+transformation et sert l'original, sans facture. R2, lui, **facture** — et exige
+un moyen de paiement dès l'activation. D'où les garde-fous décrits plus bas.
 
 ## Ce qu'une soirée consomme
 
@@ -57,12 +68,41 @@ Pour la partie de référence — 100 joueurs, 150 questions :
 |                              | consommation                | part du quota |
 | ---------------------------- | --------------------------- | ------------- |
 | Requêtes Worker              | ~600                        | 0,6 %         |
+| Requêtes d'objet             | ~2 600                      | 2,6 %         |
 | **Écritures Durable Object** | **~16 500**                 | **16 %**      |
 | D1                           | quelques dizaines de lignes | négligeable   |
 
 **C'est donc l'écriture d'objet qui borne**, et rien d'autre : environ **six
 parties de référence par jour**. Les requêtes Worker ne pourraient être
 atteintes qu'à trois cents parties quotidiennes.
+
+### Le battement de cœur, qui pèse plus que la partie elle-même
+
+Les 2 600 requêtes d'objet ci-dessus se répartissent d'une façon contre-intuitive :
+**778 pour toute la partie** — ses 15 550 messages, à 20 pour 1 — et **1 818 pour
+les seuls pings**, à raison d'un ping toutes les trente secondes sur 101 appareils
+pendant trois heures.
+
+Le battement coûte donc **plus du double de tout le reste réuni**. C'est assumé,
+et voici pourquoi il n'est pas discutable :
+
+- il ne coûte **rien en durée**. Les pings sont répondus par
+  `setWebSocketAutoResponse` depuis la périphérie, sans réveiller l'objet
+  hiberné : « will not incur additional wall-clock time, and so they will not be
+  charged ». L'exonération porte sur la durée et sur elle seule — **rien dans la
+  documentation n'exclut ces messages du compte des requêtes**, et c'est pourquoi
+  ils sont comptés ici plutôt que supposés gratuits ;
+- 2,6 % contre les 16 % des écritures : le facteur six qui sépare les deux
+  dimensions reste intact, et rien ne change quant à ce qui borne ;
+- sans lui, une veille involontaire laissait un joueur devant un écran figé
+  jusqu'à ce qu'il recharge la page, sans qu'aucun événement ne le signale ni
+  côté client ni côté objet.
+
+Le seul réglage qui vaudrait la peine d'être rediscuté est la **période**, si le
+nombre de parties quotidiennes augmentait : la passer à soixante secondes
+diviserait ce poste par deux, au prix d'un doublement du temps de détection
+pour les coupures qui ne sont pas des sorties de veille. Les sorties de veille,
+elles, sont traitées par la sonde immédiate et ne dépendent pas de la période.
 
 ## La loi des écritures, mesurée
 
@@ -223,6 +263,80 @@ bouger sait que sa réponse est persistée.
 où D1 en offre cinquante fois plus. Voir aussi le cache de `theme.json`, qui
 ramène trois requêtes D1 à une sans changer de brique.
 
+## Les médias téléversés
+
+Les images, sons et vidéos des diapos et des questions sont stockés dans R2, et
+leurs métadonnées dans D1. **Le coût en soirée est nul**, et c'est mesuré, pas
+supposé.
+
+### La mesure qui a décidé de l'architecture
+
+Le 15/09/2026, sur un worker jetable lisant un fichier R2, `wrangler tail`
+ouvert pour compter les invocations :
+
+| cas                                                | résultat                                    |
+| -------------------------------------------------- | ------------------------------------------- |
+| Domaine personnalisé, requêtes répétées            | MISS +1 invocation, puis HIT +0             |
+| **workers.dev**                                    | **identique** : Workers Cache y fonctionne  |
+| Corps de 25 Mo                                     | HIT +0, octets identiques                   |
+| `/cdn-cgi/image`, largeur jamais demandée          | **+0** : la source est lue dans le cache    |
+| `/cdn-cgi/image` sur une source froide             | +1, qui remplit aussi le cache de la source |
+| Purge par étiquette, depuis une requête ou le cron | effective                                   |
+| Requête `Range` sur un objet en cache              | HIT +0, mais **200 entier** : jamais de 206 |
+
+### Ce qu'une soirée coûte
+
+**Une invocation et une lecture R2 par fichier, une fois** — puis rien, quel que
+soit le nombre de téléphones. Cette première requête est faite par l'écran de
+l'animateur à la création de la partie (le _préchauffage_) : sans elle, cent
+téléphones demandant la même vidéo froide au même instant pourraient chacun
+réveiller le Worker avant que le premier n'ait rempli le cache.
+
+**La vidéo et le son sont chargés en entier**, puis lus depuis un lien `blob:`.
+Une balise `<video src>` demanderait des morceaux en `Range`, que le cache ne
+conserve jamais : chaque morceau réveillerait le Worker. Safari exige de toute
+façon un vrai 206 pour lire une vidéo, ce que le cache ne sait pas rendre.
+
+**Chaque déploiement vide le cache** : la version du Worker fait partie de la
+clé. Le préchauffage de la partie suivante le remplit à nouveau.
+
+### Les garde-fous de R2
+
+| quota gratuit             | garde-fou                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 10 Go stockés             | **plafond de 8 Go** pour razzia, vérifié avant d'accepter un envoi                                           |
+| 1 M d'écritures par mois  | une par envoi — hors d'atteinte                                                                              |
+| 10 M de lectures par mois | seulement sur MISS ; identifiant inconnu refusé par D1 **avant** R2, adresse à paramètres redirigée avant R2 |
+| suppression               | gratuite                                                                                                     |
+
+Le quota R2 est **au compte** : les autres sites hébergés sur le même compte
+y puisent aussi — il faut les compter avant de relever le plafond. Au pire, sans aucun cache, 100 téléphones ×
+150 médias font 15 000 lectures par soirée, soit environ 660 soirées par mois.
+
+Tailles maximales par fichier : image 2 Mo, son 10 Mo, vidéo 25 Mo. Aucune
+opération courante ne liste le bucket — lister compte comme une écriture : le
+plafond se vérifie depuis les tailles tenues dans D1.
+
+### Les transformations d'images
+
+Activables **par instance**, dans Paramètres → Médias, et seulement si
+« Images → Transformations » est allumé sur la zone. Sans le service, une
+adresse `/cdn-cgi/image` répond 404 et `onerror=redirect` ne rattrape rien —
+mesuré sur une zone sans le service, et sur workers.dev, où il ne peut pas
+exister.
+
+Les largeurs sont **fixes** (640, 1280, 1920, 2560) : chaque largeur distincte
+compte pour une transformation, et des largeurs libres laisseraient n'importe
+qui en inventer. « Resize images from any origin » reste désactivé.
+
+### Le ramassage
+
+Le cron quotidien supprime les médias qu'**aucun quiz** ne cite depuis plus de
+**24 h**, et les envois restés incomplets. Le délai protège un fichier téléversé
+dans un quiz pas encore enregistré, et une partie en cours qui joue la copie
+d'un quiz modifié entre-temps. Les résultats archivés ne comptent pas comme
+références : un vieux résultat peut perdre son image.
+
 ## Le prochain palier n'est pas une optimisation
 
 Si le besoin venait — plusieurs événements par jour —, le plan payant à **5 $
@@ -234,10 +348,11 @@ restante n'en approche, et aucune ne se paie sans concéder quelque chose.
 
 **Ne pas déployer pendant une soirée.** Chaque déploiement redémarre les
 Durable Objects. C'est la seule éviction que nous provoquons nous-mêmes, et
-elle force tous les joueurs à se reconnecter en pleine question.
+elle force tous les joueurs à se reconnecter en pleine question. Il vide aussi
+Workers Cache : les médias d'une partie déjà lancée repartiraient à froid.
 
-**Un domaine personnalisé.** L'API Cache n'opère que là ; sur une adresse
-`workers.dev`, le thème est reconstruit à chaque affichage. Voir
-[Déploiement](deploiement.md).
+**Un domaine personnalisé, pour les images.** Workers Cache fonctionne aussi sur
+`workers.dev` — mesuré —, mais `/cdn-cgi/image` n'y existe pas : les images
+téléversées y sont servies en pleine taille. Voir [Déploiement](deploiement.md).
 
 Retour au [sommaire](README.md).

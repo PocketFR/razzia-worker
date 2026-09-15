@@ -40,6 +40,7 @@
     "deezer": "Deezer",
     "deezerHint": "Deezer braucht keinen Schlüssel: Katalog und 30-Sekunden-Ausschnitte antworten ohne Konto. Es steht im Editor immer zur Verfügung.",
     "ia": "KI-Generierung",
+    "medias": "Medien",
     "missing": "{{count}} Schlüssel fehlen",
     "notConfigured": "Nicht konfiguriert",
     "nothingToDo": "Nichts einzurichten",
@@ -108,6 +109,13 @@
     "unset": "Nicht gesetzt"
   },
   "logout": "Abmelden",
+  "medias": {
+    "activees": "Aktiviert",
+    "desactivees": "Deaktiviert",
+    "occupation": "{{occupe}} MB von {{plafond}} GB",
+    "transformations": "Cloudflare-Bildtransformationen",
+    "transformationsAide": "Nur aktivieren, wenn „Images → Transformations“ in der Cloudflare-Zone dieser Website eingeschaltet ist: Hochgeladene Bilder werden dann in passender Größe für jeden Bildschirm ausgeliefert. Auf einer workers.dev-Adresse nicht möglich."
+  },
   "password": {
     "change": "Ändern",
     "changed": "Passwort geändert",

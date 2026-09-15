@@ -40,6 +40,7 @@
     "deezer": "Deezer",
     "deezerHint": "Deezer はキー不要です。カタログと30秒プレビューはアカウントなしで利用でき、エディターには常に表示されます。",
     "ia": "AI 生成",
+    "medias": "メディア",
     "missing": "{{count}} 個のキーが未設定",
     "notConfigured": "未設定",
     "nothingToDo": "設定不要",
@@ -106,6 +107,13 @@
     "unset": "未設定"
   },
   "logout": "ログアウト",
+  "medias": {
+    "activees": "有効",
+    "desactivees": "無効",
+    "occupation": "{{plafond}} GB 中 {{occupe}} MB",
+    "transformations": "Cloudflare 画像変換",
+    "transformationsAide": "このサイトの Cloudflare ゾーンで「Images → Transformations」が有効な場合のみ有効にしてください。アップロードした画像が画面ごとに最適なサイズで配信されます。workers.dev のアドレスでは使えません。"
+  },
   "password": {
     "change": "変更",
     "changed": "パスワードを変更しました",

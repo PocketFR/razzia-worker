@@ -71,3 +71,27 @@ CREATE TABLE IF NOT EXISTS branding (
   bytes      BLOB    NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+-- Les médias téléversés : images, sons et vidéos des quiz.
+--
+-- LES OCTETS SONT DANS R2, pas ici. D1 plafonne une ligne à 2 Mo et une base
+-- à 500 Mo, quand une vidéo en pèse 25 ; R2 garde les fichiers, et cette
+-- table ce qu'il faut compter et ramasser.
+--
+-- Elle évite surtout de LISTER le bucket : lister compte comme une écriture
+-- dans la facturation de R2, alors qu'une somme ou un balayage ici ne coûte
+-- qu'une lecture D1. Le plafond de stockage se vérifie donc sans toucher R2.
+--
+-- `complet` vaut 0 le temps de l'envoi. La ligne est posée AVANT l'objet :
+-- un envoi interrompu laisse une ligne incomplète que le ramassage retrouve,
+-- jamais un objet R2 que plus rien ne désigne.
+CREATE TABLE IF NOT EXISTS media (
+  cle        TEXT    PRIMARY KEY,
+  mime       TEXT    NOT NULL,
+  genre      TEXT    NOT NULL,
+  taille     INTEGER NOT NULL,
+  complet    INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS media_created_at ON media (created_at);

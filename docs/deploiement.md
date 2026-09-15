@@ -68,7 +68,7 @@ commandes qui exigent node :
 docker run --rm -v "$PWD":/w -w /w node:22 sh -c "npm i -g pnpm && pnpm install"
 ```
 
-## Les neuf étapes
+## Les étapes
 
 1. **Configuration locale** — `wrangler.jsonc` est créé depuis
    `wrangler.jsonc.example` s'il n'existe pas. Ce fichier porte le domaine et
@@ -80,6 +80,9 @@ docker run --rm -v "$PWD":/w -w /w node:22 sh -c "npm i -g pnpm && pnpm install"
    une installation vide à côté des données réelles, sans qu'aucune erreur ne
    le signale.
 4. **Schéma** — `schema.sql`, en `CREATE TABLE IF NOT EXISTS`.
+   4 bis. **Stockage des médias** — le bucket R2 `razzia-media`, créé s'il
+   n'existe pas. **R2 exige un moyen de paiement sur le compte**, même pour
+   l'offre gratuite : sans lui, le script s'arrête ici en le disant.
 5. **Reprise des données** — seulement si un dossier config est fourni et que la
    base est vide.
 6. **Clé maîtresse** — `RAZZIA_MASTER_KEY`, 32 octets aléatoires, posée en
@@ -101,7 +104,12 @@ script remonte ce cas explicitement. Fournir `DOMAINE` évite complètement le
 problème : une route de domaine dédié n'a pas besoin de `workers.dev`.
 
 **Le jeton sans la permission D1** échoue à l'étape 3 sur une erreur
-d'authentification laconique.
+d'authentification laconique. **Sans la permission R2**, l'étape 4 bis
+échoue de la même façon.
+
+**R2 non activé sur le compte** (code 10042). L'activation se fait depuis le
+tableau de bord Cloudflare et demande un moyen de paiement, même en offre
+gratuite ; aucune API ne la provoque. Le script le signale, puis s'arrête.
 
 **Wrangler garde un cache de compte** dans `.wrangler`. Sur une machine ayant
 déjà déployé ailleurs, il visait le compte précédent et rendait une erreur
@@ -126,24 +134,36 @@ automatisées :
    `https://<domaine>/spotify/callback` dans les _Redirect URIs_ de
    l'application Spotify — comparée à l'identique, elle refuse l'autorisation
    sans même rediriger si elle n'y figure pas — puis saisir ses deux clés.
+3. Sur un domaine géré par Cloudflare : activer **Images → Transformations**
+   sur la zone, puis **Paramètres → Médias → Transformations d'images
+   Cloudflare**. Les images téléversées sont alors servies à la bonne taille
+   pour chaque écran. Dans cet ordre, et seulement là : sans le service,
+   l'interrupteur casserait toutes les images téléversées.
 
 Voir [Configuration](configuration.md).
 
 ## Sans domaine : ce qui change
 
 L'application fonctionne sur l'adresse `workers.dev` que Cloudflare fournit,
-et c'est un déploiement légitime. Une seule chose y est différente, et elle est
-invisible : **l'API Cache n'y opère pas**. Cloudflare ne l'accorde qu'aux
-Workers déployés sur un domaine personnalisé.
+et c'est un déploiement légitime. **Workers Cache y fonctionne** — mesuré le
+15/09/2026 : le thème et les médias téléversés sortent du cache sans réveiller
+le Worker, comme sur un domaine.
 
-Le thème de branding est donc reconstruit à chaque affichage — trois requêtes
-D1 au lieu d'une, sur le chemin du premier rendu de chaque joueur. Rien ne
-casse, rien ne le signale non plus. C'est une raison de plus de brancher un
-domaine, sans en être une obligation. Voir [Quotas](quotas.md).
+Deux choses y sont différentes :
+
+- **`/cdn-cgi/image` n'existe pas.** Les images téléversées sont servies en
+  pleine taille, à chaque téléphone. Laisser le réglage des transformations
+  désactivé : l'activer casserait toutes les images.
+- **L'API Cache interne n'opère pas.** Sur un MISS, le thème est reconstruit
+  depuis D1 au lieu d'une copie locale. Sans conséquence visible : Workers
+  Cache sert tous les appels suivants.
+
+Voir [Quotas](quotas.md).
 
 ## Mettre à jour
 
-Un simple redéploiement suffit ; le schéma et les données ne bougent pas.
+Un simple redéploiement suffit. Le script réapplique `schema.sql`, qui ne crée
+que ce qui manque, et ne touche jamais aux données.
 
 ```sh
 cd packages/worker && sh scripts/deployer.sh

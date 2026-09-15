@@ -52,7 +52,9 @@ const parNom = (etat, nom) => etat.keys.find((k) => k.nom === nom)
 // qu'effacer une valeur y ramène — c'est la transition qui compte, pas la
 // configuration de la machine qui exécute le test.
 const depart = await lire()
-verifier("les huit clés sont décrites", depart.keys?.length === 8)
+// Neuf depuis le réglage des transformations d'images, public comme le choix
+// du service musical.
+verifier("les neuf clés sont décrites", depart.keys?.length === 9)
 
 // Le choix du service musical est une valeur PUBLIQUE : il doit se relire
 // pour que le sélecteur des réglages montre l'état courant, alors qu'un

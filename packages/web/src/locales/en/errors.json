@@ -37,6 +37,14 @@
     "unauthorized": "Not authorised",
     "unknownKey": "Unknown key"
   },
+  "media": {
+    "envoi": "File upload failed",
+    "plafond": "Media storage is full (8 GB). A media file is removed automatically 24 hours after no quiz uses it any more.",
+    "signature": "The file content doesn't match its type",
+    "tailleInconnue": "Unknown file size: upload refused",
+    "tropGros": "File too large: {{max}} MB maximum for this type",
+    "type": "File type not accepted: JPEG, PNG, WebP, GIF or AVIF images, MP3, M4A or OGG audio, MP4 or WebM video"
+  },
   "notFound": {
     "back": "Go back home",
     "description": "The page you are looking for does not exist.",
@@ -47,6 +55,7 @@
     "failedToDelete": "Failed to delete quizz",
     "failedToSave": "Quizz is incomplete, make sure all questions have a title and at least one correct answer",
     "failedToUpdate": "Failed to update quizz",
+    "groupeSansQuestion": "An elimination group needs at least one question, not only slides",
     "invalidMediaUrl": "Media URL must be a valid URL",
     "noQuestions": "A quizz must have at least one question",
     "noSolution": "A question needs at least one correct answer",
@@ -54,6 +63,8 @@
     "pariSansLimite": "A bet needs a time limit: without one, betting never closes",
     "questionEmpty": "Question cannot be empty",
     "subjectEmpty": "Subject cannot be empty",
+    "texteTropLong": "The text exceeds 2000 characters",
+    "texteVide": "The text is empty",
     "tooFewAnswers": "A question must have at least 2 answers",
     "tooManyAnswers": "A question cannot have more than 4 answers"
   },

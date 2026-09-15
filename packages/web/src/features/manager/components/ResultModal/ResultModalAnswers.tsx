@@ -5,6 +5,7 @@ import {
   ANSWERS_LABELS,
 } from "@razzia/web/features/game/utils/reponses"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
+import { attributsImage } from "@razzia/web/features/media/lib"
 import clsx from "clsx"
 import { Check, Clock, ImageOff, Music, Video, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -21,7 +22,8 @@ const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
       <img
-        src={media.url}
+        {...attributsImage(media.url, 640)}
+        sizes="(min-width: 768px) 25vw, 6rem"
         alt=""
         className="h-16 w-auto rounded-md object-contain md:h-full"
       />

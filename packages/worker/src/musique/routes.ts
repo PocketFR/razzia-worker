@@ -32,7 +32,13 @@ import { catalogueDe } from "."
 const json = (corps: unknown, statut = 200) =>
   new Response(JSON.stringify(corps), {
     status: statut,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    // Jamais mis en cache au bord : un extrait Deezer est un lien signé qui
+    // expire en un quart d'heure, et Workers Cache garderait par heuristique
+    // une réponse qui ne dit rien de sa fraîcheur.
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
   })
 
 // Ce à quoi ressemble un identifiant, service par service. Le contrôle est
@@ -110,7 +116,10 @@ const router = async (
   service: Fournisseur,
 ): Promise<Response> => {
   if (request.method !== "GET") {
-    return new Response("Method not allowed", { status: 405 })
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: { "cache-control": "no-store" },
+    })
   }
 
   // Les clés sont lues PAR REQUÊTE : elles sont modifiables depuis
@@ -135,7 +144,10 @@ const router = async (
     return pageCallbackSpotify(cles.spotifyId)
   }
 
-  return new Response("Not found", { status: 404 })
+  return new Response("Not found", {
+    status: 404,
+    headers: { "cache-control": "no-store" },
+  })
 }
 
 export const routerSpotify = (request: Request, env: Env, url: URL) =>

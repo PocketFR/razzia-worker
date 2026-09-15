@@ -1,16 +1,25 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
-import type { QuestionMedia } from "@razzia/common/types/game"
+import { estMediaTexte, type QuestionMedia } from "@razzia/common/types/game"
 import AlertDialog from "@razzia/web/components/AlertDialog"
+import { attributsImage } from "@razzia/web/features/media/lib"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
-import { Music, Trash2, Video } from "lucide-react"
+import { Music, Presentation, Trash2, Type, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { twMerge } from "tailwind-merge"
 
 const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
+  if (estMediaTexte(media)) {
+    return <Type className="text-muted-foreground mx-auto size-10" />
+  }
+
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
-      <img src={media.url} className="mx-auto max-h-14 w-auto rounded-md" />
+      <img
+        {...attributsImage(media.url, 640)}
+        sizes="10rem"
+        className="mx-auto max-h-14 w-auto rounded-md"
+      />
     )
   }
 
@@ -27,7 +36,8 @@ const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
 
 interface Props {
   question: QuestionWithId
-  index: number
+  /** Le numéro dans l'ordre de jeu, ou null pour une diapo, qui n'en a pas. */
+  numero: number | null
   isActive: boolean
   canDelete: boolean
   onClick: () => void
@@ -36,7 +46,7 @@ interface Props {
 
 const QuizzEditorCard = ({
   question,
-  index,
+  numero,
   isActive,
   canDelete,
   onClick,
@@ -57,7 +67,7 @@ const QuizzEditorCard = ({
       )}
     >
       <span className="text-muted-foreground absolute top-2 left-2 text-xs font-semibold">
-        {index + 1}
+        {numero ?? <Presentation className="size-3.5" />}
       </span>
       <p className="text-foreground truncate text-center text-xs font-semibold">
         {question.question || t("quizz:noQuestionYet")}

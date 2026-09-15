@@ -37,6 +37,14 @@
     "unauthorized": "権限がありません",
     "unknownKey": "不明なキー"
   },
+  "media": {
+    "envoi": "ファイルのアップロードに失敗しました",
+    "plafond": "メディアの保存容量がいっぱいです（8 GB）。どのクイズにも使われなくなったメディアは、24時間後に自動で削除されます。",
+    "signature": "ファイルの内容が形式と一致しません",
+    "tailleInconnue": "ファイルサイズが不明なため、アップロードできません",
+    "tropGros": "ファイルが大きすぎます（この形式は最大 {{max}} MB）",
+    "type": "対応していないファイル形式です（画像：JPEG・PNG・WebP・GIF・AVIF、音声：MP3・M4A・OGG、動画：MP4・WebM）"
+  },
   "notFound": {
     "back": "ホームに戻る",
     "description": "お探しのページは存在しません。",
@@ -47,6 +55,7 @@
     "failedToDelete": "クイズの削除に失敗しました",
     "failedToSave": "クイズが未完成です。すべての質問にタイトルがあり、少なくとも1つの正解があることを確認してください",
     "failedToUpdate": "クイズの更新に失敗しました",
+    "groupeSansQuestion": "脱落グループには、スライドだけでなく少なくとも1問が必要です",
     "invalidMediaUrl": "メディアURLは有効なURLである必要があります",
     "noQuestions": "クイズには少なくとも1問必要です",
     "noSolution": "問題には正解が少なくとも1つ必要です",
@@ -54,6 +63,8 @@
     "pariSansLimite": "賭けには制限時間が必要です。ないと賭けが締め切られません",
     "questionEmpty": "質問は空にできません",
     "subjectEmpty": "主題は空にできません",
+    "texteTropLong": "テキストが2000文字を超えています",
+    "texteVide": "テキストが空です",
     "tooFewAnswers": "質問には少なくとも2つの回答が必要です",
     "tooManyAnswers": "質問に設定できる回答は4つまでです"
   },

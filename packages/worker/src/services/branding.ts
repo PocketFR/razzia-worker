@@ -188,6 +188,44 @@ export interface Theme {
   favicon?: string
   background?: string
   sounds?: { answersMusic?: boolean }
+  /**
+   * Les transformations d'images Cloudflare sont-elles activées sur la zone ?
+   *
+   * Ce n'est pas du branding, c'est un réglage de l'instance. Il voyage dans le
+   * thème parce que chaque appareil le charge déjà, depuis le cache : les
+   * écrans en ont besoin pour composer l'adresse d'une image, et une route à
+   * part coûterait une requête de plus par téléphone.
+   */
+  transformationsImages?: boolean
+}
+
+/**
+ * L'étiquette de cache de tout ce que le branding sert.
+ *
+ * Purgée à chaque écriture : c'est ce qui autorise un an de cache au bord sur
+ * `/branding/theme.json`, une adresse qui ne porte pas de version.
+ */
+export const ETIQUETTE_BRANDING = "branding"
+
+/** Le réglage qui active `/cdn-cgi/image` pour les médias téléversés. */
+export const CLE_TRANSFORMATIONS = "IMAGES_TRANSFORMATIONS"
+
+/**
+ * Les transformations d'images sont-elles activées ?
+ *
+ * DÉSACTIVÉES PAR DÉFAUT, et pas par prudence de style : sur une zone où le
+ * service n'est pas activé — ou sur workers.dev, où il ne peut pas l'être —
+ * une adresse `/cdn-cgi/image` répond 404, et l'image est cassée.
+ * `onerror=redirect` ne rattrape pas un service absent. Mesuré le 14/09/2026.
+ */
+export const transformationsActivees = async (
+  env: Pick<Env, "DB" | "IMAGES_TRANSFORMATIONS">,
+): Promise<boolean> => {
+  const ligne = await env.DB.prepare(`SELECT value FROM settings WHERE key = ?`)
+    .bind(CLE_TRANSFORMATIONS)
+    .first<{ value: string }>()
+
+  return (ligne?.value ?? env.IMAGES_TRANSFORMATIONS ?? "") === "1"
 }
 
 export interface EtatImage {
@@ -406,11 +444,41 @@ const variantesDe = (results: LigneBranding[]) =>
  * première écriture qui oublierait de l'incrémenter, alors que ce MAX dérive
  * de la donnée elle-même et ne peut pas mentir.
  */
+/**
+ * Fait avancer la version du branding, quoi qu'on vienne de modifier.
+ *
+ * À APPELER APRÈS TOUTE ÉCRITURE, SUPPRESSION COMPRISE. La version est le plus
+ * récent `updated_at` du branding ; une ligne supprimée n'en a plus, et le
+ * maximum pouvait retomber sur une version dont l'entrée de cache était déjà
+ * là, périmée. Cette ligne-ci ne fait qu'avancer : au moins d'une milliseconde
+ * sur la précédente, même si deux écritures tombent dans la même.
+ */
+export const marquerBrandingModifie = (db: D1Database) =>
+  db
+    .prepare(
+      `INSERT INTO settings (key, value, encrypted, updated_at)
+       VALUES ('brandingVersion', ?1, 0, ?1)
+       ON CONFLICT(key) DO UPDATE SET
+         updated_at = MAX(settings.updated_at + 1, excluded.updated_at),
+         value = CAST(MAX(settings.updated_at + 1, excluded.updated_at) AS TEXT)`,
+    )
+    .bind(Date.now())
+    .run()
+
 export const versionDuBranding = async (db: D1Database): Promise<number> => {
   const ligne = await db
     .prepare(
+      // Le réglage des transformations en fait partie : il voyage dans le
+      // thème, et l'entrée de cache doit changer de clé avec lui.
+      //
+      // `brandingVersion` est ce qui empêche la version de RECULER. Une
+      // suppression retire sa ligne, et avec elle sa date : le maximum
+      // retombait alors sur une version antérieure, dont l'entrée de cache
+      // décrivait l'état d'avant — une image effacée continuait d'être servie,
+      // un réglage désactivé restait actif. Voir `marquerBrandingModifie`.
       `SELECT MAX(u) AS version FROM (
-         SELECT updated_at AS u FROM settings WHERE key = 'brandingTheme'
+         SELECT updated_at AS u FROM settings
+          WHERE key IN ('brandingTheme', 'IMAGES_TRANSFORMATIONS', 'brandingVersion')
          UNION ALL
          SELECT updated_at FROM branding
        )`,
