@@ -6,8 +6,8 @@
 // changé de place au milieu de la soirée.
 //
 // jsdom ne calcule pas de disposition : ce qui se vérifie ici, c'est la règle
-// — trois emplacements tenus, occupés ou non, et les commandes toujours dans
-// le même — et non des pixels.
+// — trois emplacements tenus, occupés ou non, et le compteur qui pousse le
+// reste à droite qu'il affiche quelque chose ou non — et non des pixels.
 
 import EnteteDeManche from "@razzia/web/features/game/components/EnteteDeManche"
 import { cleanup, render } from "@testing-library/react"
@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from "vitest"
 afterEach(cleanup)
 
 const cellules = () =>
-  Array.from(document.querySelectorAll<HTMLElement>(".grid > div"))
+  Array.from(document.querySelectorAll<HTMLElement>(".flex.w-full > div"))
 
 const entete = (compteur: string | null) =>
   render(
@@ -52,10 +52,23 @@ describe("l'en-tête d'une manche", () => {
     const [, sans] = cellules()
 
     expect(sans.textContent).toBe("Suivant")
-    // Le centre est une place, pas un reste d'espace : c'est ce qui les rend
-    // insensibles à ce que le compteur affiche, ou n'affiche pas.
-    expect(sans.className).toContain("justify-self-center")
+    // Les commandes et la sortie restent contre le bord droit : c'est
+    // l'emplacement du compteur, occupé ou non, qui les y pousse.
     expect(avec.className).toBe(sans.className)
+
+    const [place] = cellules()
+
+    expect(place.className).toContain("mr-auto")
+  })
+
+  it("range les commandes à droite, avec la sortie", () => {
+    entete("3 / 20")
+
+    expect(cellules().map((c) => c.textContent)).toEqual([
+      "3 / 20",
+      "Suivant",
+      "Quitter",
+    ])
   })
 
   it("n'affiche le compteur que lorsqu'il y a quelque chose à compter", () => {
