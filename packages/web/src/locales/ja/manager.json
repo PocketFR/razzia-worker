@@ -11,6 +11,7 @@
     },
     "colors": "色",
     "declined": "背景を{{count}}サイズに分割しました",
+    "decorDefaut": "既定の背景",
     "fontFamily": "フォント",
     "fontUrl": "フォントのURL（任意）",
     "fromAddress": "ファイルなし：下のURLを使用します",

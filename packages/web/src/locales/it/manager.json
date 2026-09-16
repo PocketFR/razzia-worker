@@ -11,6 +11,7 @@
     },
     "colors": "Colori",
     "declined": "Sfondo diviso in {{count}} dimensioni",
+    "decorDefaut": "Sfondo predefinito",
     "fontFamily": "Carattere",
     "fontUrl": "Indirizzo del carattere (facoltativo)",
     "fromAddress": "Nessun file: viene usato l'indirizzo qui sotto",

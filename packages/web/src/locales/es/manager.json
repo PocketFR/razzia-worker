@@ -11,6 +11,7 @@
     },
     "colors": "Colores",
     "declined": "Fondo cortado en {{count}} tamaños",
+    "decorDefaut": "Fondo predeterminado",
     "fontFamily": "Tipografía",
     "fontUrl": "Dirección de la tipografía (opcional)",
     "fromAddress": "Sin archivo: se usa la dirección de abajo",

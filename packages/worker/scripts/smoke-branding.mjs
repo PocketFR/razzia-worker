@@ -9,9 +9,9 @@
 // la place effacerait le branding de l'installation — une régression qui ne
 // se verrait qu'à l'œil, sur l'écran d'accueil.
 //
-// LE FOND D'ÉCRAN À TAILLE RÉELLE : D1 plafonne une ligne à 2 Mo, et celui
-// livré aujourd'hui pèse 1,6 Mo. Un test avec une image de dix pixels ne
-// prouverait rien du seul cas qui risque de casser.
+// LE FOND D'ÉCRAN À TAILLE RÉELLE : D1 plafonne une ligne à 2 Mo, et le
+// branding accepte jusqu'à 1,8 Mo par image. Un test avec une image de dix
+// pixels ne prouverait rien du seul cas qui risque de casser.
 //
 // Le script REND LA BASE COMME IL L'A TROUVÉE : il relit l'état de départ et
 // le repose à la fin, y compris en cas d'échec.
@@ -352,14 +352,24 @@ try {
   )
 
   console.log("— le fond d'écran à sa taille réelle")
-  // Le vrai fichier livré, pas une vignette : c'est la ligne D1 la plus
-  // lourde que l'application écrira jamais.
-  const fond = fs.readFileSync(
-    path.join(
-      import.meta.dirname,
-      "../../web/public/branding/background-5600.webp",
-    ),
-  )
+  // Le poids d'un vrai fond d'écran 5600 px : c'est la ligne D1 la plus
+  // lourde que l'application écrira jamais, et ce que vérifie ce passage.
+  //
+  // FABRIQUÉ ICI, plus lu dans `public/branding` : l'application ne livre
+  // plus de fond d'écran — c'est le décor CSS qui s'affiche par défaut — et
+  // aucun fichier de cette taille ne reste dans le dépôt. L'en-tête RIFF est
+  // réel, le reste est du remplissage : le branding contrôle le type annoncé,
+  // pas les pixels.
+  //
+  // Juste sous les 1,8 Mo acceptés, donc plus lourd que le fichier qui
+  // servait ici avant : c'est la ligne D1 la plus lourde que l'application
+  // écrira jamais, et celle qui touchera la première le plafond de 2 Mo.
+  const fond = Buffer.concat([
+    Buffer.from("RIFF"),
+    Buffer.alloc(4),
+    Buffer.from("WEBPVP8 "),
+    Buffer.alloc(1_749_984, 7),
+  ])
   const gros = await envoyerImage("background", "image/webp", fond)
   verifier(
     `D1 accepte ${(fond.length / 1024 / 1024).toFixed(2)} Mo`,

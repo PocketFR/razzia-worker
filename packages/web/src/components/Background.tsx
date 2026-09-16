@@ -48,16 +48,27 @@ const Background = ({ children, haut = false }: Props) => {
           et la partie ne se ressemblaient pas — deux décors, deux règles. */}
       <Fond />
 
-      <img
-        src={logo}
-        onError={imageFallback(defaultLogo)}
-        className={`h-16 ${haut ? "mb-6" : "mb-10"}`}
-        alt={appName}
-      />
-      {children}
+      {/* `z-10`, ET C'EST OBLIGATOIRE : `Fond` est en `fixed`, donc positionné,
+          et un élément positionné se peint AU-DESSUS de tout frère resté
+          statique, quel que soit l'ordre dans le DOM. Le logo, posé en frère
+          nu, est passé sous le fond le jour où l'accueil a cessé de dessiner
+          un décor translucide pour afficher une image opaque.
+
+          Un seul conteneur plutôt qu'un `z-10` par élément : les enfants
+          viennent des pages, et aucune n'a à connaître la règle. C'est ce que
+          fait déjà `GameWrapper`. */}
+      <div className="z-10 flex w-full flex-col items-center">
+        <img
+          src={logo}
+          onError={imageFallback(defaultLogo)}
+          className={`h-16 ${haut ? "mb-6" : "mb-10"}`}
+          alt={appName}
+        />
+        {children}
+      </div>
 
       <p
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm font-semibold text-white/50"
+        className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 text-sm font-semibold text-white/50"
         // oxlint-disable-next-line no-undef
         title={`v${__APP_VERSION__}`}
       >

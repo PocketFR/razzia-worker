@@ -74,9 +74,8 @@ export const estNomStocke = (nom: string): nom is NomStocke =>
 // Le plafond par image.
 //
 // D1 refuse une ligne au-delà de 2 Mo. On s'arrête avant, avec de quoi loger
-// le fond d'écran livré aujourd'hui (1,6 Mo) sans le refuser — c'est
-// précisément le genre de fichier que l'animateur voudra remplacer par un
-// semblable. Au-delà, le champ « adresse » du thème accepte une URL externe :
+// un fond d'écran de vidéoprojecteur — le genre de fichier que l'animateur
+// téléversera ici, l'application n'en livrant plus aucun. Au-delà, le champ « adresse » du thème accepte une URL externe :
 // ce n'est pas un contournement mais le bon outil pour une grande image, qui
 // n'a rien à faire dans une base de données.
 export const TAILLE_MAX = 1_800_000

@@ -11,6 +11,7 @@
     },
     "colors": "Colours",
     "declined": "Background sliced into {{count}} sizes",
+    "decorDefaut": "Default backdrop",
     "fontFamily": "Font",
     "fontUrl": "Font URL (optional)",
     "fromAddress": "No file: the address below is used",

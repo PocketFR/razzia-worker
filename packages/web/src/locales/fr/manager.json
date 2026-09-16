@@ -11,6 +11,7 @@
     },
     "colors": "Couleurs",
     "declined": "Fond découpé en {{count}} tailles",
+    "decorDefaut": "Décor par défaut",
     "fontFamily": "Police",
     "fontUrl": "Adresse de la police (facultatif)",
     "fromAddress": "Aucun fichier : l'adresse ci-dessous est utilisée",

@@ -9,6 +9,16 @@
 // Désormais une seule règle, partout : une image s'il y en a une, le décor
 // sinon. Le décor n'est plus un pis-aller de l'accueil, c'est le fond par
 // défaut ; et un fond téléversé s'affiche aussi sur l'accueil.
+//
+// CE QUE DOIT SAVOIR QUI L'APPELLE : le fond est en `fixed`, donc positionné,
+// et un élément positionné se peint AU-DESSUS de tout frère resté statique,
+// quel que soit l'ordre dans le DOM. Le contenu qui l'accompagne porte donc
+// `z-10` — `GameWrapper`, `GroupeEditor`, `QuestionEditor` et `Background` le
+// font tous. Sans ça, le contenu est bien dans le DOM, et invisible.
+//
+// Pas de `-z-10` ici pour s'en dispenser : la page est enveloppée d'un `<div
+// class="bg-secondary">` opaque, sous lequel un z-index négatif irait se
+// ranger — le fond disparaîtrait au lieu du contenu.
 
 import { getBranding } from "@razzia/web/branding"
 import { attributsImage } from "@razzia/web/features/media/lib"

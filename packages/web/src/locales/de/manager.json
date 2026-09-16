@@ -11,6 +11,7 @@
     },
     "colors": "Farben",
     "declined": "Hintergrund in {{count}} Größen zerlegt",
+    "decorDefaut": "Standardhintergrund",
     "fontFamily": "Schriftart",
     "fontUrl": "Schrift-URL (optional)",
     "fromAddress": "Keine Datei: Die Adresse unten wird verwendet",

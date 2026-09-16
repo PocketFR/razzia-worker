@@ -37,10 +37,14 @@ const COULEURS = ["primary", "secondary"] as const
 const IMAGES = ["logo", "favicon", "background"] as const
 
 // Les adresses livrées avec l'application, dernier recours du repère affiché.
-const DEFAUTS: Record<NomImage, string> = {
+//
+// PAS DE FOND D'ÉCRAN : l'application n'en livre plus. Un fichier livré
+// rendait le décor CSS inatteignable — il y avait toujours une image à
+// afficher, donc jamais de décor. Sans adresse ni fichier, c'est lui qui
+// s'affiche, et le repère le dit en toutes lettres.
+const DEFAUTS: Partial<Record<NomImage, string>> = {
   logo: "/branding/logo.svg",
   favicon: "/branding/R.ico",
-  background: "/branding/background-5600.webp",
 }
 
 type NomImage = (typeof IMAGES)[number]
@@ -158,7 +162,11 @@ const ConfigBranding = () => {
   const enService = (nom: NomImage) => {
     const vigueur = getBranding()?.[nom]
 
-    return typeof vigueur === "string" ? vigueur : DEFAUTS[nom]
+    if (typeof vigueur === "string" && vigueur) {
+      return vigueur
+    }
+
+    return DEFAUTS[nom] ?? t("branding.decorDefaut")
   }
 
   return (

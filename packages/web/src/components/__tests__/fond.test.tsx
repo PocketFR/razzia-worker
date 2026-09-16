@@ -8,6 +8,7 @@
 import Background from "@razzia/web/components/Background"
 import Fond from "@razzia/web/components/Fond"
 import { cleanup, fireEvent, render } from "@testing-library/react"
+import { readdirSync, readFileSync } from "node:fs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 interface ThemeDeTest {
@@ -116,5 +117,54 @@ describe("le fond, avec une image", () => {
 
     expect(imageDeFond()).toBeNull()
     expect(decor()).not.toBeNull()
+  })
+})
+
+// LE CONTENU PASSE AU-DESSUS DU FOND, et rien dans le DOM ne le dit : `Fond`
+// est en `fixed`, donc positionné, et se peint au-dessus de tout frère resté
+// statique quel que soit l'ordre des balises. Le logo de l'accueil a disparu
+// ainsi, le jour où le décor translucide a laissé place à une image opaque —
+// il était bien là, dessous.
+describe("l'empilement", () => {
+  beforeEach(() => {
+    theme = { background: "/branding/asset/background?v=3" }
+  })
+
+  it("pose le logo et le contenu au-dessus du fond", () => {
+    render(<Background>contenu</Background>)
+
+    const logo = document.querySelector('img[alt="Razzia"]')
+    const couche = logo?.closest("div")
+
+    expect(couche?.className).toContain("z-10")
+    // La même couche porte le contenu des pages : aucune n'a à connaître la
+    // règle, et celle qui l'ignorait passait sous le fond.
+    expect(couche?.textContent).toContain("contenu")
+    expect(couche?.contains(exigeLImage())).toBe(false)
+  })
+})
+
+// L'APPLICATION NE LIVRE PLUS DE FOND D'ÉCRAN. Tant qu'un fichier était livré
+// et cité par le thème du build, il y avait toujours une image à afficher :
+// le décor CSS était du code mort sur toute instance sans branding propre.
+describe("le thème livré", () => {
+  // Depuis la racine du paquet : sous jsdom, `import.meta.url` n'est pas une
+  // adresse de fichier mais une adresse http, et ne se convertit pas en
+  // chemin. Vitest, lui, s'exécute toujours depuis `packages/web`.
+  const dossier = `${process.cwd()}/public/branding/`
+
+  it("ne cite aucun fond d'écran", () => {
+    const livre = JSON.parse(
+      readFileSync(`${dossier}theme.json`, "utf8"),
+    ) as ThemeDeTest
+
+    expect(livre.background).toBeUndefined()
+    expect(livre.backgroundSet).toBeUndefined()
+  })
+
+  it("et n'en embarque aucun", () => {
+    expect(
+      readdirSync(dossier).filter((nom) => nom.startsWith("background")),
+    ).toEqual([])
   })
 })
