@@ -1,4 +1,4 @@
-import GameBackground from "@razzia/web/components/GameBackground"
+import Fond from "@razzia/web/components/Fond"
 import GroupeEditor from "@razzia/web/features/quizz/components/GroupeEditor"
 import QuestionEditorAnswers from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorAnswers"
 import QuestionEditorConfig from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig"
@@ -39,7 +39,7 @@ const QuestionEditor = () => {
         <QuestionEditorAnswers />
 
         {/* Le fond de la question en aperçu, tel que la salle le verra. */}
-        <GameBackground fond={currentQuestion.fond} />
+        <Fond fond={currentQuestion.fond} />
       </main>
       <QuestionEditorConfig />
     </div>

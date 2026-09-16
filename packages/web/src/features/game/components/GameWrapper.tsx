@@ -1,7 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS, type Status } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
-import GameBackground from "@razzia/web/components/GameBackground"
+import Fond from "@razzia/web/components/Fond"
 import Loader from "@razzia/web/components/Loader"
 import {
   useEvent,
@@ -76,7 +76,7 @@ const GameWrapper = ({
     <section className="relative flex min-h-dvh">
       {/* Le fond de l'étape, sauf en salle d'attente et au podium : ces écrans
           appartiennent à la soirée, pas à la dernière question jouée. */}
-      <GameBackground
+      <Fond
         fond={
           statusName === STATUS.SHOW_ROOM || statusName === STATUS.FINISHED
             ? undefined

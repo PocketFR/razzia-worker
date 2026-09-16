@@ -203,7 +203,7 @@ describe("suppression d'un interlude", () => {
 })
 
 describe("le panneau du groupe doit être visible, pas seulement présent", () => {
-  // Le défaut constaté en production : GameBackground est en `fixed` sans
+  // Le défaut constaté en production : Fond est en `fixed` sans
   // z-index, donc peint au-dessus de tout frère resté statique. Le panneau du
   // groupe était bien dans le DOM — et invisible, l'écran ne montrant que le
   // fond. jsdom ne peint rien et ne peut pas le voir ; on vérifie donc la

@@ -4,11 +4,11 @@
 // règle. Ses questions se modifient une par une, dans la barre latérale : ce
 // panneau ne s'occupe que de ce qui appartient au groupe lui-même.
 //
-// Attention au z-index : GameBackground est en `fixed` sans z-index, donc
+// Attention au z-index : Fond est en `fixed` sans z-index, donc
 // peint au-dessus de tout frère statique. Chaque panneau de l'éditeur porte
 // `z-10` pour cette raison — sans quoi il est bien dans le DOM, et invisible.
 
-import GameBackground from "@razzia/web/components/GameBackground"
+import Fond from "@razzia/web/components/Fond"
 import Input from "@razzia/web/components/Input"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import { Layers } from "lucide-react"
@@ -24,7 +24,7 @@ const GroupeEditor = () => {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <GameBackground />
+      <Fond />
 
       <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto p-6">
         <div className="bg-background flex items-center gap-2 rounded-xl p-4 shadow-sm">

@@ -15,6 +15,7 @@
 // et retrouvable quand il faut savoir ce qui est déployé.
 
 import defaultLogo from "@razzia/web/assets/logo.svg"
+import Fond from "@razzia/web/components/Fond"
 import { getBranding, imageFallback } from "@razzia/web/branding"
 import type { PropsWithChildren } from "react"
 
@@ -42,16 +43,10 @@ const Background = ({ children, haut = false }: Props) => {
         haut ? "justify-start pt-[8vh]" : "justify-center"
       }`}
     >
-      {/* Ancrée par `inset-0`, et non posée par sa seule taille.
-          Sans `top`, une boîte absolue part de sa position DANS LE FLUX,
-          c'est-à-dire après le retrait du haut : le décor commençait donc
-          8 vh plus bas — bande noire en haut — et débordait d'autant en bas,
-          ce qui ajoutait un ascenseur. Le retrait ne doit déplacer que le
-          contenu, jamais le fond. */}
-      <div className="absolute inset-0 max-h-svh overflow-hidden">
-        <div className="bg-primary/15 absolute top-[-70vmin] left-[-50vmin] min-h-[120vmin] min-w-[120vmin] rotate-20 rounded-4xl" />
-        <div className="bg-primary/15 absolute right-[-10vmin] bottom-[-45vmin] min-h-[75vmin] min-w-[75vmin] rotate-20 rounded-4xl" />
-      </div>
+      {/* LE MÊME FOND QUE LES ÉCRANS DE JEU : le décor quand aucune image
+          n'est en service, et le fond du thème dès qu'il y en a un. L'accueil
+          et la partie ne se ressemblaient pas — deux décors, deux règles. */}
+      <Fond />
 
       <img
         src={logo}
