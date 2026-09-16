@@ -8,6 +8,13 @@ import {
 import { useConfig } from "@razzia/web/features/manager/contexts/config-context"
 import { useNavigate } from "@tanstack/react-router"
 import ConfigCreateQuizzIa from "@razzia/web/features/manager/components/configurations/ConfigCreateQuizzIa"
+import {
+  inlinerLesMedias,
+  maximumEnMo,
+  televerserLesMedias,
+  type Avancement,
+  type EchecDeMedia,
+} from "@razzia/web/features/media/echange"
 import { Download, Sparkles, SquarePen, Trash2, Upload } from "lucide-react"
 import { type ChangeEvent, useCallback, useRef, useState } from "react"
 import toast from "react-hot-toast"
@@ -35,6 +42,12 @@ const ConfigManageQuizz = () => {
   const { t } = useTranslation()
   const pendingExportId = useRef<string | null>(null)
   const [creationIa, setCreationIa] = useState(false)
+  // L'échange emporte les fichiers avec le quiz : il dure, et il peut perdre
+  // des médias en chemin. Les deux se disent à l'écran.
+  const [transfert, setTransfert] = useState<
+    (Avancement & { sens: "export" | "import" }) | null
+  >(null)
+  const [perdus, setPerdus] = useState<EchecDeMedia[]>([])
 
   useEvent(EVENTS.QUIZZ.ERROR, (message) => {
     toast.error(t(message))
@@ -42,16 +55,40 @@ const ConfigManageQuizz = () => {
 
   useEvent(
     EVENTS.QUIZZ.DATA,
-    useCallback((data) => {
-      if (data.id !== pendingExportId.current) {
-        return
-      }
+    useCallback(
+      (data) => {
+        if (data.id !== pendingExportId.current) {
+          return
+        }
 
-      pendingExportId.current = null
+        pendingExportId.current = null
 
-      const { id: _id, ...quizzData } = data
-      downloadJson(quizzData, `${data.subject}.json`)
-    }, []),
+        const { id: _id, ...quizzData } = data
+
+        // Les fichiers téléversés partent AVEC le quiz, inlinés en base64 : un
+        // export doit rester un document unique, et `/media/<uuid>` ne veut rien
+        // dire sur une autre installation.
+        void (async () => {
+          setPerdus([])
+          setTransfert({ sens: "export", fait: 0, total: 0 })
+
+          try {
+            const { quizz: complet, echecs } = await inlinerLesMedias(
+              quizzData,
+              (avancement) => setTransfert({ sens: "export", ...avancement }),
+            )
+
+            downloadJson(complet, `${data.subject}.json`)
+            setPerdus(echecs)
+          } catch {
+            toast.error(t("errors:media.envoi"))
+          } finally {
+            setTransfert(null)
+          }
+        })()
+      },
+      [t],
+    ),
   )
 
   const handleDelete = (id: string) => () => {
@@ -74,12 +111,41 @@ const ConfigManageQuizz = () => {
     const reader = new FileReader()
 
     reader.onload = (event) => {
+      let data: unknown
+
       try {
-        const data: unknown = JSON.parse(event.target?.result as string)
-        socket.emit(EVENTS.QUIZZ.SAVE, data)
+        data = JSON.parse(event.target?.result as string)
       } catch {
-        toast.error("Invalid JSON file")
+        toast.error(t("errors:quizz.jsonInvalide"))
+
+        return
       }
+
+      // Les fichiers inlinés retournent dans R2 AVANT l'enregistrement : la
+      // ligne d'un quiz est plafonnée à 2 Mo, et du base64 y tiendrait à peine
+      // une image.
+      //
+      // L'IMPORT EST PARTIEL. Un fichier refusé fait perdre son média à sa
+      // question, jamais le quiz entier : on préfère un quiz à retravailler
+      // dans l'éditeur à pas de quiz du tout. Ce qui manque est listé plus bas.
+      void (async () => {
+        setPerdus([])
+        setTransfert({ sens: "import", fait: 0, total: 0 })
+
+        try {
+          const { quizz: pret, echecs } = await televerserLesMedias(
+            data,
+            (avancement) => setTransfert({ sens: "import", ...avancement }),
+          )
+
+          socket.emit(EVENTS.QUIZZ.SAVE, pret)
+          setPerdus(echecs)
+        } catch {
+          toast.error(t("errors:media.envoi"))
+        } finally {
+          setTransfert(null)
+        }
+      })()
     }
 
     reader.readAsText(file)
@@ -134,6 +200,50 @@ const ConfigManageQuizz = () => {
           onChange={handleImport}
         />
       </div>
+      {transfert && (
+        <p className="text-muted-foreground mb-2 shrink-0 text-sm tabular-nums">
+          {transfert.sens === "export"
+            ? t("manager:quizz.exportEnCours", {
+                fait: transfert.fait,
+                total: transfert.total,
+              })
+            : t("manager:quizz.importEnCours", {
+                fait: transfert.fait,
+                total: transfert.total,
+              })}
+        </p>
+      )}
+
+      {/* CE QUI MANQUE SE DIT ICI, ET RESTE AFFICHÉ. Un fichier perdu ne se
+          voit nulle part ailleurs : la question garde son texte, et le trou
+          n'apparaîtrait qu'à l'écran, en soirée. */}
+      {perdus.length > 0 && (
+        <div className="border-accent mb-2 shrink-0 rounded-md border-2 p-3">
+          <p className="font-semibold">
+            {t("manager:quizz.mediasPerdus", { count: perdus.length })}
+          </p>
+          <ul className="text-muted-foreground mt-1 space-y-0.5 text-sm">
+            {perdus.map((perdu, i) => (
+              <li key={i}>
+                {perdu.mime || t("manager:quizz.mediaInconnu")}
+                {perdu.taille
+                  ? ` · ${(perdu.taille / (1024 * 1024)).toFixed(1)} Mo`
+                  : ""}
+                {" — "}
+                {t(perdu.motif, { max: maximumEnMo(perdu.mime) })}
+              </li>
+            ))}
+          </ul>
+          <Button
+            size="sm"
+            className="bg-accent text-accent-foreground mt-2"
+            onClick={() => setPerdus([])}
+          >
+            {t("manager:quizz.compris")}
+          </Button>
+        </div>
+      )}
+
       <div className="min-h-0 flex-1 space-y-2 overflow-auto p-0.5">
         {quizz.map((q) => (
           <div

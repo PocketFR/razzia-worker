@@ -38,7 +38,10 @@
     "unknownKey": "Clave desconocida"
   },
   "media": {
+    "base64": "Contenido incrustado ilegible: el archivo del cuestionario está dañado",
+    "empreinte": "Huella de archivo no válida",
     "envoi": "La subida del archivo ha fallado",
+    "introuvable": "Archivo no encontrado en el servidor",
     "plafond": "El espacio de medios está lleno (8 GB). Un archivo se elimina automáticamente 24 h después de que ningún cuestionario lo use.",
     "signature": "El contenido del archivo no corresponde a su tipo",
     "tailleInconnue": "Tamaño de archivo desconocido: subida rechazada",
@@ -57,6 +60,8 @@
     "failedToUpdate": "Error al actualizar el cuestionario",
     "groupeSansQuestion": "Un grupo de eliminación necesita al menos una pregunta, no solo diapositivas",
     "invalidMediaUrl": "La URL del medio debe ser una URL válida",
+    "jsonInvalide": "Archivo JSON ilegible",
+    "mediaBase64": "Este cuestionario lleva un archivo incrustado en base64: usa el botón de importar de la pantalla de cuestionarios, que lo guarda correctamente.",
     "noQuestions": "Un cuestionario debe tener al menos una pregunta",
     "noSolution": "Una pregunta necesita al menos una respuesta correcta",
     "notFound": "Cuestionario no encontrado",

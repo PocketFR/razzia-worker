@@ -463,6 +463,84 @@ verifier(
   globalThis.clearInterval = vraiClearInterval
 }
 
+// ── le téléversement d'un média ───────────────────────────────────────────
+//
+// L'ADRESSE D'UN FICHIER EST L'EMPREINTE DE SON CONTENU, et c'est ce qui rend
+// l'import d'un quiz déjà connu gratuit : le navigateur demande d'abord en
+// HEAD — une requête servie par le cache, qui ne réveille pas le Worker — et
+// n'envoie le fichier que s'il manque. Renvoyer 25 Mo pour rien serait
+// invisible : ça marcherait, simplement plus lentement et pour plus cher.
+{
+  const vraiFetch = globalThis.fetch
+  const vraiXHR = globalThis.XMLHttpRequest
+
+  const octets = new TextEncoder().encode("de faux octets d'image")
+  // SHA-256 de ce contenu, calculé par la même fonction que le client.
+  const { empreinteDuFichier } = await import("../../common/src/echange.ts")
+  const attendue = await empreinteDuFichier(octets)
+
+  let envois = 0
+  let cheminEnvoye = ""
+  let entetes: Record<string, string> = {}
+
+  class FauxXHR {
+    status = 201
+    responseText = JSON.stringify({ url: `/media/${attendue}` })
+    upload = { onprogress: null as unknown }
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    open(_m: string, chemin: string) {
+      cheminEnvoye = chemin
+    }
+    setRequestHeader(nom: string, valeur: string) {
+      entetes[nom] = valeur
+    }
+    send() {
+      envois += 1
+      this.onload?.()
+    }
+  }
+
+  globalThis.XMLHttpRequest = FauxXHR as never
+
+  const client = new RazziaSocket()
+  client.configurer("client-media")
+
+  // 1. Le fichier est déjà là : HEAD répond 200.
+  globalThis.fetch = async () => ({ ok: true, status: 200 })
+
+  const dejaLa = await client.televerserMedia(
+    new File([octets], "image.webp", { type: "image/webp" }),
+  )
+
+  verifier(
+    "un fichier déjà stocké rend l'adresse de son empreinte",
+    dejaLa === `/media/${attendue}`,
+    dejaLa,
+  )
+  verifier("sans envoyer un octet", envois === 0, `${envois} envoi(s)`)
+
+  // 2. Absent : HEAD répond 404, et là seulement on envoie.
+  globalThis.fetch = async () => ({ ok: false, status: 404 })
+  entetes = {}
+
+  const envoye = await client.televerserMedia(
+    new File([octets], "image.webp", { type: "image/webp" }),
+  )
+
+  verifier("un fichier absent est envoyé", envois === 1)
+  verifier(
+    "à l'adresse de son empreinte",
+    cheminEnvoye === `/api/media/${attendue}`,
+    cheminEnvoye,
+  )
+  verifier("avec son type", entetes["content-type"] === "image/webp")
+  verifier("et rend son adresse", envoye === `/media/${attendue}`)
+
+  globalThis.fetch = vraiFetch
+  globalThis.XMLHttpRequest = vraiXHR
+}
+
 globalThis.setTimeout = vraiSetTimeout
 
 console.log(`\n${passes} vérifications passées, ${echecs} échec(s)`)

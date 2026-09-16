@@ -38,7 +38,10 @@
     "unknownKey": "Unbekannter Schlüssel"
   },
   "media": {
+    "base64": "Unlesbarer eingebetteter Inhalt: die Quiz-Datei ist beschädigt",
+    "empreinte": "Ungültiger Datei-Fingerabdruck",
     "envoi": "Der Datei-Upload ist fehlgeschlagen",
+    "introuvable": "Datei auf dem Server nicht gefunden",
     "plafond": "Der Medienspeicher ist voll (8 GB). Eine Datei wird automatisch 24 Stunden, nachdem kein Quiz sie mehr nutzt, gelöscht.",
     "signature": "Der Dateiinhalt passt nicht zum Dateityp",
     "tailleInconnue": "Unbekannte Dateigröße: Upload abgelehnt",
@@ -57,6 +60,8 @@
     "failedToUpdate": "Quiz konnte nicht aktualisiert werden",
     "groupeSansQuestion": "Eine Ausscheidungsgruppe braucht mindestens eine Frage, nicht nur Folien",
     "invalidMediaUrl": "Die Medien-URL muss eine gültige URL sein",
+    "jsonInvalide": "Unlesbare JSON-Datei",
+    "mediaBase64": "Dieses Quiz enthält eine als base64 eingebettete Datei: Nutze die Import-Schaltfläche im Quiz-Bildschirm, die sie richtig ablegt.",
     "noQuestions": "Ein Quiz muss mindestens eine Frage haben",
     "noSolution": "Eine Frage braucht mindestens eine richtige Antwort",
     "notFound": "Quiz nicht gefunden",

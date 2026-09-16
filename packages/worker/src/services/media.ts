@@ -208,8 +208,15 @@ export const reserverMedia = (
 ) =>
   db
     .prepare(
+      // ON CONFLICT : une tentative précédente a pu laisser la ligne
+      // incomplète — même fichier, même empreinte, donc même clé. On la
+      // reprend plutôt que d'échouer sur la clé primaire.
       `INSERT INTO media (cle, mime, genre, taille, complet, created_at)
-       VALUES (?, ?, ?, ?, 0, ?)`,
+       VALUES (?, ?, ?, ?, 0, ?)
+       ON CONFLICT(cle) DO UPDATE SET
+         mime = excluded.mime, genre = excluded.genre,
+         taille = excluded.taille, complet = 0,
+         created_at = excluded.created_at`,
     )
     .bind(cle, mime, genre, taille, Date.now())
     .run()

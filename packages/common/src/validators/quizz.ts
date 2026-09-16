@@ -17,8 +17,22 @@ import { z } from "zod"
  * pas pour autant la porte à n'importe quel chemin : seule la forme exacte
  * d'un média local passe, et rien de ce qui ressemble à `/media/../`.
  */
+// Une adresse `data:` porte le fichier lui-même, en base64.
+//
+// C'EST LE FORMAT D'ÉCHANGE, JAMAIS CELUI DU STOCKAGE. Un export inline les
+// fichiers pour tenir dans un seul document, et l'import les renvoie dans R2
+// AVANT d'enregistrer : le navigateur s'en charge, parce que le Worker ne le
+// peut pas — dix millisecondes de processeur par requête, et une ligne D1
+// plafonnée à 2 Mo, quand une image de 2 Mo en pèse 2,7 une fois encodée.
+//
+// Refusé ici, donc, sinon un JSON écrit à la main remettrait du base64 en
+// base : la ligne du quiz gonflerait, et chaque partie la relirait en entier
+// alors que tout le dispositif de cache existe pour l'éviter.
+const RE_DATA = /^data:/i
+
 export const urlDeMediaValidator = z
   .string()
+  .refine((valeur) => !RE_DATA.test(valeur), "errors:quizz.mediaBase64")
   .refine(
     (valeur) => RE_URL_MEDIA.test(valeur) || z.url().safeParse(valeur).success,
     "errors:quizz.invalidMediaUrl",
@@ -50,11 +64,16 @@ export const questionMediaValidator = z
       return
     }
 
-    if (!urlDeMediaValidator.safeParse(media.url ?? "").success) {
+    // Le message d'origine est repris tel quel : « adresse invalide » sur une
+    // adresse `data:` n'apprendrait rien, alors que le vrai motif dit quoi
+    // faire — importer par l'écran des quiz, qui convertit les fichiers.
+    const verdict = urlDeMediaValidator.safeParse(media.url ?? "")
+
+    if (!verdict.success) {
       ctx.addIssue({
         code: "custom",
         path: ["url"],
-        message: "errors:quizz.invalidMediaUrl",
+        message: verdict.error.issues[0].message,
       })
     }
   })

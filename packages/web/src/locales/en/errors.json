@@ -38,7 +38,10 @@
     "unknownKey": "Unknown key"
   },
   "media": {
+    "base64": "Unreadable inlined content: the quiz file is damaged",
+    "empreinte": "Invalid file fingerprint",
     "envoi": "File upload failed",
+    "introuvable": "File not found on the server",
     "plafond": "Media storage is full (8 GB). A media file is removed automatically 24 hours after no quiz uses it any more.",
     "signature": "The file content doesn't match its type",
     "tailleInconnue": "Unknown file size: upload refused",
@@ -57,6 +60,8 @@
     "failedToUpdate": "Failed to update quizz",
     "groupeSansQuestion": "An elimination group needs at least one question, not only slides",
     "invalidMediaUrl": "Media URL must be a valid URL",
+    "jsonInvalide": "Unreadable JSON file",
+    "mediaBase64": "This quiz carries a file inlined as base64: use the import button on the quizzes screen, which stores it properly.",
     "noQuestions": "A quizz must have at least one question",
     "noSolution": "A question needs at least one correct answer",
     "notFound": "Quizz not found",

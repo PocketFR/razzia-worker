@@ -189,7 +189,12 @@ describe("suppression d'un interlude", () => {
     const user = monter()
 
     await user.click(screen.getByLabelText("Supprimer l'interlude"))
-    await user.click(screen.getByText("Supprimer"))
+    // `findByText` et non `getByText` : la boîte de confirmation s'ouvre dans
+    // un portail, et sur un runner de CI chargé elle n'était pas encore là à
+    // l'instant du clic suivant — un échec isolé, passé à la relance, jamais
+    // reproduit en local. Attendre son apparition ne masque rien : si elle ne
+    // s'ouvre pas du tout, le test échoue quand même, au bout d'une seconde.
+    await user.click(await screen.findByText("Supprimer"))
 
     expect(screen.queryByText("Mort subite")).toBeNull()
     expect(screen.queryByText("Dans le groupe")).toBeNull()

@@ -38,7 +38,10 @@
     "unknownKey": "Clé inconnue"
   },
   "media": {
+    "base64": "Contenu inclus illisible : le fichier du quiz est abîmé",
+    "empreinte": "Empreinte de fichier invalide",
     "envoi": "L'envoi du fichier a échoué",
+    "introuvable": "Fichier introuvable sur le serveur",
     "plafond": "L'espace des médias est plein (8 Go). Un média est supprimé automatiquement 24 h après que plus aucun quiz ne l'utilise.",
     "signature": "Le contenu du fichier ne correspond pas à son type",
     "tailleInconnue": "Taille du fichier inconnue : l'envoi est refusé",
@@ -57,6 +60,8 @@
     "failedToUpdate": "La mise à jour du quiz a echoué",
     "groupeSansQuestion": "Un groupe à élimination doit contenir au moins une question, pas seulement des diapos",
     "invalidMediaUrl": "L'URL du média doit être une URL valide",
+    "jsonInvalide": "Fichier JSON illisible",
+    "mediaBase64": "Ce quiz porte un fichier inclus en base64 : passe par le bouton d'import de l'écran des quiz, qui le range dans le stockage.",
     "noQuestions": "Un quiz doit avoir au moins une question",
     "noSolution": "Une question doit avoir au moins une bonne réponse",
     "notFound": "Quiz introuvable",

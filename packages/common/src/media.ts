@@ -11,18 +11,29 @@
 // ce qui autorise un cache immuable d'un an : une adresse ne change jamais de
 // contenu, un fichier remplacé en reçoit une nouvelle.
 
-const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+// LA CLÉ EST L'EMPREINTE DU CONTENU — SHA-256 en hexadécimal.
+//
+// Deux fois le même fichier donnent donc la même adresse : le dédoublonnage
+// est acquis sans table ni recherche, et un quiz réimporté ne coûte ni
+// transfert ni place. C'est aussi ce qui justifie le cache d'un an : une
+// adresse ne peut pas changer de contenu, puisque le contenu la nomme.
+//
+// Le serveur ne recalcule pas cette empreinte — il reçoit le fichier en flux
+// et ne peut pas le condenser sans le tenir entier en mémoire. Il refuse donc
+// d'ÉCRASER une clé existante : au pire, un client fautif range un fichier
+// sous un nom qui ne lui correspond pas, jamais sous celui d'un autre.
+const CLE = "[0-9a-f]{64}"
 
-export const RE_CLE_MEDIA = new RegExp(`^${UUID}$`)
+export const RE_CLE_MEDIA = new RegExp(`^${CLE}$`)
 
 /** L'adresse exacte d'un média téléversé, sans rien avant ni après. */
-export const RE_URL_MEDIA = new RegExp(`^/media/(${UUID})$`)
+export const RE_URL_MEDIA = new RegExp(`^/media/(${CLE})$`)
 
 // Toutes les occurrences, où qu'elles soient dans un texte. Sert au
 // ramassage : il cherche dans le JSON brut d'un quiz plutôt que dans des
 // champs nommés, pour qu'un champ ajouté plus tard compte d'office comme
 // référence — l'oubli d'un champ supprimerait un fichier encore utilisé.
-const RE_URL_MEDIA_PARTOUT = new RegExp(`/media/(${UUID})`, "g")
+const RE_URL_MEDIA_PARTOUT = new RegExp(`/media/(${CLE})`, "g")
 
 export const cleDuMedia = (url?: string | null): string | null =>
   RE_URL_MEDIA.exec(url ?? "")?.[1] ?? null

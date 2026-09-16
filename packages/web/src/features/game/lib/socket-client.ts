@@ -15,6 +15,7 @@
 // création par l'animateur, PIN résolu côté joueur, ou reconnexion explicite.
 
 import { BATTEMENT, EVENTS } from "@razzia/common/constants"
+import { empreinteDuFichier } from "@razzia/common/echange"
 import { mediasReferences, urlDuMediaLocal } from "@razzia/common/media"
 import type { Fournisseur } from "@razzia/common/musique"
 
@@ -499,24 +500,42 @@ export class RazziaSocket {
   }
 
   /**
-   * Téléverse un fichier de quiz. Rend son adresse, `/media/<uuid>`.
+   * Téléverse un fichier de quiz. Rend son adresse, `/media/<empreinte>`.
    *
-   * EN XHR ET NON EN `fetch` : `fetch` ne dit rien de l'avancement d'un
-   * envoi, et une vidéo de 25 Mo sur la connexion d'une salle mérite une
-   * barre de progression plutôt qu'un bouton figé.
+   * L'ADRESSE EST L'EMPREINTE DU CONTENU. Deux fois le même fichier donnent
+   * donc la même, et une requête `HEAD` — servie par le cache, sans réveiller
+   * le Worker — suffit à savoir qu'il est déjà là : réimporter un quiz ne
+   * renvoie alors pas un octet.
+   *
+   * EN XHR ET NON EN `fetch` : `fetch` ne dit rien de l'avancement d'un envoi,
+   * et une vidéo de 25 Mo sur la connexion d'une salle mérite une barre de
+   * progression plutôt qu'un bouton figé.
    *
    * Le corps part en binaire, avec son type et sa taille dans les en-têtes :
    * le serveur refuse avant de recevoir ce qui ne passerait pas — un type
    * refusé, un fichier trop gros, un plafond atteint.
    */
-  televerserMedia(
+  async televerserMedia(
     fichier: File,
     progression?: (_fraction: number) => void,
   ): Promise<string> {
+    const octets = new Uint8Array(await fichier.arrayBuffer())
+    const adresse = urlDuMediaLocal(await empreinteDuFichier(octets))
+
+    const deja = await fetch(adresse, { method: "HEAD" })
+      .then((r) => r.ok)
+      .catch(() => false)
+
+    if (deja) {
+      progression?.(1)
+
+      return adresse
+    }
+
     return new Promise((resoudre, rejeter) => {
       const xhr = new XMLHttpRequest()
 
-      xhr.open("PUT", "/api/media")
+      xhr.open("PUT", `/api${adresse}`)
       xhr.setRequestHeader("content-type", fichier.type)
 
       const { jeton } = this
@@ -544,7 +563,7 @@ export class RazziaSocket {
           this.local(EVENTS.MANAGER.UNAUTHORIZED)
         }
 
-        if (xhr.status === 201 && corps.url) {
+        if (xhr.status < 300 && corps.url) {
           resoudre(corps.url)
 
           return

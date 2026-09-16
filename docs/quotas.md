@@ -329,6 +329,41 @@ Les largeurs sont **fixes** (640, 1280, 1920, 2560) : chaque largeur distincte
 compte pour une transformation, et des largeurs libres laisseraient n'importe
 qui en inventer. « Resize images from any origin » reste désactivé.
 
+### L'adresse d'un fichier est son empreinte
+
+La clé d'un média est le **SHA-256 de son contenu**, calculé par le navigateur.
+Trois conséquences, gratuites :
+
+- **le même fichier n'est jamais stocké deux fois** : deux téléversements
+  identiques donnent la même adresse, sans table ni recherche ;
+- **réimporter un quiz ne coûte rien** : le navigateur demande l'adresse en
+  `HEAD`, servie par le cache, et n'envoie que ce qui manque ;
+- **le cache d'un an est justifié** : une adresse ne peut pas changer de
+  contenu, puisque le contenu la nomme.
+
+Le serveur, lui, ne recalcule pas cette empreinte — il reçoit le fichier en
+flux et ne peut pas le condenser sans le tenir entier en mémoire. Il **refuse
+donc d'écraser une clé déjà prise** : au pire, un client fautif range un
+fichier sous un nom qui ne lui correspond pas, jamais sous celui d'un autre.
+
+### L'export emporte les fichiers
+
+Un quiz exporté doit rester **un seul document**, y compris sur une autre
+installation où `/media/<empreinte>` ne désigne rien. Les fichiers y voyagent
+donc inlinés en `data:`, ce qui gonfle de 33 % et reste lisible par
+l'application dont ce projet est issu.
+
+Tout se fait **dans le navigateur**, jamais dans le Worker : dix millisecondes
+de processeur par requête, et une ligne D1 plafonnée à 2 Mo, quand une image de
+2 Mo en pèse 2,7 une fois encodée. Une adresse `data:` est d'ailleurs refusée à
+l'enregistrement, pour qu'un fichier écrit à la main ne puisse pas gonfler la
+ligne d'un quiz.
+
+**L'import est partiel, par choix.** Un fichier refusé — trop gros, type non
+accepté, plafond atteint — fait perdre son média à sa question, jamais le quiz :
+on préfère un quiz à retravailler dans l'éditeur à pas de quiz du tout. Ce qui
+manque est listé à l'écran, sans quoi le trou ne se découvrirait qu'en soirée.
+
 ### Le ramassage
 
 Le cron quotidien supprime les médias qu'**aucun quiz** ne cite depuis plus de

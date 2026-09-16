@@ -41,7 +41,8 @@ const verifier = (nom: string, ok: boolean, detail = "") => {
   }
 }
 
-const UUID = "0199a1b2-c3d4-4e5f-8a9b-0123456789ab"
+/** Une clé de média : l'empreinte de son contenu, 64 caractères hexadécimaux. */
+const CLE = "a".repeat(64)
 
 const question = (q: string, extra: Record<string, unknown> = {}) => ({
   type: QUESTION_TYPES.SINGLE,
@@ -115,15 +116,18 @@ verifier(
 
 verifier(
   "un média téléversé /media/<uuid> est accepté",
-  valide([question("Q", { media: { type: "image", url: `/media/${UUID}` } })])
+  valide([question("Q", { media: { type: "image", url: `/media/${CLE}` } })])
     .success,
 )
 
 for (const url of [
   `/media/../api/manager/config`,
-  `/media/${UUID}?x=1`,
-  `/autre/${UUID}`,
-  `/media/pas-un-uuid`,
+  `/media/${CLE}?x=1`,
+  `/autre/${CLE}`,
+  `/media/pas-une-empreinte`,
+  // L'identifiant tiré au hasard des tout premiers médias : ce n'est pas une
+  // empreinte, et plus rien n'en crée.
+  "/media/0199a1b2-c3d4-4e5f-8a9b-0123456789ab",
 ]) {
   verifier(
     `une adresse relative détournée est refusée : ${url}`,
@@ -160,7 +164,7 @@ verifier(
 
 verifier(
   "un fond téléversé est accepté",
-  valide([question("Q", { fond: `/media/${UUID}` })]).success,
+  valide([question("Q", { fond: `/media/${CLE}` })]).success,
 )
 verifier(
   "un fond mal formé est refusé",
@@ -182,7 +186,7 @@ console.log("=== déroulé ===")
 
 const quiz = [
   diapo("Bienvenue", {
-    fond: `/media/${UUID}`,
+    fond: `/media/${CLE}`,
     media: { type: "texte", texte: "Salut" },
   }),
   question("Q1"),
@@ -226,7 +230,7 @@ verifier(
 )
 verifier(
   "et l'avancement porte le fond de l'étape",
-  surDiapo.fond === `/media/${UUID}`,
+  surDiapo.fond === `/media/${CLE}`,
 )
 
 // ── Machine à états ────────────────────────────────────────────────────────
@@ -290,7 +294,7 @@ const faireEmetteur = (journal: string[]): Emetteur =>
         l.startsWith("statut:SHOW_SLIDE") &&
         l.includes("Bienvenue") &&
         l.includes("Salut") &&
-        l.includes(UUID),
+        l.includes(CLE),
     ),
   )
   verifier(

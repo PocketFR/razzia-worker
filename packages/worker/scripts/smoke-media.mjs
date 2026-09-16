@@ -17,7 +17,7 @@
 //   4. UNE MANCHE AVEC DIAPOS sur de vraies WebSockets : l'écran de chacun, le
 //      compteur masqué, et la diapo finale qui mène au podium.
 
-import { createHash } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
 import { readFileSync } from "node:fs"
 
 const base = process.argv[2] ?? "http://localhost:8787"
@@ -41,6 +41,10 @@ const verifier = (nom, condition, detail = "") => {
 const pause = (ms) => new Promise((r) => setTimeout(r, ms))
 const empreinte = (octets) => createHash("sha256").update(octets).digest("hex")
 
+// Deux fichiers différents à partir du même : la signature ne regarde que
+// l'en-tête, la queue peut donc changer — et l'empreinte avec elle.
+const autreContenu = (octets, n) => Buffer.concat([octets, Buffer.alloc(16, n)])
+
 const auth = await fetch(`${base}/api/manager/auth`, {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -50,8 +54,10 @@ const auth = await fetch(`${base}/api/manager/auth`, {
 const jeton = { authorization: `Bearer ${auth.token}` }
 const entetes = { ...jeton, "content-type": "application/json" }
 
-const envoyer = (octets, mime, avecJeton = true) =>
-  fetch(`${base}/api/media`, {
+// LA CLÉ EST L'EMPREINTE DU CONTENU : c'est le client qui la calcule, et
+// c'est elle qui donne l'adresse publique du fichier.
+const envoyer = (octets, mime, avecJeton = true, cle) =>
+  fetch(`${base}/api/media/${cle ?? empreinte(octets)}`, {
     method: "PUT",
     headers: { ...(avecJeton ? jeton : {}), "content-type": mime },
     body: octets,
@@ -65,9 +71,16 @@ const occupation = () =>
 // ── 1. Envoi et relecture ──────────────────────────────────────────────────
 console.log("— envoi et relecture")
 
-const image = readFileSync(
-  new URL("../../web/public/branding/background-1280.webp", import.meta.url),
-)
+// Une vraie image, rendue UNIQUE à chaque exécution : l'adresse d'un média
+// étant l'empreinte de son contenu, la même image serait déjà stockée depuis
+// la fois précédente, et le premier envoi répondrait « déjà là ». La signature
+// ne regarde que l'en-tête : quelques octets ajoutés à la fin ne la gênent pas.
+const image = Buffer.concat([
+  readFileSync(
+    new URL("../../web/public/branding/background-1280.webp", import.meta.url),
+  ),
+  randomBytes(16),
+])
 const occupeAvant = await occupation()
 const envoi = await envoyer(image, "image/webp")
 const { url: urlImage } = await envoi.json()
@@ -78,8 +91,8 @@ verifier(
   `${envoi.status}`,
 )
 verifier(
-  "son adresse est un média local",
-  /^\/media\/[0-9a-f-]{36}$/.test(urlImage ?? ""),
+  "son adresse est l'empreinte de son contenu",
+  urlImage === `/media/${empreinte(image)}`,
   urlImage,
 )
 verifier(
@@ -132,6 +145,50 @@ verifier(
   "un 404 n'est jamais mis en cache",
   inconnue.headers.get("cache-control") === "no-store",
 )
+
+// ── 1 bis. Le même fichier ne se stocke pas deux fois ─────────────────────
+console.log("— dédoublonnage")
+
+{
+  const occupeAvantBis = await occupation()
+  const rejoue = await envoyer(image, "image/webp")
+
+  verifier(
+    "renvoyer le même fichier rend la même adresse",
+    (await rejoue.json()).url === urlImage,
+  )
+  verifier("sans créer un second stockage", rejoue.status === 200)
+  verifier(
+    "et sans occuper de place en plus",
+    (await occupation()) === occupeAvantBis,
+  )
+
+  // LE POINT DE SÛRETÉ : la clé vient du client, le serveur ne peut pas la
+  // recalculer sur un flux. Il ne doit donc JAMAIS écraser une clé prise,
+  // sinon un envoi fautif remplacerait le fichier d'un autre quiz.
+  const autre = autreContenu(image, 7)
+  const usurpation = await envoyer(autre, "image/webp", true, empreinte(image))
+
+  verifier("une clé déjà prise n'est pas écrasée", usurpation.status === 200)
+
+  const apres = Buffer.from(
+    await (await fetch(`${base}${urlImage}`)).arrayBuffer(),
+  )
+
+  verifier(
+    "le fichier d'origine est intact",
+    empreinte(apres) === empreinte(image),
+  )
+
+  const malFormee = await envoyer(
+    image,
+    "image/webp",
+    true,
+    "pas-une-empreinte",
+  )
+
+  verifier("une clé mal formée est refusée", malFormee.status === 400)
+}
 
 // ── 2. Refus ───────────────────────────────────────────────────────────────
 console.log("— refus")
@@ -203,9 +260,17 @@ verifier(
 // ── 4. Ramassage ───────────────────────────────────────────────────────────
 console.log("— ramassage")
 
-const cite = (await (await envoyer(image, "image/webp")).json()).url
-const oublie = (await (await envoyer(image, "image/webp")).json()).url
-const recent = (await (await envoyer(image, "image/webp")).json()).url
+// Trois contenus DIFFÉRENTS : même fichier voudrait dire même clé, et les
+// trois cas du ramassage n'en feraient qu'un.
+const cite = (
+  await (await envoyer(autreContenu(image, 1), "image/webp")).json()
+).url
+const oublie = (
+  await (await envoyer(autreContenu(image, 2), "image/webp")).json()
+).url
+const recent = (
+  await (await envoyer(autreContenu(image, 3), "image/webp")).json()
+).url
 
 const diapo = (titre, media) => ({
   type: "diapo",
@@ -268,6 +333,35 @@ verifier(
   "un média récent non cité survit : son quiz n'est peut-être pas enregistré",
   (await fetch(`${base}${recent}`)).status === 200,
 )
+
+// ── 4 bis. Le base64 ne s'enregistre pas ──────────────────────────────────
+//
+// L'import convertit les fichiers dans le navigateur AVANT d'enregistrer. Un
+// quiz qui arriverait encore avec du base64 gonflerait sa ligne — plafonnée à
+// 2 Mo — et serait relu en entier à chaque partie.
+console.log("— refus du base64 en base")
+
+{
+  const refus = await fetch(`${base}/api/quizz`, {
+    method: "POST",
+    headers: entetes,
+    body: JSON.stringify({
+      subject: "Base64",
+      questions: [
+        {
+          ...question("Q"),
+          media: { type: "image", url: "data:image/png;base64,iVBORw0KGgo=" },
+        },
+      ],
+    }),
+  })
+
+  verifier("un quiz avec du base64 est refusé", refus.status === 400)
+  verifier(
+    "en disant quoi faire",
+    (await refus.json()).error === "errors:quizz.mediaBase64",
+  )
+}
 
 // ── 5. Une manche avec diapos ──────────────────────────────────────────────
 console.log("— manche avec diapos")

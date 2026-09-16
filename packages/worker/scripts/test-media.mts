@@ -43,8 +43,10 @@ const verifier = (nom: string, ok: boolean, detail = "") => {
   }
 }
 
-const cle = (n: number) =>
-  `0199a1b2-c3d4-4e5f-8a9b-${String(n).padStart(12, "0")}`
+// Une clé de média EST l'empreinte SHA-256 de son contenu : 64 caractères
+// hexadécimaux. Ces valeurs n'ont pas à être de vraies empreintes, seulement
+// à en avoir la forme.
+const cle = (n: number) => String(n).padStart(64, "0")
 
 // ── Références ─────────────────────────────────────────────────────────────
 console.log("=== références ===")

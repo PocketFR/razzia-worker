@@ -58,13 +58,18 @@ import { CHEMIN_ETAT } from "./game-room"
 import {
   confirmerMedia,
   examinerEnvoi,
+  lireMedia,
   occupationMedias,
   oublierMedia,
   reserverMedia,
   verifierLaSignature,
   type RefusDEnvoi,
 } from "./services/media"
-import { PLAFOND_STOCKAGE_MEDIA, urlDuMediaLocal } from "@razzia/common/media"
+import {
+  PLAFOND_STOCKAGE_MEDIA,
+  RE_CLE_MEDIA,
+  urlDuMediaLocal,
+} from "@razzia/common/media"
 import { creerJeton, jetonDeLaRequete, jetonValide } from "./services/session"
 import type { Env } from "./index"
 
@@ -666,15 +671,43 @@ export async function routerApi(
   // recevoir quoi que ce soit : le plafond et la taille maximale ne doivent pas
   // se découvrir après avoir écrit dans R2. `FixedLengthStream` tient ensuite
   // la taille annoncée pour vraie — un corps plus long ou plus court échoue.
-  if (section === "media" && !reste[0]) {
-    if (methode === "GET") {
-      return json({
-        occupe: await occupationMedias(env.DB),
-        plafond: PLAFOND_STOCKAGE_MEDIA,
-      })
+  if (section === "media" && !reste[0] && methode === "GET") {
+    return json({
+      occupe: await occupationMedias(env.DB),
+      plafond: PLAFOND_STOCKAGE_MEDIA,
+    })
+  }
+
+  if (section === "media" && methode === "PUT") {
+    // LA CLÉ EST L'EMPREINTE DU CONTENU, calculée par le navigateur : deux
+    // fois le même fichier donnent la même adresse, et le dédoublonnage ne
+    // demande ni table ni recherche.
+    const cle = reste[0] ?? ""
+
+    if (!RE_CLE_MEDIA.test(cle)) {
+      return erreur("errors:media.empreinte", 400)
     }
 
-    if (methode === "PUT") {
+    {
+      // DÉJÀ LÀ : ON NE RÉÉCRIT JAMAIS. Le serveur ne peut pas recalculer
+      // l'empreinte d'un fichier reçu en flux ; refuser l'écrasement est ce
+      // qui empêche un client fautif de remplacer le fichier d'un autre quiz.
+      const existant = await lireMedia(env.DB, cle)
+
+      if (existant?.complet) {
+        // Le corps n'est ni lu ni annulé : l'annuler coupe une requête encore
+        // en réception — ce qui a fait tomber le serveur de développement — et
+        // le client n'aurait jamais vu la réponse. Le navigateur, lui, demande
+        // d'abord par HEAD : il n'envoie normalement rien à jeter.
+        return json({
+          url: urlDuMediaLocal(cle),
+          mime: existant.mime,
+          taille: existant.taille,
+        })
+      }
+    }
+
+    {
       const mime = (request.headers.get("content-type") ?? "")
         .split(";")[0]
         .trim()
@@ -690,7 +723,6 @@ export async function routerApi(
         return erreur("errors:media.tailleInconnue", 411)
       }
 
-      const cle = crypto.randomUUID()
       const signature = verifierLaSignature(mime)
 
       // La ligne AVANT l'objet : un envoi interrompu laisse une ligne

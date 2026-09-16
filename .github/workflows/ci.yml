@@ -63,6 +63,7 @@ jobs:
           npx tsx scripts/test-diapos.mts
           npx tsx scripts/test-media.mts
           npx tsx scripts/test-branding-version.mts
+          npx tsx scripts/test-echange.mts
 
       # L'éditeur monté dans jsdom et cliqué. Ce panneau m'a échappé trois fois
       # de suite : un typecheck vert n'y prouve rien, seul un clic le fait.
