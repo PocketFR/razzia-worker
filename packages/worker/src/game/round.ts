@@ -33,6 +33,7 @@ import {
   MAX_POINTS,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
+  QUESTION_TYPES,
 } from "@razzia/common/constants"
 import {
   urlDuMedia,
@@ -534,6 +535,40 @@ const entrerEnonce = (ctx: ContextePartie, em: Emetteur) => {
   em.programmer(ctx.manche.finDePhase)
 }
 
+/**
+ * La graine du mélange d'un classement.
+ *
+ * Les réponses sont saisies DANS LE BON ORDRE : les afficher telles quelles
+ * répondrait à la question. Le serveur tire donc une graine, chaque appareil
+ * en déduit le même ordre (voir `ordreMelange`), et la proposition revient en
+ * indices d'origine — il n'y a aucune permutation à mémoriser ici, ni à
+ * retraduire au dépouillement.
+ *
+ * Elle est rangée dans la manche, et non tirée à chaque envoi : un joueur qui
+ * revient après une coupure doit retrouver SON écran, dans le même ordre que
+ * ses voisins. `crypto.getRandomValues`, comme pour un pari — c'est ce dont
+ * dispose un Worker.
+ */
+const grainePourLeMelange = (
+  ctx: ContextePartie,
+  question: Question,
+): number | undefined => {
+  if (question.type !== QUESTION_TYPES.CLASSEMENT) {
+    return undefined
+  }
+
+  if (ctx.manche.graine === null) {
+    const des = new Uint32Array(1)
+    crypto.getRandomValues(des)
+
+    const [graine] = des
+
+    ctx.manche.graine = graine
+  }
+
+  return ctx.manche.graine
+}
+
 const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
   const { question } = etapeCourante(ctx)
   const duree = dureeDeReponse(question)
@@ -556,6 +591,7 @@ const entrerReponses = (ctx: ContextePartie, em: Emetteur) => {
     totalPlayer: survivants(ctx).length,
     questionType: question.type,
     options: question.options,
+    graine: grainePourLeMelange(ctx, question),
   }
 
   em.statutPourTous(STATUS.SELECT_ANSWER, charge)
@@ -792,6 +828,20 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
       return acc
     }, {})
 
+  // COMBIEN ONT TROUVÉ SANS LA MOINDRE FAUTE, et combien ont répondu. Le
+  // dépouillement par réponse ne dit rien d'un classement — chacune y est
+  // choisie exactement une fois par joueur, les barres seraient toutes
+  // égales — alors que ce compte-là se commente à voix haute.
+  //
+  // Le barème repasse sur les réponses plutôt que de compter dans la boucle
+  // qui suit : celle-ci parcourt les JOUEURS, éliminés compris, et mélanger
+  // les deux ferait dépendre le compte de qui était en lice.
+  const repondants = ctx.manche.reponses.length
+  const sansFaute = ctx.manche.reponses.filter(
+    ({ answerIds }) =>
+      QUESTION_SCORING[question.type](question, answerIds) === 1,
+  ).length
+
   const classes = ctx.players
     .map((joueur) => {
       /*
@@ -928,6 +978,8 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
         ...question,
         questionType: question.type,
         responses: comptes,
+        sansFaute,
+        repondants,
       })
     }
   } else {
@@ -935,6 +987,8 @@ export const montrerResultats = (ctx: ContextePartie, em: Emetteur) => {
       ...question,
       questionType: question.type,
       responses: comptes,
+      sansFaute,
+      repondants,
     })
   }
 

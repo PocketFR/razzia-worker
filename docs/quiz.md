@@ -74,7 +74,8 @@ autre.
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `subject`   | Le titre du quiz.                                                                                                                                              |
 | `question`  | L'énoncé.                                                                                                                                                      |
-| `answers`   | De 2 à 4 réponses.                                                                                                                                             |
+| `type`      | `single` (défaut), `multi`, `classement`, `diapo`, ou un pari — `rouge-noir`, `bonneteau`, `pmu`.                                                              |
+| `answers`   | De 2 à 4 réponses, jusqu'à 8 pour un `classement`.                                                                                                             |
 | `solutions` | Les index des bonnes réponses, à partir de 0. Plusieurs valeurs pour une question à réponses multiples.                                                        |
 | `media`     | Facultatif. `type` vaut `image`, `video` ou `audio` ; `url` porte l'adresse.                                                                                   |
 | `cooldown`  | Secondes d'affichage de l'énoncé avant les réponses (3 à 15).                                                                                                  |
@@ -83,6 +84,37 @@ autre.
 | `penalty`   | Points retirés à une mauvaise réponse. Aucune par défaut ; le total d'un joueur ne descend jamais sous zéro, et une question sans réponse n'est pas pénalisée. |
 
 L'`id` est attribué à l'enregistrement, il n'a pas à figurer dans le fichier.
+
+## Le classement
+
+`"type": "classement"` : les joueurs rangent les réponses dans l'ordre plutôt
+que d'en choisir une — « classez ces chansons par ordre de sortie ». Ils
+déplacent une colonne au doigt, à la souris ou aux flèches du clavier.
+
+**Les réponses se saisissent dans le bon ordre, et c'est lui la bonne
+réponse** : `solutions` est déduit à l'enregistrement et vaut `[0, 1, 2, …]`.
+Rien à cocher dans l'éditeur. À l'écran, l'ordre est mélangé — le serveur
+diffuse une graine, chaque appareil en déduit le même ordre, et jamais celui
+du quiz.
+
+Le barème note les **paires** : deux éléments sont dans le bon ordre l'un par
+rapport à l'autre, ou non. Les trois réglages sont ceux d'une question à choix
+multiple :
+
+| Mode      | Ce qui est compté                                             |
+| --------- | ------------------------------------------------------------- |
+| Strict    | L'ordre exact, ou rien.                                       |
+| Équilibré | Les paires bien ordonnées moins les mal ordonnées. Le défaut. |
+| Indulgent | Les paires bien ordonnées.                                    |
+
+Sur quatre éléments, échanger deux voisins coûte une paire sur six ; une liste
+tournée d'un cran, qui n'a plus aucun élément à sa place, garde la moitié de
+ses paires.
+
+L'écran des résultats montre le bon ordre et **combien de joueurs l'ont trouvé
+sans la moindre faute**, sur le nombre de réponses reçues — les barres du
+dépouillement ordinaire n'auraient rien à dire, chaque réponse étant choisie
+une fois par chaque joueur.
 
 ## Les morceaux
 

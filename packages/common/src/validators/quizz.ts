@@ -2,6 +2,8 @@ import {
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   QUESTION_TYPES,
+  maxReponses,
+  MAX_REPONSES_CLASSEMENT,
   SCORING_MODES,
   TYPE_GROUPE,
 } from "@razzia/common/constants"
@@ -119,6 +121,25 @@ const questionValidator = z
         }
       }
 
+      // L'ordre de saisie d'un classement EST sa bonne réponse : les
+      // solutions ne se cochent pas, elles se déduisent. Les écrire ici plutôt
+      // que de les exiger du client garde le document lisible par l'amont — un
+      // classement y ressemble à un choix multiple dont toutes les réponses
+      // sont bonnes — et interdit qu'une solution mal formée arrive en base.
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        (data as Record<string, unknown>).type === QUESTION_TYPES.CLASSEMENT &&
+        Array.isArray((data as { answers?: unknown }).answers)
+      ) {
+        const { answers } = data as { answers: unknown[] }
+
+        return {
+          ...(data as Record<string, unknown>),
+          solutions: answers.map((_, index) => index),
+        }
+      }
+
       return data
     },
     z.object({
@@ -127,9 +148,13 @@ const questionValidator = z
       media: questionMediaValidator.optional(),
       // Le minimum de deux réponses dépend du type — une diapo n'en a aucune —
       // et se pose donc plus bas.
+      // Le plafond dépend du type — huit pour un classement, quatre pour le
+      // reste — et se pose donc plus bas, avec le minimum. Ici, seule la
+      // borne absolue, pour qu'un tableau démesuré ne traverse pas le reste
+      // de la validation.
       answers: z
         .array(z.string().min(1, "errors:quizz.answerEmpty"))
-        .max(4, "errors:quizz.tooManyAnswers"),
+        .max(MAX_REPONSES_CLASSEMENT, "errors:quizz.tooManyAnswers"),
       // Le tableau peut être VIDE ici : un pari n'a pas de bonne réponse écrite
       // dans le quiz, le serveur la tire au moment de jouer. L'exigence d'au
       // moins une solution reste entière pour les autres types, et se pose plus
@@ -163,6 +188,14 @@ const questionValidator = z
         code: "custom",
         path: ["answers"],
         message: "errors:quizz.tooFewAnswers",
+      })
+    }
+
+    if (answers.length > maxReponses(type)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["answers"],
+        message: "errors:quizz.tooManyAnswers",
       })
     }
 

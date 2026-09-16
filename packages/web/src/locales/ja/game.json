@@ -1,5 +1,12 @@
 {
   "auto": "自動",
+  "classement": {
+    "bonOrdre": "正しい順番",
+    "consigne": "回答を順番に並べてください",
+    "deplacer": "移動",
+    "exacts_other": "{{total}}人中{{count}}人が正しい順番を当てました",
+    "personne": "正しい順番を当てた人はいませんでした"
+  },
   "confirm": "確認",
   "correct": "正解！",
   "eliminated": "この幕間から脱落しました",

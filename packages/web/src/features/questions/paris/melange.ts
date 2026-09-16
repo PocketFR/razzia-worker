@@ -1,4 +1,4 @@
-import { alea } from "@razzia/web/features/questions/paris/alea"
+import { alea } from "@razzia/common/alea"
 
 // Le mélange du bonneteau, construit À REBOURS.
 //

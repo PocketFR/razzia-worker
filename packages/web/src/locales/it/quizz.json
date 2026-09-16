@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "Aggiungi una risposta...",
   "addQuestion": "Aggiungi domanda",
   "answersCountSuffix": " risposte",
+  "classement": {
+    "aide": "Le risposte si inseriscono NELL'ORDINE GIUSTO: è l'ordine la risposta. I giocatori le ricevono mescolate e le riordinano. Fino a 8 elementi."
+  },
   "conversion": {
     "applied": "{{count}} brano/i convertito/i",
     "apply": "Converti {{count}} brano/i",
@@ -122,6 +125,7 @@
   },
   "questionType": {
     "bonneteau": "Scommessa — gioco delle tre carte",
+    "classement": "Classifica",
     "diapo": "Diapositiva",
     "multi": "Scelta multipla",
     "pmu": "Scommessa — corsa di cavalli",

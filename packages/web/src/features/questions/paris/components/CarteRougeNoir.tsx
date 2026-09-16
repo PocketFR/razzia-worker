@@ -3,7 +3,7 @@ import {
   fenetre,
   useHorloge,
 } from "@razzia/web/features/questions/paris/horloge"
-import { alea } from "@razzia/web/features/questions/paris/alea"
+import { alea } from "@razzia/common/alea"
 import { useTranslation } from "react-i18next"
 
 // Rouge ou noir : une carte tirée du sabot, retournée après les mises.

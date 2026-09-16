@@ -4,12 +4,14 @@ import type {
   QuestionType,
   ScoringMode,
 } from "@razzia/common/types/game"
+import * as classement from "@razzia/web/features/questions/classement"
 import * as diapo from "@razzia/web/features/questions/diapo"
 import * as multi from "@razzia/web/features/questions/multi"
 import { entreeDePari } from "@razzia/web/features/questions/paris"
 import * as single from "@razzia/web/features/questions/single"
 import type {
   AnswerComponentProps,
+  ResultsComponentProps,
   SolutionPickerProps,
 } from "@razzia/web/features/questions/types"
 import type { ComponentType } from "react"
@@ -31,6 +33,9 @@ interface QuestionRegistryEntry {
   AnswersEditor?: ComponentType
   ConfigComponent: ComponentType
   SolutionPicker: ComponentType<SolutionPickerProps>
+  // Remplace le dépouillement ordinaire — les barres par réponse — quand il
+  // n'apprend rien. Absent, ce sont les barres qui s'affichent.
+  ResultsComponent?: ComponentType<ResultsComponentProps>
 }
 
 export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
@@ -40,6 +45,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   [QUESTION_TYPES.BONNETEAU]: entreeDePari(QUESTION_TYPES.BONNETEAU),
   [QUESTION_TYPES.PMU]: entreeDePari(QUESTION_TYPES.PMU),
   [QUESTION_TYPES.DIAPO]: diapo,
+  [QUESTION_TYPES.CLASSEMENT]: classement,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

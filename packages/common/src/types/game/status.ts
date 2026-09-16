@@ -79,6 +79,10 @@ export interface CommonStatusDataMap {
     totalPlayer: number
     questionType: QuestionType
     options?: QuestionOptions
+    // La graine du mélange d'un classement : chaque appareil en déduit le
+    // même ordre d'affichage, et le serveur n'a aucune permutation à
+    // mémoriser. Absente pour tous les autres types.
+    graine?: number
     // Vrai pour un joueur écarté d'un interlude. Il voit le même écran que
     // les autres — la question, le décompte, le média — mais ses boutons sont
     // inertes. Le champ n'est posé que sur le statut PERSONNEL des éliminés,
@@ -140,6 +144,10 @@ interface ManagerExtraStatus {
     // Le type sert à l'affichage : un pari dont les choix ne se nomment pas
     // tire ses libellés de son habillage, traduit, et non du quiz.
     questionType: QuestionType
+    // Combien ont répondu sans la moindre faute, sur combien de réponses
+    // reçues. C'est ce qu'un classement affiche à la place des barres.
+    sansFaute: number
+    repondants: number
   }
   SHOW_LEADERBOARD: { oldLeaderboard: Player[]; leaderboard: Player[] }
   // Fin d'un interlude. `survivants` est vide quand tout le monde s'est

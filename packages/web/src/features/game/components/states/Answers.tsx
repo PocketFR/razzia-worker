@@ -31,6 +31,7 @@ const Answers = ({
     totalPlayer,
     questionType,
     options,
+    graine,
     elimine,
   },
 }: Props) => {
@@ -119,6 +120,7 @@ const Answers = ({
         <AnswerComponent
           answers={answers}
           options={options}
+          graine={graine}
           onSubmit={handleSubmit}
           readOnly={!player || Boolean(elimine)}
         />

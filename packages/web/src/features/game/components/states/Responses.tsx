@@ -9,6 +9,7 @@ import {
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { calculatePercentages } from "@razzia/web/features/game/utils/score"
 import CartePiste from "@razzia/web/features/musique/components/CartePiste"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import {
   couleursDuPari,
   HABILLAGES,
@@ -25,7 +26,16 @@ interface Props {
 }
 
 const Responses = ({
-  data: { question, answers, responses, solutions, media, questionType },
+  data: {
+    question,
+    answers,
+    responses,
+    solutions,
+    media,
+    questionType,
+    sansFaute,
+    repondants,
+  },
 }: Props) => {
   const piste = lireUriMusique(urlDuMedia(media))
   const { t } = useTranslation()
@@ -47,6 +57,11 @@ const Responses = ({
   const couleurs = estPari(questionType)
     ? couleursDuPari(questionType)
     : ANSWERS_COLORS
+
+  // Un type peut remplacer le dépouillement ordinaire : sur un classement,
+  // chaque réponse est choisie une fois par joueur et les barres seraient
+  // toutes égales. C'est l'ordre qu'il faut montrer, pas des comptes.
+  const { ResultsComponent } = QUESTION_REGISTRY[questionType]
 
   const [percentages, setPercentages] = useState<Record<string, string>>({})
 
@@ -82,44 +97,57 @@ const Responses = ({
 
         {piste?.id && <CartePiste uri={urlDuMedia(media) ?? ""} />}
 
-        <div
-          className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}
-          style={{ gridTemplateColumns: `repeat(${answers.length}, 1fr)` }}
-        >
-          {libelles.map((_, key) => (
-            <div
-              key={key}
-              className={clsx(
-                "flex flex-col justify-end self-end overflow-hidden rounded-md",
-                couleurs[key],
-              )}
-              style={{ height: percentages[key] }}
-            >
-              <span className="w-full bg-black/10 text-center text-lg font-bold text-white drop-shadow-md">
-                {responses[key] || 0}
-              </span>
-            </div>
-          ))}
-        </div>
+        {ResultsComponent && (
+          <ResultsComponent
+            answers={answers}
+            solutions={solutions}
+            sansFaute={sansFaute}
+            repondants={repondants}
+          />
+        )}
+
+        {!ResultsComponent && (
+          <div
+            className={`mt-8 grid h-40 w-full max-w-3xl gap-4 px-2`}
+            style={{ gridTemplateColumns: `repeat(${answers.length}, 1fr)` }}
+          >
+            {libelles.map((_, key) => (
+              <div
+                key={key}
+                className={clsx(
+                  "flex flex-col justify-end self-end overflow-hidden rounded-md",
+                  couleurs[key],
+                )}
+                style={{ height: percentages[key] }}
+              >
+                <span className="w-full bg-black/10 text-center text-lg font-bold text-white drop-shadow-md">
+                  {responses[key] || 0}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div>
-        <div className="mx-auto mb-4 grid w-full max-w-7xl grid-cols-2 gap-1 rounded-full px-2 text-lg font-bold text-white md:text-xl">
-          {libelles.map((answer, key) => (
-            <AnswerButton
-              key={key}
-              className={clsx(couleurs[key], {
-                // oxlint-disable-next-line typescript/no-unnecessary-condition
-                "opacity-65": responses && !solutions.includes(key),
-              })}
-              label={ANSWERS_LABELS[key]}
-              correct={solutions.includes(key)}
-            >
-              {answer}
-            </AnswerButton>
-          ))}
+      {!ResultsComponent && (
+        <div>
+          <div className="mx-auto mb-4 grid w-full max-w-7xl grid-cols-2 gap-1 rounded-full px-2 text-lg font-bold text-white md:text-xl">
+            {libelles.map((answer, key) => (
+              <AnswerButton
+                key={key}
+                className={clsx(couleurs[key], {
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition
+                  "opacity-65": responses && !solutions.includes(key),
+                })}
+                label={ANSWERS_LABELS[key]}
+                correct={solutions.includes(key)}
+              >
+                {answer}
+              </AnswerButton>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

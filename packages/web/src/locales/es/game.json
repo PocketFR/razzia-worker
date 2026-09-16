@@ -1,5 +1,13 @@
 {
   "auto": "Auto",
+  "classement": {
+    "bonOrdre": "El orden correcto",
+    "consigne": "Ordena las respuestas",
+    "deplacer": "Mover",
+    "exacts_one": "{{count}} jugador de {{total}} acertó el orden exacto",
+    "exacts_other": "{{count}} jugadores de {{total}} acertaron el orden exacto",
+    "personne": "Nadie acertó el orden exacto"
+  },
   "confirm": "Confirmar",
   "correct": "¡Bien!",
   "eliminated": "Estás eliminado de este interludio",

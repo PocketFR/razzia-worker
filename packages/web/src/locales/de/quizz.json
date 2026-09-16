@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "Antwort hinzufügen...",
   "addQuestion": "Frage hinzufügen",
   "answersCountSuffix": " Antworten",
+  "classement": {
+    "aide": "Die Antworten werden IN DER RICHTIGEN REIHENFOLGE eingegeben: Sie ist die Lösung. Die Spielenden erhalten sie gemischt und sortieren sie. Bis zu 8 Einträge."
+  },
   "conversion": {
     "applied": "{{count}} Titel konvertiert",
     "apply": "{{count}} Titel konvertieren",
@@ -122,6 +125,7 @@
   },
   "questionType": {
     "bonneteau": "Wette — Hütchenspiel",
+    "classement": "Rangfolge",
     "diapo": "Folie",
     "multi": "Mehrfachauswahl",
     "pmu": "Wette — Pferderennen",

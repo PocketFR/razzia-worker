@@ -1,4 +1,8 @@
-import { NO_TIME_LIMIT } from "@razzia/common/constants"
+import {
+  maxReponses,
+  NO_TIME_LIMIT,
+  QUESTION_TYPES,
+} from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
 import {
   Select,
@@ -28,6 +32,19 @@ const QuestionEditorConfig = () => {
   const handleTypeChange = (nextType: QuestionType) => {
     const { defaultOptions, choixFiges } = QUESTION_REGISTRY[nextType]
 
+    // LE PLAFOND DE RÉPONSES DÉPEND DU TYPE : huit pour un classement, quatre
+    // pour les autres. Repasser un classement de six éléments en choix unique
+    // laisserait sinon une question que l'éditeur affiche et que
+    // l'enregistrement refuse — on coupe, et le compteur le montre aussitôt.
+    const answers = currentQuestion.answers.slice(0, maxReponses(nextType))
+    // La bonne réponse d'un classement est son ordre de saisie. Elle se déduit
+    // ici comme à l'enregistrement, pour que l'éditeur ne montre jamais autre
+    // chose que ce qui sera enregistré.
+    const rangs = answers.map((_, index) => index)
+    const restantes = currentQuestion.solutions.filter(
+      (solution) => solution < answers.length,
+    )
+
     // Un pari impose ses choix — « Rouge », « Noir » — et n'a pas de solution
     // à désigner : le serveur la tire au moment de jouer. On les installe au
     // changement de type plutôt que de laisser des champs vides.
@@ -37,6 +54,13 @@ const QuestionEditorConfig = () => {
     updateQuestion(currentId, {
       type: nextType,
       options: defaultOptions,
+      answers,
+      solutions:
+        nextType === QUESTION_TYPES.CLASSEMENT
+          ? rangs
+          : restantes.length > 0
+            ? restantes
+            : [0],
       ...(choixFiges
         ? {
             answers: choixFiges.map((_, index) => t(choixFiges[index])),

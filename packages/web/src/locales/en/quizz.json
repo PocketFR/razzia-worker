@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "Add an answer...",
   "addQuestion": "Add question",
   "answersCountSuffix": " answers",
+  "classement": {
+    "aide": "Enter the answers IN THE RIGHT ORDER: that order is the correct answer. Players receive them shuffled and sort them. Up to 8 items."
+  },
   "conversion": {
     "applied": "{{count}} track(s) converted",
     "apply": "Convert {{count}} track(s)",
@@ -122,6 +125,7 @@
   },
   "questionType": {
     "bonneteau": "Bet — three-card monte",
+    "classement": "Ranking",
     "diapo": "Slide",
     "multi": "Multiple choice",
     "pmu": "Bet — horse race",

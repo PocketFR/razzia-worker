@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "回答を追加...",
   "addQuestion": "質問を追加",
   "answersCountSuffix": "件の回答",
+  "classement": {
+    "aide": "回答は正しい順番で入力します。その順番が正解です。プレイヤーにはシャッフルされて表示され、並べ替えます。最大8個。"
+  },
   "conversion": {
     "applied": "{{count}} 曲を変換しました",
     "apply": "{{count}} 曲を変換",
@@ -121,6 +124,7 @@
   },
   "questionType": {
     "bonneteau": "賭け — 3枚のカード",
+    "classement": "並べ替え",
     "diapo": "スライド",
     "multi": "複数選択",
     "pmu": "賭け — 競馬",

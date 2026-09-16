@@ -1,5 +1,6 @@
 import { QUESTION_TYPES } from "@razzia/common/constants"
 import type { Question, QuestionType } from "@razzia/common/types/game"
+import * as classement from "./classement"
 import * as multi from "./multi"
 import * as single from "./single"
 
@@ -17,4 +18,5 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   // Une diapo n'a pas de réponses, et le déroulé ne l'envoie jamais au
   // barème. L'entrée n'existe que parce que le registre est exhaustif.
   [QUESTION_TYPES.DIAPO]: () => 0,
+  [classement.type]: classement.scoring,
 }

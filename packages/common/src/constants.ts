@@ -163,7 +163,26 @@ export const QUESTION_TYPES = {
   // dans le déroulé comme une étape, attend l'animateur pour avancer, et
   // n'entre ni dans la numérotation des questions ni dans l'historique.
   DIAPO: "diapo",
+  // Un classement : les réponses sont à ranger dans l'ordre. L'ordre de
+  // saisie de l'éditeur EST la bonne réponse ; ce que le joueur envoie est la
+  // même liste d'indices, dans l'ordre qu'il propose. Voir classement.ts.
+  CLASSEMENT: "classement",
 } as const
+
+/**
+ * Le nombre de réponses qu'une question accepte.
+ *
+ * Quatre partout — quatre couleurs, quatre lettres, une grille à deux
+ * colonnes — sauf pour un classement, qui n'a ni couleur ni lettre et se lit
+ * en une seule colonne. Huit y restent jouables au doigt sur un téléphone ;
+ * au-delà, la liste demande de faire défiler pendant qu'on déplace.
+ */
+export const MAX_REPONSES = 4
+
+export const MAX_REPONSES_CLASSEMENT = 8
+
+export const maxReponses = (type: string) =>
+  type === QUESTION_TYPES.CLASSEMENT ? MAX_REPONSES_CLASSEMENT : MAX_REPONSES
 
 // Le discriminant d'un bloc de quiz. Un bloc est soit une question — dont le
 // `type` est l'un de QUESTION_TYPES — soit un groupe à élimination.

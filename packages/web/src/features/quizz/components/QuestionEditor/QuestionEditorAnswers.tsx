@@ -1,3 +1,4 @@
+import { MAX_REPONSES } from "@razzia/common/constants"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -23,7 +24,10 @@ const QuestionEditorAnswers = () => {
   }
 
   const addAnswer = () => {
-    if (nombreDeReponsesFige || currentQuestion.answers.length >= 4) {
+    if (
+      nombreDeReponsesFige ||
+      currentQuestion.answers.length >= MAX_REPONSES
+    ) {
       return
     }
 
@@ -75,7 +79,7 @@ const QuestionEditorAnswers = () => {
             aria-label={t("quizz:addAnswer")}
             disabled={
               Boolean(nombreDeReponsesFige) ||
-              currentQuestion.answers.length >= 4
+              currentQuestion.answers.length >= MAX_REPONSES
             }
             className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
           >

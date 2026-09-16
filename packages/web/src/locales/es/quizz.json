@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "Añadir una respuesta...",
   "addQuestion": "Añadir pregunta",
   "answersCountSuffix": " respuestas",
+  "classement": {
+    "aide": "Escribe las respuestas EN EL ORDEN CORRECTO: ese orden es la respuesta. Los jugadores las reciben mezcladas y las ordenan. Hasta 8 elementos."
+  },
   "conversion": {
     "applied": "{{count}} canción(es) convertida(s)",
     "apply": "Convertir {{count}} canción(es)",
@@ -122,6 +125,7 @@
   },
   "questionType": {
     "bonneteau": "Apuesta — trile",
+    "classement": "Clasificación",
     "diapo": "Diapositiva",
     "multi": "Opción múltiple",
     "pmu": "Apuesta — carrera de caballos",

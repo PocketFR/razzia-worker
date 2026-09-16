@@ -3,6 +3,9 @@
   "addAnswerPlaceholder": "Ajouter une réponse...",
   "addQuestion": "Ajouter une question",
   "answersCountSuffix": " réponses",
+  "classement": {
+    "aide": "Les réponses se saisissent DANS LE BON ORDRE : c'est lui, la bonne réponse. Les joueurs les reçoivent mélangées et les rangent. Jusqu'à 8 éléments."
+  },
   "conversion": {
     "applied": "{{count}} morceau(x) converti(s)",
     "apply": "Convertir {{count}} morceau(x)",
@@ -122,6 +125,7 @@
   },
   "questionType": {
     "bonneteau": "Pari — bonneteau",
+    "classement": "Classement",
     "diapo": "Diapo",
     "multi": "Choix multiple",
     "pmu": "Pari — course de chevaux",

@@ -1,5 +1,13 @@
 {
   "auto": "Auto",
+  "classement": {
+    "bonOrdre": "Die richtige Reihenfolge",
+    "consigne": "Bring die Antworten in die richtige Reihenfolge",
+    "deplacer": "Verschieben",
+    "exacts_one": "{{count}} von {{total}} Mitspielenden hat die genaue Reihenfolge",
+    "exacts_other": "{{count}} von {{total}} Mitspielenden haben die genaue Reihenfolge",
+    "personne": "Niemand hat die genaue Reihenfolge gefunden"
+  },
   "confirm": "Bestätigen",
   "correct": "Richtig!",
   "eliminated": "Du bist aus diesem Zwischenspiel ausgeschieden",
