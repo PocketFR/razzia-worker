@@ -11,6 +11,7 @@ import { entreeDePari } from "@razzia/web/features/questions/paris"
 import * as single from "@razzia/web/features/questions/single"
 import type {
   AnswerComponentProps,
+  PreparedComponentProps,
   ResultsComponentProps,
   SolutionPickerProps,
 } from "@razzia/web/features/questions/types"
@@ -36,6 +37,9 @@ interface QuestionRegistryEntry {
   // Remplace le dépouillement ordinaire — les barres par réponse — quand il
   // n'apprend rien. Absent, ce sont les barres qui s'affichent.
   ResultsComponent?: ComponentType<ResultsComponentProps>
+  // Remplace l'aperçu de l'annonce « Question n » — la grille de cases
+  // colorées — quand le type ne s'y reconnaît pas. Absent, c'est la grille.
+  PreparedComponent?: ComponentType<PreparedComponentProps>
 }
 
 export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {

@@ -454,6 +454,7 @@ const entrerPreparation = (ctx: ContextePartie, em: Emetteur) => {
   em.statutPourTous(STATUS.SHOW_PREPARED, {
     totalAnswers: question.answers.length,
     questionNumber: ouEnEst.current ?? ctx.manche.question + 1,
+    questionType: question.type,
   })
   em.programmer(ctx.manche.finDePhase)
 }

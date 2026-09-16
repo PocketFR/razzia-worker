@@ -16,6 +16,7 @@
 import { ordreMelange } from "@razzia/common/classement"
 import ClassementAnswers from "@razzia/web/features/questions/classement/components/ClassementAnswers"
 import ClassementResults from "@razzia/web/features/questions/classement/components/ClassementResults"
+import Prepared from "@razzia/web/features/game/components/states/Prepared"
 import { deplacer } from "@razzia/web/features/questions/classement/components/ColonneOrdonnable"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -135,5 +136,67 @@ describe("la révélation d'un classement", () => {
 
     expect(document.body.textContent).toContain("Personne")
     expect(document.body.textContent).not.toContain("0 joueur")
+  })
+})
+
+// L'annonce « Question n », deux secondes avant l'énoncé. Elle dessine la
+// forme de ce qui arrive : la grille de quatre boutons colorés ne dit ni le
+// bon nombre ni la bonne forme dès qu'il s'agit d'un classement — au-delà de
+// quatre, les couleurs et les lettres s'arrêtent, et il ne restait que des
+// cases grises muettes.
+describe("l'annonce d'un classement", () => {
+  const annonce = (
+    questionType: "single" | "classement",
+    totalAnswers: number,
+  ) =>
+    render(
+      <Prepared data={{ totalAnswers, questionNumber: 3, questionType }} />,
+    )
+
+  /** Les cases de l'aperçu, quel que soit son dessin. */
+  const cases = () => document.querySelectorAll(".anim-quizz > div").length
+
+  // LE DÉFAUT EXACT : la grille dessinait bien huit cases, mais ses couleurs
+  // s'arrêtent à quatre — les suivantes restaient invisibles sur le fond gris,
+  // et l'aperçu annonçait quatre réponses là où il y en avait huit.
+  it("montre autant de lignes VISIBLES que de réponses, jusqu'à huit", () => {
+    annonce("classement", 8)
+
+    const lignes = document.querySelectorAll<HTMLElement>(".anim-quizz > div")
+
+    expect(lignes).toHaveLength(8)
+    expect(
+      Array.from(lignes).every((ligne) =>
+        ligne.className.includes("bg-primary"),
+      ),
+    ).toBe(true)
+  })
+
+  it("sans lettre de réponse : il n'y a pas de bouton A, B, C", () => {
+    annonce("classement", 6)
+
+    expect(cases()).toBe(6)
+    expect(document.body.textContent).not.toContain("A")
+    // Les rangs, eux, se lisent.
+    expect(document.body.textContent).toContain("6")
+  })
+
+  it("en colonne, et non sur deux colonnes", () => {
+    annonce("classement", 5)
+
+    const apercu = document.querySelector(".anim-quizz")
+
+    expect(apercu?.className).toContain("flex-col")
+    expect(apercu?.className).not.toContain("grid-cols-2")
+  })
+
+  // Les autres types gardent leur grille : c'est elle qui annonce des boutons.
+  it("laisse la grille aux questions à boutons", () => {
+    annonce("single", 4)
+
+    const apercu = document.querySelector(".anim-quizz")
+
+    expect(apercu?.className).toContain("grid-cols-2")
+    expect(document.body.textContent).toContain("A")
   })
 })

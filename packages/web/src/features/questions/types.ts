@@ -20,6 +20,17 @@ export interface AnswerComponentProps {
  * est choisie exactement une fois par joueur et les barres sont toutes
  * égales. Un type peut donc fournir sa propre révélation.
  */
+/**
+ * L'aperçu de l'annonce « Question n », deux secondes avant l'énoncé.
+ *
+ * La grille de cases colorées annonce quatre boutons ; elle ment dès que la
+ * question ne s'y ramène pas — un classement en montre jusqu'à huit, et en
+ * une seule colonne.
+ */
+export interface PreparedComponentProps {
+  totalAnswers: number
+}
+
 export interface ResultsComponentProps {
   answers: string[]
   solutions: number[]

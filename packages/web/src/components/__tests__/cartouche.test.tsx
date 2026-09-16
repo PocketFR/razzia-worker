@@ -89,7 +89,9 @@ const titres: Array<[string, ReactElement]> = [
   ["l'attente", <Wait data={{ text: "game:waitOtherPlayers" }} />],
   [
     "l'annonce d'une question",
-    <Prepared data={{ totalAnswers: 4, questionNumber: 3 }} />,
+    <Prepared
+      data={{ totalAnswers: 4, questionNumber: 3, questionType: "single" }}
+    />,
   ],
 ]
 

@@ -4,6 +4,7 @@ import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
 } from "@razzia/web/features/game/utils/reponses"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import { useTranslation } from "react-i18next"
 
@@ -11,8 +12,14 @@ interface Props {
   data: CommonStatusDataMap["SHOW_PREPARED"]
 }
 
-const Prepared = ({ data: { totalAnswers, questionNumber } }: Props) => {
+const Prepared = ({
+  data: { totalAnswers, questionNumber, questionType },
+}: Props) => {
   const { t } = useTranslation()
+
+  // Un type peut annoncer autre chose que quatre boutons colorés : un
+  // classement montre la colonne qu'il va falloir ranger.
+  const { PreparedComponent } = QUESTION_REGISTRY[questionType]
 
   return (
     <section className="anim-show relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center">
@@ -22,21 +29,25 @@ const Prepared = ({ data: { totalAnswers, questionNumber } }: Props) => {
           {questionNumber}
         </h2>
       </Cartouche>
-      <div className="anim-quizz grid aspect-square w-60 grid-cols-2 gap-4 rounded-2xl bg-gray-700 p-5 md:w-60">
-        {Array.from({ length: totalAnswers }).map((_, key) => (
-          <div
-            key={key}
-            className={clsx(
-              "button shadow-inset flex aspect-square h-full w-full items-center justify-center rounded-2xl",
-              ANSWERS_COLORS[key],
-            )}
-          >
-            <span className="text-2xl font-bold text-white md:text-3xl">
-              {ANSWERS_LABELS[key]}
-            </span>
-          </div>
-        ))}
-      </div>
+      {PreparedComponent ? (
+        <PreparedComponent totalAnswers={totalAnswers} />
+      ) : (
+        <div className="anim-quizz grid aspect-square w-60 grid-cols-2 gap-4 rounded-2xl bg-gray-700 p-5 md:w-60">
+          {Array.from({ length: totalAnswers }).map((_, key) => (
+            <div
+              key={key}
+              className={clsx(
+                "button shadow-inset flex aspect-square h-full w-full items-center justify-center rounded-2xl",
+                ANSWERS_COLORS[key],
+              )}
+            >
+              <span className="text-2xl font-bold text-white md:text-3xl">
+                {ANSWERS_LABELS[key]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

@@ -53,7 +53,17 @@ const classement = [joueur("Alice", 2400), joueur("Chloé", 1900)]
 const ECRANS: Array<[string, () => React.ReactElement]> = [
   [
     "SHOW_PREPARED",
-    () => <Prepared data={{ totalAnswers: 3, questionNumber: 2 } as never} />,
+    () => (
+      <Prepared
+        data={
+          {
+            totalAnswers: 3,
+            questionNumber: 2,
+            questionType: QUESTION_TYPES.BONNETEAU,
+          } as never
+        }
+      />
+    ),
   ],
   [
     "SHOW_QUESTION (mélange)",

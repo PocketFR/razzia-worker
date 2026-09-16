@@ -55,7 +55,13 @@ export interface CommonStatusDataMap {
   // musicale, que SHOW_QUESTION retire parce qu'elle donnerait la réponse. Une
   // diapo n'a pas de réponse à trahir.
   SHOW_SLIDE: { titre: string; media?: QuestionMedia; fond?: string }
-  SHOW_PREPARED: { totalAnswers: number; questionNumber: number }
+  // Le type sert à l'aperçu : il annonce ce que le joueur va recevoir — une
+  // grille de choix, ou une colonne à ranger.
+  SHOW_PREPARED: {
+    totalAnswers: number
+    questionNumber: number
+    questionType: QuestionType
+  }
   SHOW_QUESTION: {
     question: string
     media?: QuestionMedia

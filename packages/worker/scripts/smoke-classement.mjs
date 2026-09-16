@@ -163,6 +163,18 @@ await new Promise((r) => setTimeout(r, 400))
 
 animateur.envoyer("manager:startGame", { gameId: partie.gameId })
 
+// ── l'annonce ──────────────────────────────────────────────────────────────
+// L'aperçu « Question n » dessine ce qui arrive : sans le type, il annonce
+// quatre boutons colorés là où une colonne de cinq va s'afficher.
+const annonce = await alice.statut("SHOW_PREPARED")
+
+verifier(
+  "l'annonce porte le type et le nombre d'éléments",
+  annonce?.d?.data?.questionType === "classement" &&
+    annonce?.d?.data?.totalAnswers === 5,
+  JSON.stringify(annonce?.d?.data),
+)
+
 // ── la question ────────────────────────────────────────────────────────────
 const chezAlice = await alice.statut("SELECT_ANSWER")
 const chezBob = await bob.statut("SELECT_ANSWER")

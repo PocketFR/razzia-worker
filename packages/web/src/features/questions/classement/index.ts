@@ -8,6 +8,8 @@ export { default as AnswerComponent } from "@razzia/web/features/questions/class
 
 export { default as AnswersEditor } from "@razzia/web/features/questions/classement/components/ClassementEditor"
 
+export { default as PreparedComponent } from "@razzia/web/features/questions/classement/components/ClassementPrepa"
+
 export { default as ResultsComponent } from "@razzia/web/features/questions/classement/components/ClassementResults"
 
 export { default as ConfigComponent } from "@razzia/web/features/questions/multi/components/MultiConfig"
