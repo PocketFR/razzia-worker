@@ -1,4 +1,5 @@
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import CricleCheck from "@razzia/web/features/game/components/icons/CricleCheck"
 import CricleXmark from "@razzia/web/features/game/components/icons/CricleXmark"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
@@ -41,14 +42,14 @@ const Result = ({
       ) : (
         <CricleXmark className="aspect-square max-h-60 w-full" />
       )}
-      <h2 className="mt-1 text-4xl font-bold text-white drop-shadow-lg">
-        {t(message)}
-      </h2>
-      <p className="mt-1 text-xl font-bold text-white drop-shadow-lg">
-        {t("game:resultTop")}
-        {t(rankKey, { rank })}
-        {aheadOfMe ? `${t("game:resultBehind")}${aheadOfMe}` : ""}
-      </p>
+      <Cartouche className="mt-1 flex flex-col items-center gap-1 text-center">
+        <h2 className="text-4xl font-bold">{t(message)}</h2>
+        <p className="text-xl font-bold">
+          {t("game:resultTop")}
+          {t(rankKey, { rank })}
+          {aheadOfMe ? `${t("game:resultBehind")}${aheadOfMe}` : ""}
+        </p>
+      </Cartouche>
       {correct && (
         <span className="mt-2 rounded-lg bg-black/40 px-4 py-2 text-2xl font-bold text-white drop-shadow-lg">
           +{points}

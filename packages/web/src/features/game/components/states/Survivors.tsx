@@ -14,6 +14,7 @@
 // tours, et le pot se partage à parts égales. Il n'y a donc rien à classer.
 
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import { useTranslation } from "react-i18next"
 
 interface Props {
@@ -38,27 +39,33 @@ const Survivors = ({ data: { titre, survivants, points } }: Props) => {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-center gap-8 px-4">
-      <p className="text-center text-xl font-bold text-white/80 drop-shadow md:text-3xl">
-        {titre ?? t("game:interlude.title")}
-      </p>
+      <Cartouche className="px-4 py-2 md:px-6 md:py-2">
+        <p className="text-center text-xl font-bold text-balance text-white/80 md:text-3xl">
+          {titre ?? t("game:interlude.title")}
+        </p>
+      </Cartouche>
 
       {survivants.length === 0 ? (
-        <p className="text-center text-3xl font-bold text-white drop-shadow-lg md:text-5xl">
-          {t("game:interlude.nobody")}
-        </p>
+        <Cartouche>
+          <p className="text-center text-3xl font-bold md:text-5xl">
+            {t("game:interlude.nobody")}
+          </p>
+        </Cartouche>
       ) : (
         <>
-          <p className="text-center text-lg font-semibold text-white/70 md:text-xl">
-            {t("game:interlude.survivors", { count: survivants.length })}
-          </p>
+          <Cartouche className="flex flex-col items-center gap-4">
+            <p className="text-center text-lg font-semibold text-white/70 md:text-xl">
+              {t("game:interlude.survivors", { count: survivants.length })}
+            </p>
 
-          <div
-            className={`flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-center font-bold text-white drop-shadow-lg ${taille(survivants.length)}`}
-          >
-            {survivants.map((nom) => (
-              <span key={nom}>{nom}</span>
-            ))}
-          </div>
+            <div
+              className={`flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-center font-bold ${taille(survivants.length)}`}
+            >
+              {survivants.map((nom) => (
+                <span key={nom}>{nom}</span>
+              ))}
+            </div>
+          </Cartouche>
 
           {points ? (
             <p className="rounded-xl bg-black/45 px-5 py-2 text-center text-xl font-bold text-white backdrop-blur-sm md:text-3xl">

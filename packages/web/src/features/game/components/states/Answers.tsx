@@ -2,6 +2,7 @@ import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import { musiqueDesReponsesActive } from "@razzia/web/branding"
+import Cartouche from "@razzia/web/components/Cartouche"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import MusiqueDesReponses from "@razzia/web/features/game/components/MusiqueDesReponses"
 import {
@@ -80,9 +81,11 @@ const Answers = ({
       {avecMusique && <MusiqueDesReponses />}
 
       <div className="mx-auto inline-flex h-full w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5">
-        <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {question}
-        </h2>
+        <Cartouche>
+          <h2 className="text-center text-2xl font-bold text-balance md:text-4xl lg:text-5xl">
+            {question}
+          </h2>
+        </Cartouche>
 
         <QuestionMedia media={media} alt={question} />
       </div>

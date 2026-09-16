@@ -1,4 +1,5 @@
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import CarteRougeNoir from "@razzia/web/features/questions/paris/components/CarteRougeNoir"
 import CoursePmu from "@razzia/web/features/questions/paris/components/CoursePmu"
 import { HABILLAGES } from "@razzia/web/features/questions/paris/types"
@@ -25,9 +26,11 @@ const Draw = ({ data: { pari, duree, endsAt, noms, largeurEcran } }: Props) => {
         pari.type === "pmu" ? "" : "mx-auto max-w-7xl px-4"
       }`}
     >
-      <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-3xl">
-        {t(HABILLAGES[pari.type].consigneKey)}
-      </h2>
+      <Cartouche>
+        <h2 className="text-center text-2xl font-bold text-balance md:text-3xl">
+          {t(HABILLAGES[pari.type].consigneKey)}
+        </h2>
+      </Cartouche>
 
       {pari.type === "pmu" ? (
         <CoursePmu

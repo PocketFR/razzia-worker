@@ -5,6 +5,7 @@
 // quelques points. Elle s'efface seule après cinq secondes.
 
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import { useTranslation } from "react-i18next"
 
 interface Props {
@@ -16,20 +17,22 @@ const Interlude = ({ data: { titre, points, questions } }: Props) => {
 
   return (
     <div className="anim-show mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-6 px-4 text-center">
-      <p className="text-2xl font-bold text-white drop-shadow-lg md:text-5xl">
-        {titre ?? t("game:interlude.title")}
-      </p>
+      <Cartouche className="flex flex-col items-center gap-4">
+        <p className="text-2xl font-bold text-balance md:text-5xl">
+          {titre ?? t("game:interlude.title")}
+        </p>
 
-      <p
-        className="text-4xl font-black tracking-wide uppercase drop-shadow-lg md:text-7xl"
-        style={{ color: "#fa4040" }}
-      >
-        {t("game:interlude.suddenDeath")}
-      </p>
+        <p
+          className="text-4xl font-black tracking-wide uppercase md:text-7xl"
+          style={{ color: "#fa4040" }}
+        >
+          {t("game:interlude.suddenDeath")}
+        </p>
 
-      <p className="text-lg font-semibold text-white/80 md:text-2xl">
-        {t("game:interlude.rule", { count: questions })}
-      </p>
+        <p className="text-lg font-semibold text-white/80 md:text-2xl">
+          {t("game:interlude.rule", { count: questions })}
+        </p>
+      </Cartouche>
 
       {points ? (
         <p className="rounded-xl bg-black/45 px-6 py-3 text-2xl font-bold text-white backdrop-blur-sm md:text-4xl">

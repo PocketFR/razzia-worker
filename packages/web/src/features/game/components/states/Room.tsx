@@ -6,6 +6,7 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import Cartouche from "@razzia/web/components/Cartouche"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useOnClickOutside } from "@razzia/web/hooks/useOnClickOutside"
 import { Maximize2, X } from "lucide-react"
@@ -116,9 +117,11 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
         </AlertDialog.Root>
       </div>
 
-      <h2 className="mb-4 text-4xl font-bold text-white drop-shadow-lg">
-        {t(text)}
-      </h2>
+      <Cartouche className="mb-4">
+        <h2 className="text-center text-4xl font-bold text-balance">
+          {t(text)}
+        </h2>
+      </Cartouche>
 
       <div className="mb-6 flex items-center justify-center rounded-lg bg-black/40 px-6 py-3">
         <span className="text-2xl font-bold text-white drop-shadow-md">

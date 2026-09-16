@@ -1,5 +1,6 @@
 import { estPari } from "@razzia/common/paris"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import AnswerButton from "@razzia/web/features/game/components/AnswerButton"
 import {
   ANSWERS_COLORS,
@@ -73,9 +74,11 @@ const Responses = ({
   return (
     <div className="flex h-full flex-1 flex-col justify-between">
       <div className="mx-auto inline-flex h-full w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5">
-        <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {question}
-        </h2>
+        <Cartouche>
+          <h2 className="text-center text-2xl font-bold text-balance md:text-4xl lg:text-5xl">
+            {question}
+          </h2>
+        </Cartouche>
 
         {piste?.id && <CartePiste uri={urlDuMedia(media) ?? ""} />}
 

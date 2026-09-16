@@ -1,4 +1,5 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import Fire from "@razzia/web/features/game/components/icons/Fire"
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react"
 import { useEffect, useState } from "react"
@@ -64,9 +65,9 @@ const Leaderboard = ({ data: { oldLeaderboard, leaderboard } }: Props) => {
 
   return (
     <section className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-2">
-      <h2 className="mb-6 text-5xl font-bold text-white drop-shadow-md">
-        {t("game:leaderboard")}
-      </h2>
+      <Cartouche className="mb-6">
+        <h2 className="text-5xl font-bold">{t("game:leaderboard")}</h2>
+      </Cartouche>
       <div className="flex w-full flex-col gap-2">
         <AnimatePresence mode="popLayout">
           {displayedLeaderboard.map(({ id, username, points, streak }) => (

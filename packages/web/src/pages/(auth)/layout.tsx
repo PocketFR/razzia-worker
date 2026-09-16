@@ -1,4 +1,5 @@
 import Background from "@razzia/web/components/Background"
+import Cartouche from "@razzia/web/components/Cartouche"
 import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
 import Loader from "@razzia/web/components/Loader"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
@@ -18,9 +19,11 @@ const AuthLayout = () => {
     return (
       <Background>
         <Loader className="h-23" />
-        <h2 className="mt-2 text-center text-2xl font-bold text-white drop-shadow-lg md:text-3xl">
-          {t("common:loading")}
-        </h2>
+        <Cartouche className="mt-2">
+          <h2 className="text-center text-2xl font-bold md:text-3xl">
+            {t("common:loading")}
+          </h2>
+        </Cartouche>
       </Background>
     )
   }

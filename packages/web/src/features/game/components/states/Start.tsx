@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import { useEvent } from "@razzia/web/features/game/contexts/socket-context"
 import { useDecompte } from "@razzia/web/features/game/hooks/use-decompte"
 import { SFX } from "@razzia/web/features/game/utils/constants"
@@ -31,9 +32,11 @@ const Start = ({ data: { time, subject } }: Props) => {
   return (
     <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center">
       {showTitle ? (
-        <h2 className="anim-show text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {subject}
-        </h2>
+        <Cartouche className="anim-show mx-4">
+          <h2 className="text-center text-3xl font-bold text-balance md:text-4xl lg:text-5xl">
+            {subject}
+          </h2>
+        </Cartouche>
       ) : (
         <>
           <div

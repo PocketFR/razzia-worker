@@ -1,6 +1,7 @@
 import { lireUriMusique } from "@razzia/common/musique"
 import { urlDuMedia } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
 import CartePiste from "@razzia/web/features/musique/components/CartePiste"
 
@@ -29,9 +30,11 @@ const Diapo = ({
 
   return (
     <section className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col items-center justify-center gap-6 px-4">
-      <h2 className="text-center text-3xl font-bold text-balance text-white drop-shadow-lg md:text-5xl lg:text-6xl">
-        {titre}
-      </h2>
+      <Cartouche>
+        <h2 className="text-center text-3xl font-bold text-balance md:text-5xl lg:text-6xl">
+          {titre}
+        </h2>
+      </Cartouche>
 
       {piste?.id ? (
         <CartePiste uri={url ?? ""} />

@@ -1,5 +1,6 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { attributsImage } from "@razzia/web/features/media/lib"
 import Bonneteau from "@razzia/web/features/questions/paris/components/Bonneteau"
@@ -28,9 +29,11 @@ const Question = ({
       }`}
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-5">
-        <h2 className="anim-show text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {question}
-        </h2>
+        <Cartouche className="anim-show">
+          <h2 className="text-center text-3xl font-bold text-balance md:text-4xl lg:text-5xl">
+            {question}
+          </h2>
+        </Cartouche>
 
         {/* Le mélange du bonneteau occupe l'énoncé : c'est là qu'il faut
             suivre la dame, avant que les mises n'ouvrent. */}

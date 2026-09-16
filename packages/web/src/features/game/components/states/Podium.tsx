@@ -1,4 +1,5 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import Cartouche from "@razzia/web/components/Cartouche"
 import NextQuizz from "@razzia/web/features/game/components/NextQuizz"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import useScreenSize from "@razzia/web/hooks/useScreenSize"
@@ -124,9 +125,11 @@ const Podium = ({ data: { subject, top } }: Props) => {
         </div>
       )}
       <section className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-between">
-        <h2 className="anim-show text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {subject}
-        </h2>
+        <Cartouche className="anim-show mx-4">
+          <h2 className="text-center text-3xl font-bold text-balance md:text-4xl lg:text-5xl">
+            {subject}
+          </h2>
+        </Cartouche>
 
         <div
           style={{
@@ -141,16 +144,15 @@ const Podium = ({ data: { subject, top } }: Props) => {
                 { "translate-y-0! opacity-100": apparition >= 2 },
               )}
             >
-              <p
-                className={clsx(
-                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
-                  {
-                    "anim-balanced": apparition >= 4,
-                  },
-                )}
+              <Cartouche
+                className={clsx("max-w-none px-4 py-1 md:px-5 md:py-1.5", {
+                  "anim-balanced": apparition >= 4,
+                })}
               >
-                {classes[1].username}
-              </p>
+                <p className="overflow-visible text-center text-2xl font-bold whitespace-nowrap md:text-4xl">
+                  {classes[1].username}
+                </p>
+              </Cartouche>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={2} />
                 <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
@@ -172,14 +174,16 @@ const Podium = ({ data: { subject, top } }: Props) => {
                 },
               )}
             >
-              <p
+              <Cartouche
                 className={clsx(
-                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white opacity-0 drop-shadow-lg md:text-4xl",
+                  "max-w-none px-4 py-1 opacity-0 md:px-5 md:py-1.5",
                   { "anim-balanced opacity-100": apparition >= 4 },
                 )}
               >
-                {classes[0].username}
-              </p>
+                <p className="overflow-visible text-center text-2xl font-bold whitespace-nowrap md:text-4xl">
+                  {classes[0].username}
+                </p>
+              </Cartouche>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={1} />
                 <p className="text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
@@ -198,16 +202,15 @@ const Podium = ({ data: { subject, top } }: Props) => {
                 },
               )}
             >
-              <p
-                className={clsx(
-                  "overflow-visible text-center text-2xl font-bold whitespace-nowrap text-white drop-shadow-lg md:text-4xl",
-                  {
-                    "anim-balanced": apparition >= 4,
-                  },
-                )}
+              <Cartouche
+                className={clsx("max-w-none px-4 py-1 md:px-5 md:py-1.5", {
+                  "anim-balanced": apparition >= 4,
+                })}
               >
-                {classes[2].username}
-              </p>
+                <p className="overflow-visible text-center text-2xl font-bold whitespace-nowrap md:text-4xl">
+                  {classes[2].username}
+                </p>
+              </Cartouche>
               <div className="bg-primary flex h-full w-full flex-col items-center gap-4 rounded-t-xl pt-6 text-center shadow-2xl">
                 <Medal rank={3} />
 

@@ -21,6 +21,7 @@
 // règle). L'artiste et l'année, courts et complémentaires, tiennent ensemble
 // en dessous sans risquer de se faire couper.
 
+import Cartouche from "@razzia/web/components/Cartouche"
 import { usePiste } from "@razzia/web/features/musique/hooks/use-piste"
 
 interface Props {
@@ -40,7 +41,9 @@ const CartePiste = ({ uri }: Props) => {
     .join(" · ")
 
   return (
-    <div className="flex max-w-3xl items-center gap-5 rounded-2xl bg-black/50 p-4 text-white shadow-xl backdrop-blur-sm md:gap-7 md:p-6">
+    // Le cadre est celui de `Cartouche` : c'est d'ici qu'il vient, et les
+    // énoncés posés sur le fond d'écran s'en servent désormais aussi.
+    <Cartouche className="flex max-w-3xl items-center gap-5 md:gap-7">
       {piste.cover && (
         <img
           src={piste.cover}
@@ -64,7 +67,7 @@ const CartePiste = ({ uri }: Props) => {
           </p>
         )}
       </div>
-    </div>
+    </Cartouche>
   )
 }
 

@@ -8,6 +8,7 @@
 // L'écran attend : c'est l'animateur, ou l'enchaînement automatique, qui fait
 // passer tout le monde à la suite.
 
+import Cartouche from "@razzia/web/components/Cartouche"
 import CricleCheck from "@razzia/web/features/game/components/icons/CricleCheck"
 import CricleXmark from "@razzia/web/features/game/components/icons/CricleXmark"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
@@ -28,13 +29,15 @@ const InterludeEnd = ({ data: { titre, survecu, points } }: Props) => {
         <CricleXmark className="aspect-square max-h-60 w-full" />
       )}
 
-      <h2 className="mt-1 text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl">
-        {survecu ? t("game:interlude.survived") : t("game:interlude.out")}
-      </h2>
+      <Cartouche className="mt-1 flex flex-col items-center gap-1 text-center">
+        <h2 className="text-3xl font-bold text-balance md:text-4xl">
+          {survecu ? t("game:interlude.survived") : t("game:interlude.out")}
+        </h2>
 
-      <p className="mt-1 text-lg font-semibold text-white/70 drop-shadow">
-        {titre ?? t("game:interlude.title")}
-      </p>
+        <p className="text-lg font-semibold text-white/70">
+          {titre ?? t("game:interlude.title")}
+        </p>
+      </Cartouche>
 
       {survecu && points ? (
         <span className="mt-3 rounded-lg bg-black/40 px-4 py-2 text-2xl font-bold text-white drop-shadow-lg">

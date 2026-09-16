@@ -1,8 +1,10 @@
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS, type Status } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
+import Cartouche from "@razzia/web/components/Cartouche"
 import Fond from "@razzia/web/components/Fond"
 import Loader from "@razzia/web/components/Loader"
+import EnteteDeManche from "@razzia/web/features/game/components/EnteteDeManche"
 import {
   useEvent,
   useSocket,
@@ -88,62 +90,64 @@ const GameWrapper = ({
         {!isConnected && !statusName ? (
           <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
             <Loader className="h-30" />
-            <h1 className="text-4xl font-bold text-white">
-              {t("common:connecting")}
-            </h1>
+            <Cartouche className="mt-2">
+              <h1 className="text-4xl font-bold">{t("common:connecting")}</h1>
+            </Cartouche>
           </div>
         ) : (
           <>
-            <div className="flex w-full justify-between p-4">
-              {/* Pas de compteur sur une diapo : elle n'est pas une question. */}
-              {questionStates && questionStates.current !== null && (
-                <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
-                  {`${questionStates.current} / ${questionStates.total}`}
-                </div>
-              )}
-
-              {/* La case est solidaire du bouton « Passer », comme la
-                  surcouche qui la greffait dessus : hors partie il n'y a rien
-                  à enchaîner, et elle n'a donc pas lieu d'être affichée.
-                  Pas de ml-auto ici : le justify-between du conteneur place
-                  déjà ce groupe à gauche quand le compteur est absent, et le
-                  forcer à droite collait le tout contre « Quitter ». */}
-              {manager && next && (
-                <div className="flex items-center gap-3">
-                  {auto && (
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-black">
-                      <input
-                        type="checkbox"
-                        checked={auto.actif}
-                        onChange={(e) => auto.basculer(e.target.checked)}
-                      />
-                      {t("game:auto")}
-                    </label>
-                  )}
-
-                  <Button
-                    className={clsx(
-                      "hover:bg-accent bg-white px-4 text-black",
-                      {
-                        "pointer-events-none": isDisabled,
-                      },
+            <EnteteDeManche
+              // Pas de compteur sur une diapo : elle n'est pas une question.
+              // Sa place, elle, reste tenue — voir `EnteteDeManche`.
+              compteur={
+                questionStates && questionStates.current !== null
+                  ? `${questionStates.current} / ${questionStates.total}`
+                  : null
+              }
+              // La case est solidaire du bouton « Passer », comme la surcouche
+              // qui la greffait dessus : hors partie il n'y a rien à
+              // enchaîner, et elle n'a donc pas lieu d'être affichée.
+              commandes={
+                manager &&
+                next && (
+                  <div className="flex items-center gap-3">
+                    {auto && (
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-black">
+                        <input
+                          type="checkbox"
+                          checked={auto.actif}
+                          onChange={(e) => auto.basculer(e.target.checked)}
+                        />
+                        {t("game:auto")}
+                      </label>
                     )}
-                    onClick={handleNext}
-                  >
-                    {t(next)}
-                  </Button>
-                </div>
-              )}
 
-              {manager && onBack && (
-                <Button
-                  onClick={onBack}
-                  className="hover:bg-accent bg-white px-4 text-black"
-                >
-                  {t("common:exit")}
-                </Button>
-              )}
-            </div>
+                    <Button
+                      className={clsx(
+                        "hover:bg-accent bg-white px-4 text-black",
+                        {
+                          "pointer-events-none": isDisabled,
+                        },
+                      )}
+                      onClick={handleNext}
+                    >
+                      {t(next)}
+                    </Button>
+                  </div>
+                )
+              }
+              sortie={
+                manager &&
+                onBack && (
+                  <Button
+                    onClick={onBack}
+                    className="hover:bg-accent bg-white px-4 text-black"
+                  >
+                    {t("common:exit")}
+                  </Button>
+                )
+              }
+            />
 
             {children}
 
